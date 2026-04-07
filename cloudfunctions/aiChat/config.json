@@ -1,5 +1,8 @@
 {
   "timeout": 20,
-  "envVariables": {},
+  "envVariables": {
+    "QWEN_API_KEY": "",
+    "QWEN_MODEL": "qwen-vl-plus"
+  },
   "triggers": []
 }

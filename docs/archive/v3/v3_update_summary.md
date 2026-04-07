@@ -5,7 +5,7 @@
 ## 1. 主要新增功能
 
 ### 1.1 趣味答题（题库/抽题/判分/积分/排行榜）
-- 新增题库集合 `quiz_questions`，提供 50 道反诈选择题（种子数据：`docs/v3/quiz_questions_seed.json`；云函数内置同款种子）。
+- 新增题库集合 `quiz_questions`，提供 50 道反诈选择题（种子数据：`docs/archive/v3/quiz_questions_seed.json`；云函数内置同款种子）。
 - 新增答题页面 `pages/quiz/quiz`：
   - 每次随机抽取 10 题（云函数 `getQuizQuestions`）
   - 交卷后服务端判分并返回解析（云函数 `submitQuizAttempt`）
@@ -109,9 +109,9 @@ users 新增字段（v3）：
 
 ## 5. 已同步更新的文档
 
-- `docs/v3/v3_update_plan.md`
-- `docs/v3/v3_implementation_guide.md`
+- `docs/archive/v3/v3_update_plan.md`
+- `docs/archive/v3/v3_implementation_guide.md`
 - `cloudfunctions/database.md`
 - `README.md`
-- 各目录 `FOLDER.md`（pages/cloudfunctions/docs/images/root）以及相关页面/云函数头部说明
+- 各阶段相关目录说明文档与页面/云函数头部说明
 

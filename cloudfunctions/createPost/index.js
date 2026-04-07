@@ -3,8 +3,8 @@
  *
  * 上游依赖：users, public_profiles, posts, follows, notifications
  * 入口：exports.main
- * 主要功能：发帖；给粉丝写入站内通知（new_post）
- * 输出：postId
+ * 主要功能：发帖；默认进入待审核状态
+ * 输出：postId, status
  *
  * 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
  */
@@ -14,7 +14,6 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
-const _ = db.command
 
 async function ensureCollection(name) {
   try {
@@ -45,15 +44,19 @@ function sanitizeText(s, maxLen) {
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
+  const defaultStatus = 'pending_review'
 
   try {
-    await Promise.all([
+    const collectionsToEnsure = [
       ensureCollection('posts'),
       ensureCollection('users'),
-      ensureCollection('public_profiles'),
-      ensureCollection('follows'),
-      ensureCollection('notifications')
-    ])
+      ensureCollection('public_profiles')
+    ]
+    if (defaultStatus === 'published') {
+      collectionsToEnsure.push(ensureCollection('follows'))
+      collectionsToEnsure.push(ensureCollection('notifications'))
+    }
+    await Promise.all(collectionsToEnsure)
 
     const user = await getCurrentUser(openid)
     if (!user) return { success: false, errMsg: '用户不存在' }
@@ -75,7 +78,7 @@ exports.main = async (event, context) => {
         authorAvatarUrl: user.avatarUrl || '',
         content,
         images,
-        status: 'published',
+        status: defaultStatus,
         commentCount: 0,
         likeCount: 0,
         createdAt: now,
@@ -85,38 +88,47 @@ exports.main = async (event, context) => {
 
     const postId = postRes._id
 
-    // Notify followers (best-effort; cap to avoid timeouts)
-    try {
-      const followersRes = await db.collection('follows')
-        .where({ followeeUid: user.uid })
-        .limit(200)
-        .get()
+    // 审核通过前不进入公开流，也不向关注者推送通知。
+    if (defaultStatus === 'published') {
+      try {
+        const followersRes = await db.collection('follows')
+          .where({ followeeUid: user.uid })
+          .limit(200)
+          .get()
 
-      const followers = followersRes.data || []
-      const previewText = content ? content.slice(0, 50) : '[图片]'
+        const followers = followersRes.data || []
+        const previewText = content ? content.slice(0, 50) : '[图片]'
 
-      for (const f of followers) {
-        const toUid = f.followerUid
-        if (!toUid || toUid === user.uid) continue
-        await db.collection('notifications').add({
-          data: {
-            toUid,
-            fromUid: user.uid,
-            type: 'new_post',
-            payload: {
-              postId,
-              previewText
-            },
-            isRead: false,
-            createdAt: new Date()
-          }
-        })
+        for (const f of followers) {
+          const toUid = f.followerUid
+          if (!toUid || toUid === user.uid) continue
+          await db.collection('notifications').add({
+            data: {
+              toUid,
+              fromUid: user.uid,
+              type: 'new_post',
+              payload: {
+                postId,
+                previewText
+              },
+              isRead: false,
+              createdAt: new Date()
+            }
+          })
+        }
+      } catch (err) {
+        console.warn('notify followers failed:', err.message)
       }
-    } catch (err) {
-      console.warn('notify followers failed:', err.message)
     }
 
-    return { success: true, data: { postId } }
+    return {
+      success: true,
+      data: {
+        postId,
+        status: defaultStatus,
+        message: '帖子已提交审核，审核通过后会显示在社区'
+      }
+    }
   } catch (err) {
     console.error('createPost failed:', err)
     return { success: false, errMsg: err.message }

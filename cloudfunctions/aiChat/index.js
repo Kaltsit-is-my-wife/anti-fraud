@@ -27,12 +27,12 @@ const db = cloud.database()
 const _ = db.command
 
 // ==================== 配置区域 ====================
-// 🔑 在这里填写您的通义千问 API Key
-const QWEN_API_KEY = 'sk-5fb6a8c8d48e45f193447ba71264c771'  // ⚠️ 请替换为您的真实 API Key
+// 🔑 通过云函数环境变量配置通义千问 API Key
+const QWEN_API_KEY = process.env.QWEN_API_KEY || ''
 
 // 通义千问 API 配置
 const QWEN_API_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation'
-const QWEN_MODEL = 'qwen-vl-plus'  // 多模态模型
+const QWEN_MODEL = process.env.QWEN_MODEL || 'qwen-vl-plus'  // 多模态模型
 // ==================================================
 
 exports.main = async (event, context) => {
@@ -111,6 +111,10 @@ exports.main = async (event, context) => {
 // 使用多模态模型直接处理文本和图片
 async function generateReplyWithVision(message, imageBase64, history = []) {
   try {
+    if (!QWEN_API_KEY) {
+      throw new Error('QWEN_API_KEY 未配置')
+    }
+
     console.log('调用多模态模型，base64 长度：', imageBase64 ? imageBase64.length : 0)
 
     // 构建系统提示词

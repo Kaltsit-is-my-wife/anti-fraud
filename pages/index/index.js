@@ -437,20 +437,6 @@ Page({
     }
   },
 
-  // 保存文章数据到本地存储
-  saveArticlesToStorage() {
-    try {
-      const articlesData = this.data.allArticles.map(article => ({
-        id: article.id,
-        views: article.views,
-        timestamp: article.timestamp
-      }))
-      wx.setStorageSync('articles_data', articlesData)
-    } catch (err) {
-      console.error('保存文章数据失败：', err)
-    }
-  },
-
   // 更新文章列表（格式化时间和浏览量）
   updateArticlesList(articles) {
     const formattedArticles = articles.map(article => ({
@@ -535,60 +521,9 @@ Page({
   viewArticle(e) {
     const id = e.currentTarget.dataset.id
 
-    // 增加浏览量
-    this.incrementViews(id)
-
     wx.navigateTo({
       url: `/pages/article-detail/article-detail?id=${id}`
     })
-  },
-
-  // 增加文章浏览量
-  async incrementViews(articleId) {
-    // 更新 allArticles 中的浏览量
-    this.data.allArticles = this.data.allArticles.map(article => {
-      if (article.id === articleId) {
-        return { ...article, views: article.views + 1 }
-      }
-      return article
-    })
-
-    // 更新显示列表中的浏览量
-    const updatedArticles = this.data.articles.map(article => {
-      if (article.id === articleId) {
-        const newViews = article.views + 1
-        return {
-          ...article,
-          views: newViews,
-          viewsText: formatViews(newViews)
-        }
-      }
-      return article
-    })
-
-    this.setData({
-      articles: updatedArticles
-    })
-
-    // 保存到本地存储
-    this.saveArticlesToStorage()
-
-    // 同步到云数据库（使用原子操作）
-    try {
-      const db = wx.cloud.database()
-      const _ = db.command
-
-      await db.collection('articles').doc(articleId).update({
-        data: {
-          views: _.inc(1)  // 浏览量 +1
-        }
-      })
-
-      console.log('浏览量已同步到云数据库')
-    } catch (err) {
-      console.error('更新云数据库浏览量失败：', err)
-      // 不影响用户体验，静默失败
-    }
   },
 
   // 加载轮播图

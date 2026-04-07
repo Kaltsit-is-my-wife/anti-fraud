@@ -23,10 +23,13 @@ Page({
           name: 'getUserInfo',
           data: {}
         }),
-        wx.cloud.database().collection('points_records')
-          .orderBy('createdAt', 'desc')
-          .limit(50)
-          .get()
+        wx.cloud.callFunction({
+          name: 'getPointsRecords',
+          data: {
+            page: 1,
+            pageSize: 50
+          }
+        })
       ])
 
       wx.hideLoading()
@@ -37,7 +40,9 @@ Page({
         })
       }
 
-      const records = recordsResult.data || []
+      const records = recordsResult.result?.success
+        ? (recordsResult.result.data.records || [])
+        : []
       const formattedRecords = records.map(record => ({
         ...record,
         timeStr: this.formatTime(record.createdAt)

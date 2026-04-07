@@ -33,8 +33,9 @@ Page({
         data: { content, images: [] }
       })
       if (res.result && res.result.success) {
-        wx.showToast({ title: '发布成功', icon: 'success' })
-        setTimeout(() => wx.navigateBack(), 600)
+        const message = res.result.data?.message || '发布成功'
+        wx.showToast({ title: message, icon: 'none', duration: 1800 })
+        setTimeout(() => wx.navigateBack(), 1200)
       } else {
         wx.showToast({ title: res.result?.errMsg || '发布失败', icon: 'none' })
       }

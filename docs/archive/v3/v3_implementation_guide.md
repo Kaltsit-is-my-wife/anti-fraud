@@ -1,6 +1,6 @@
 # v3 实施型更新文档（任务清单 + 数据结构 + 接口约定 + 验收标准）
 
-本文在 `docs/v3/v3_update_plan.md` 的基础上，进一步把 v3 拆成“可直接开干”的实现说明，默认你已确认：
+本文在 `docs/archive/v3/v3_update_plan.md` 的基础上，进一步把 v3 拆成“可直接开干”的实现说明，默认你已确认：
 - 社区加入 `tabBar`（4 个 Tab）
 - 流量卡/话费卡只做“兑换记录 + 扣积分 + 人工发放”，不做自动充值
 - 答题积分：`quizPoints` 用于排行榜；答题奖励商城积分：每答对 1 题 +1、每日上限 30（按北京时间 UTC+8 重置）
@@ -220,7 +220,7 @@
 ### 3.2 趣味答题
 
 `initQuizQuestions`
-- 行为：将 `docs/v3/quiz_questions_seed.json` 写入 `quiz_questions`（建议 doc(_id).set）
+- 行为：将 `docs/archive/v3/quiz_questions_seed.json` 写入 `quiz_questions`（建议 doc(_id).set）
 
 `getQuizQuestions`
 - input：`{ count: 10 }`

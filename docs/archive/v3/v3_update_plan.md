@@ -46,7 +46,7 @@
 - 扩展 `cloudfunctions/getUserInfo`：把答题统计纳入成就同步（见第 6 节）
 
 题库种子：
-- 见：`docs/v3/quiz_questions_seed.json`（50 道选择题）
+- 见：`docs/archive/v3/quiz_questions_seed.json`（50 道选择题）
 
 积分/奖励规则（已确认，可配置化）：
 - 每次答题抽 10 题；服务端判分得到 `correctCount`

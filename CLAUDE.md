@@ -100,16 +100,17 @@ In WeChat Developer Tools, right-click each cloud function folder and select:
 Create collections in Cloud Console. See `cloudfunctions/database.md` for full schema.
 
 ### Environment Configuration
-1. Update `app.js` with your cloud environment ID:
-   ```javascript
-   wx.cloud.init({ env: 'your-env-id' })
-   ```
-2. Update `project.config.json` with your AppID
+1. Configure the Mini Program `appid` in `project.config.json`
+2. The app uses the project-bound default cloud environment in `app.js`
+3. Configure AI credentials through `cloudfunctions/aiChat/config.json` or cloud function environment variables
 
 ### AI Chat Setup
-Configure Qwen API key in `cloudfunctions/aiChat/index.js`:
-```javascript
-const QWEN_API_KEY = 'sk-your-api-key'
+Configure:
+```json
+{
+  "QWEN_API_KEY": "sk-your-api-key",
+  "QWEN_MODEL": "qwen-vl-plus"
+}
 ```
 
 ## Important Notes

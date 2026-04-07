@@ -18,6 +18,7 @@
     "pages/redeem-info/redeem-info",
     "pages/bind-student/bind-student",
     "pages/achievements/achievements",
+    "pages/title-management/title-management",
     "pages/points/points",
     "pages/points-history/points-history",
     "pages/learning/learning",
