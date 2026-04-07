@@ -3,6 +3,8 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
+const _ = db.command
+const DUPLICATE_WINDOW_MS = 5000
 
 const DEFAULT_RULES = {
   high: ['辱骂', '色情', '赌博', '买卖账号', '出售银行卡', '裸聊'],
@@ -98,6 +100,29 @@ exports.main = async (event) => {
     }
 
     const now = new Date()
+    const duplicateRes = await db.collection('comments').where({
+      targetType: 'topic',
+      targetId: topicId,
+      authorUid: user.uid,
+      content,
+      parentId,
+      replyToUid,
+      createdAt: _.gte(new Date(now.getTime() - DUPLICATE_WINDOW_MS))
+    }).limit(1).get()
+
+    const duplicate = duplicateRes.data && duplicateRes.data[0]
+    if (duplicate) {
+      return {
+        success: true,
+        data: {
+          commentId: duplicate._id,
+          status: duplicate.status || 'pending_review',
+          duplicate: true,
+          message: '评论已提交，请勿重复点击'
+        }
+      }
+    }
+
     const addRes = await db.collection('comments').add({
       data: {
         targetType: 'topic',
@@ -135,6 +160,7 @@ exports.main = async (event) => {
       data: {
         commentId: addRes._id,
         status: 'pending_review',
+        duplicate: false,
         message: '评论已提交，审核通过后显示'
       }
     }

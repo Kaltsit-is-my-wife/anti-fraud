@@ -15,6 +15,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
+const DUPLICATE_WINDOW_MS = 5000
 
 async function ensureCollection(name) {
   try {
@@ -64,6 +65,27 @@ exports.main = async (event, context) => {
     if (!content) return { success: false, errMsg: '评论内容不能为空' }
 
     const now = new Date()
+    const duplicateRes = await db.collection('comments').where({
+      targetType,
+      targetId,
+      authorUid: user.uid,
+      content,
+      parentId,
+      replyToUid,
+      createdAt: _.gte(new Date(now.getTime() - DUPLICATE_WINDOW_MS))
+    }).limit(1).get()
+
+    const duplicate = duplicateRes.data && duplicateRes.data[0]
+    if (duplicate) {
+      return {
+        success: true,
+        data: {
+          commentId: duplicate._id,
+          duplicate: true,
+          message: '评论已提交，请勿重复点击'
+        }
+      }
+    }
 
     const addRes = await db.collection('comments').add({
       data: {
@@ -118,7 +140,7 @@ exports.main = async (event, context) => {
       }
     }
 
-    return { success: true, data: { commentId } }
+    return { success: true, data: { commentId, duplicate: false } }
   } catch (err) {
     console.error('createComment failed:', err)
     return { success: false, errMsg: err.message }

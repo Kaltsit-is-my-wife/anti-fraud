@@ -18,6 +18,7 @@ Page({
     // v3 评论区
     comments: [],
     inputText: '',
+    commentSubmitting: false,
     replyTo: null,
     replyPlaceholder: '发表评论...'
   },
@@ -392,6 +393,7 @@ syncActionData(actionData, countKey) {
   async submitComment() {
     const content = (this.data.inputText || '').trim()
     if (!content) return
+    if (this.data.commentSubmitting) return
     const articleId = String(this.data.article.id)
     const data = {
       targetType: 'article',
@@ -404,6 +406,7 @@ syncActionData(actionData, countKey) {
     }
 
     try {
+      this.setData({ commentSubmitting: true })
       const res = await wx.cloud.callFunction({ name: 'createComment', data })
       if (res.result && res.result.success) {
         this.setData({
@@ -418,6 +421,8 @@ syncActionData(actionData, countKey) {
     } catch (err) {
       console.error('createComment failed:', err)
       wx.showToast({ title: '发送失败', icon: 'none' })
+    } finally {
+      this.setData({ commentSubmitting: false })
     }
   },
 

@@ -17,6 +17,7 @@ Page({
     post: null,
     comments: [],
     inputText: '',
+    commentSubmitting: false,
     replyTo: null, // { parentId, replyToUid, replyToNickName }
     replyPlaceholder: '发表评论...'
   },
@@ -92,6 +93,7 @@ Page({
   async submitComment() {
     const content = (this.data.inputText || '').trim()
     if (!content) return
+    if (this.data.commentSubmitting) return
 
     const replyTo = this.data.replyTo
     const data = {
@@ -105,6 +107,7 @@ Page({
     }
 
     try {
+      this.setData({ commentSubmitting: true })
       const res = await wx.cloud.callFunction({ name: 'createComment', data })
       if (res.result && res.result.success) {
         this.setData({
@@ -119,6 +122,8 @@ Page({
     } catch (err) {
       console.error('createComment failed:', err)
       wx.showToast({ title: '发送失败', icon: 'none' })
+    } finally {
+      this.setData({ commentSubmitting: false })
     }
   },
 

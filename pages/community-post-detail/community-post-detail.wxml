@@ -55,7 +55,7 @@
 
   <view class="input-bar">
     <input class="input" placeholder="{{replyPlaceholder}}" value="{{inputText}}" bindinput="onInput" confirm-type="send" bindconfirm="submitComment" />
-    <button class="send" bindtap="submitComment">发送</button>
+    <button class="send" bindtap="submitComment" disabled="{{commentSubmitting}}">{{commentSubmitting ? '提交中...' : '发送'}}</button>
   </view>
 </view>
 

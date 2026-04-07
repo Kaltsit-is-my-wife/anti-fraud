@@ -9,6 +9,7 @@ Page({
     relatedVideos: [],
     comments: [],
     inputText: '',
+    commentSubmitting: false,
     replyTo: null,
     replyPlaceholder: '发表评论...'
   },
@@ -115,6 +116,7 @@ Page({
       wx.showToast({ title: '请输入评论内容', icon: 'none' })
       return
     }
+    if (this.data.commentSubmitting) return
 
     const payload = {
       topicId: this.data.topicId,
@@ -127,6 +129,7 @@ Page({
     }
 
     try {
+      this.setData({ commentSubmitting: true })
       const res = await wx.cloud.callFunction({
         name: 'submitTopicComment',
         data: payload
@@ -152,6 +155,8 @@ Page({
     } catch (err) {
       console.error('submitTopicComment failed:', err)
       wx.showToast({ title: '提交失败', icon: 'none' })
+    } finally {
+      this.setData({ commentSubmitting: false })
     }
   },
 

@@ -79,6 +79,6 @@
   <!-- v3 评论输入栏 -->
   <view class="comment-input-bar">
     <input class="comment-input" placeholder="{{replyPlaceholder}}" value="{{inputText}}" bindinput="onCommentInput" confirm-type="send" bindconfirm="submitComment" />
-    <button class="comment-send" bindtap="submitComment">发送</button>
+    <button class="comment-send" bindtap="submitComment" disabled="{{commentSubmitting}}">{{commentSubmitting ? '提交中...' : '发送'}}</button>
   </view>
 </view>
