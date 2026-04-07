@@ -1,0 +1,103 @@
+<view class="topic-detail-container">
+  <view wx:if="{{loading}}" class="loading">加载中...</view>
+
+  <view wx:elif="{{topic}}" class="content">
+    <image wx:if="{{topic.coverImage}}" class="cover" src="{{topic.coverImage}}" mode="aspectFill"></image>
+    <view wx:else class="cover cover-placeholder">
+      <text class="cover-emoji">🛡️</text>
+    </view>
+
+    <view class="header-card">
+      <view class="badge">热点话题</view>
+      <view class="title">{{topic.title}}</view>
+      <view class="meta">
+        <text wx:if="{{topic.publishedAtText}}">发布时间：{{topic.publishedAtText}}</text>
+        <text wx:if="{{topic.startAtText}}">开始：{{topic.startAtText}}</text>
+        <text wx:if="{{topic.endAtText}}">结束：{{topic.endAtText}}</text>
+      </view>
+      <view wx:if="{{topic.summary}}" class="summary">{{topic.summary}}</view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-title">话题内容</view>
+
+      <view wx:if="{{!topic.contentBlocks || topic.contentBlocks.length === 0}}" class="empty-text">
+        当前话题还没有配置详细内容。
+      </view>
+
+      <block wx:for="{{topic.contentBlocks}}" wx:key="id">
+        <view wx:if="{{item.type === 'text' || item.type === 'paragraph'}}" class="paragraph">{{item.text}}</view>
+
+        <view wx:elif="{{item.type === 'image'}}" class="image-block">
+          <image class="detail-image" src="{{item.imageUrl}}" mode="widthFix"></image>
+          <view wx:if="{{item.caption}}" class="image-caption">{{item.caption}}</view>
+        </view>
+
+        <view wx:elif="{{item.type === 'article_link'}}" class="link-card article-link">
+          <view class="link-label">关联文章</view>
+          <view class="link-text">该话题包含相关文章入口，请查看下方推荐文章。</view>
+        </view>
+
+        <view wx:elif="{{item.type === 'video_link'}}" class="link-card video-link">
+          <view class="link-label">关联视频</view>
+          <view class="link-text">该话题包含视频入口，视频页将在下一批接入。</view>
+        </view>
+      </block>
+    </view>
+
+    <view class="section-card" wx:if="{{relatedArticles.length > 0}}">
+      <view class="section-title">相关文章</view>
+      <view wx:for="{{relatedArticles}}" wx:key="_id" class="related-card" bindtap="goArticle" data-id="{{item._id}}">
+        <image wx:if="{{item.coverImage}}" class="related-cover" src="{{item.coverImage}}" mode="aspectFill"></image>
+        <view class="related-body">
+          <view class="related-title">{{item.title}}</view>
+          <view wx:if="{{item.summary}}" class="related-summary">{{item.summary}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card" wx:if="{{relatedVideos.length > 0}}">
+      <view class="section-title">相关视频</view>
+      <view wx:for="{{relatedVideos}}" wx:key="_id" class="related-card" bindtap="goVideo" data-id="{{item._id}}">
+        <image wx:if="{{item.coverImage}}" class="related-cover" src="{{item.coverImage}}" mode="aspectFill"></image>
+        <view class="related-body">
+          <view class="related-title">{{item.title}}</view>
+          <view wx:if="{{item.summary}}" class="related-summary">{{item.summary}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-title">讨论区</view>
+
+      <view wx:if="{{comments.length === 0}}" class="empty-text">
+        暂无已通过审核的评论，欢迎参与讨论。
+      </view>
+
+      <view wx:for="{{comments}}" wx:key="_id" class="comment-item {{item.parentId ? 'reply' : ''}}">
+        <image class="comment-avatar" wx:if="{{item.authorAvatarUrl}}" src="{{item.authorAvatarUrl}}" mode="aspectFill"></image>
+        <view class="comment-avatar placeholder" wx:else>👤</view>
+        <view class="comment-body">
+          <view class="comment-top">
+            <text class="comment-name">{{item.authorNickName || '未设置昵称'}}</text>
+            <text class="comment-time">{{item.createdAtText}}</text>
+          </view>
+          <view class="comment-content">
+            <text wx:if="{{item.replyToNickName}}" class="reply-to">回复 {{item.replyToNickName}}：</text>
+            {{item.content}}
+          </view>
+          <view class="comment-actions">
+            <text class="reply-btn" bindtap="startReply" data-id="{{item._id}}" data-uid="{{item.authorUid}}" data-name="{{item.authorNickName}}">回复</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="comment-notice">评论提交后会先进入审核，审核通过后显示在讨论区。</view>
+    </view>
+
+    <view class="input-bar">
+      <input class="comment-input" placeholder="{{replyPlaceholder}}" value="{{inputText}}" bindinput="onCommentInput" confirm-type="send" bindconfirm="submitComment" />
+      <button class="comment-send" bindtap="submitComment">发送</button>
+    </view>
+  </view>
+</view>

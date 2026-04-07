@@ -129,6 +129,13 @@
   box-sizing: border-box;
 }
 
+.submit-tip {
+  font-size: 24rpx;
+  color: #64748b;
+  line-height: 1.7;
+  margin-bottom: 24rpx;
+}
+
 .submit-btn {
   width: 100%;
   padding: 28rpx 0;

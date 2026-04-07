@@ -1,0 +1,9 @@
+{
+  "name": "getQuizQuestionList",
+  "version": "1.0.0",
+  "description": "管理端查询题目列表",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

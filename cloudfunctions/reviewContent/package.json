@@ -1,0 +1,9 @@
+{
+  "name": "reviewContent",
+  "version": "1.0.0",
+  "description": "审核内容任务",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

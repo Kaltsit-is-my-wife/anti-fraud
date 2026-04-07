@@ -37,7 +37,8 @@
         bindinput="onContactInput"
       />
       
-      <button class="submit-btn" bindtap="submitFeedback">提交反馈</button>
+      <view class="submit-tip">反馈提交后将进入审核队列，审核通过后由平台处理。</view>
+      <button class="submit-btn" bindtap="submitFeedback" disabled="{{submitting}}">{{submitting ? '提交中...' : '提交反馈'}}</button>
     </view>
   </view>
 </view>

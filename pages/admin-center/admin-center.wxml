@@ -1,0 +1,16 @@
+<view class="admin-container">
+  <view class="hero-card">
+    <view class="hero-badge">运营管理</view>
+    <view class="hero-title">内容维护与审核入口</view>
+    <view class="hero-desc">当前管理端以轻量页面方式接入，目标是满足二期“无需改代码即可维护内容”的基本要求。</view>
+  </view>
+
+  <view wx:for="{{entries}}" wx:key="title" class="entry-card" bindtap="openEntry" data-url="{{item.url}}">
+    <view class="entry-icon">{{item.icon}}</view>
+    <view class="entry-body">
+      <view class="entry-title">{{item.title}}</view>
+      <view class="entry-desc">{{item.desc}}</view>
+    </view>
+    <view class="entry-arrow">›</view>
+  </view>
+</view>

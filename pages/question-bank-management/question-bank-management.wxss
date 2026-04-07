@@ -1,0 +1,14 @@
+.manage-container{min-height:100vh;background:#f0f9ff;padding:20rpx;box-sizing:border-box;}
+.panel{background:#fff;border-radius:24rpx;padding:24rpx;box-shadow:0 10rpx 24rpx rgba(2,132,199,0.10);margin-bottom:20rpx;}
+.panel-title{font-size:32rpx;font-weight:700;color:#0f172a;margin-bottom:18rpx;}
+.input,.picker{height:76rpx;line-height:76rpx;background:#f8fafc;border-radius:16rpx;padding:0 20rpx;font-size:28rpx;color:#0f172a;margin-bottom:14rpx;box-sizing:border-box;}
+.textarea{width:100%;min-height:140rpx;background:#f8fafc;border-radius:16rpx;padding:18rpx 20rpx;font-size:28rpx;line-height:1.6;color:#0f172a;margin-bottom:14rpx;box-sizing:border-box;}
+.actions{display:flex;gap:14rpx;margin-top:6rpx;}
+.btn{flex:1;background:#0ea5e9;color:#fff;border-radius:14rpx;font-size:30rpx;}
+.btn.secondary{background:#e2e8f0;color:#0f172a;}
+.list-card{padding:18rpx 0;border-top:1rpx solid #e2e8f0;}
+.list-card:first-of-type{border-top:none;padding-top:0;}
+.list-title{font-size:30rpx;font-weight:600;color:#0f172a;line-height:1.5;}
+.list-meta{margin-top:8rpx;font-size:24rpx;color:#64748b;}
+.list-desc{margin-top:8rpx;font-size:26rpx;color:#334155;line-height:1.6;}
+.empty{padding:40rpx 0;text-align:center;color:#64748b;font-size:26rpx;}

@@ -7,11 +7,14 @@ Page({
       vibrate: false,
       autoLogin: true
     },
-    version: '1.0.0'
+    version: '1.0.0',
+    hasReviewAccess: false,
+    hasAdminAccess: false
   },
 
   onLoad() {
     this.loadSettings()
+    this.loadPermissionInfo()
   },
 
   loadSettings() {
@@ -20,6 +23,18 @@ Page({
       this.setData({ settings })
     } catch (e) {
       console.error('加载设置失败：', e)
+    }
+  },
+
+  loadPermissionInfo() {
+    try {
+      const userInfo = wx.getStorageSync('userInfo') || {}
+      const roles = Array.isArray(userInfo.roles) ? userInfo.roles : []
+      const hasReviewAccess = userInfo.isAdmin === true || roles.includes('reviewer') || roles.includes('operator')
+      const hasAdminAccess = userInfo.isAdmin === true || roles.includes('operator')
+      this.setData({ hasReviewAccess, hasAdminAccess })
+    } catch (e) {
+      console.error('加载权限信息失败：', e)
     }
   },
 

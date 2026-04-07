@@ -1,5 +1,10 @@
 .container{min-height:100vh;background:#f0f9ff;padding-bottom:30rpx;}
-.top-bar{display:flex;justify-content:flex-end;padding:20rpx 24rpx;background:#fff;box-shadow:0 2rpx 8rpx rgba(0,0,0,0.05);}
+.top-bar{display:flex;justify-content:space-between;align-items:center;padding:20rpx 24rpx;background:#fff;box-shadow:0 2rpx 8rpx rgba(0,0,0,0.05);gap:20rpx;}
+.bank-info{flex:1;min-width:0;}
+.bank-badge{display:inline-flex;padding:6rpx 14rpx;border-radius:999rpx;background:#dbeafe;color:#1d4ed8;font-size:20rpx;font-weight:600;}
+.bank-name{margin-top:8rpx;font-size:28rpx;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.header-actions{display:flex;align-items:center;gap:16rpx;}
+.switch-bank{font-size:26rpx;color:#0ea5e9;font-weight:600;}
 .rank-btn{font-size:28rpx;color:#0ea5e9;font-weight:600;}
 .loading{text-align:center;color:#64748b;font-size:28rpx;padding:80rpx 20rpx;}
 .card{margin:20rpx;background:#fff;border-radius:20rpx;padding:22rpx;box-shadow:0 10rpx 24rpx rgba(2,132,199,0.10);}

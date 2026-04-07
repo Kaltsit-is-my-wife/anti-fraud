@@ -66,7 +66,7 @@ Page({
         this.setData({ content: '', scamAccount: '', scamLink: '' })
         wx.showModal({
           title: '反馈成功',
-          content: '如你正在遭遇诈骗或已发生转账，请立即拨打 96110 反诈专线报警/咨询。',
+          content: '反馈已提交并进入审核。如你正在遭遇诈骗或已发生转账，请立即拨打 96110 反诈专线报警/咨询。',
           confirmText: '拨打96110',
           cancelText: '稍后',
           success: (r) => {

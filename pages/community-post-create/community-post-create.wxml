@@ -3,22 +3,22 @@
 
 上游依赖：community-post-create.js页面逻辑
 入口：/pages/community-post-create/community-post-create
-主要功能：发布帖子
-输出：发布成功返回社区列表
+主要功能：展示自由发帖入口已关闭提示
+输出：引导返回社区页
 
 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
 -->
 <view class="container">
   <view class="page-header">
-    <view class="header-title">发布帖子</view>
+    <view class="header-title">社区升级提示</view>
     <view class="header-right"></view>
   </view>
 
   <view class="card">
-    <textarea class="textarea" placeholder="分享你的反诈见闻、经验或疑问..." maxlength="1000"
-      value="{{content}}" bindinput="onInput" />
-    <view class="hint">{{content.length}}/1000</view>
-    <button class="submit" bindtap="submit" disabled="{{submitting}}">{{submitting ? '发布中...' : '发布'}}</button>
+    <view class="notice-badge">官方话题讨论</view>
+    <view class="notice-title">普通用户公开发帖入口已关闭</view>
+    <view class="notice-desc">{{notice}}</view>
+    <button class="submit" bindtap="goCommunity">返回社区</button>
   </view>
 </view>
 

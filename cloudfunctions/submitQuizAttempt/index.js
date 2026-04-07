@@ -56,6 +56,11 @@ function sanitizeQuestionIds(arr) {
   return arr.map(v => (typeof v === 'string' ? v.trim() : '')).filter(Boolean)
 }
 
+function sanitizeBankId(value) {
+  if (typeof value !== 'string') return ''
+  return value.trim()
+}
+
 async function getCurrentUser(openid) {
   const userResult = await db.collection('users').where({ _openid: openid }).get()
   if (!userResult.data || userResult.data.length === 0) return null
@@ -112,11 +117,12 @@ exports.main = async (event, context) => {
       ensureCollection('public_profiles')
     ])
 
+    const bankId = sanitizeBankId(event?.bankId)
     const questionIds = sanitizeQuestionIds(event?.questionIds)
     const answers = sanitizeAnswers(event?.answers)
 
-    if (questionIds.length !== answers.length || questionIds.length !== 10) {
-      return { success: false, errMsg: '题目数量或答案数量不正确（需10题）' }
+    if (questionIds.length !== answers.length || questionIds.length === 0 || questionIds.length > 20) {
+      return { success: false, errMsg: '题目数量或答案数量不正确' }
     }
     if (new Set(questionIds).size !== questionIds.length) {
       return { success: false, errMsg: '题目ID重复，请重试' }
@@ -165,6 +171,7 @@ exports.main = async (event, context) => {
 
     const attemptDoc = {
       uid: user.uid,
+      bankId: bankId || 'default_bank',
       questionIds,
       answers,
       correctCount,

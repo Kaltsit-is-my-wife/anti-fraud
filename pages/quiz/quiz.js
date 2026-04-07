@@ -12,6 +12,9 @@
 Page({
   data: {
     loading: true,
+    bankId: 'default_bank',
+    bankName: '基础题库',
+    questionCount: 10,
     questions: [],
     currentIndex: 0,
     currentQuestion: null,
@@ -21,7 +24,11 @@ Page({
     result: null
   },
 
-  onLoad() {
+  onLoad(options) {
+    const bankId = options.bankId || 'default_bank'
+    const bankName = options.bankName ? decodeURIComponent(options.bankName) : '基础题库'
+    const questionCount = Math.max(1, Math.min(Number(options.count) || 10, 20))
+    this.setData({ bankId, bankName, questionCount })
     this.loadQuestions()
   },
 
@@ -36,7 +43,7 @@ Page({
     try {
       const res = await wx.cloud.callFunction({
         name: 'getQuizQuestions',
-        data: { count: 10 }
+        data: { count: this.data.questionCount, bankId: this.data.bankId }
       })
       if (res.result && res.result.success) {
         const questions = res.result.data.questions || []
@@ -96,7 +103,7 @@ Page({
     try {
       const res = await wx.cloud.callFunction({
         name: 'submitQuizAttempt',
-        data: { questionIds, answers }
+        data: { questionIds, answers, bankId: this.data.bankId }
       })
       wx.hideLoading()
       if (res.result && res.result.success) {
@@ -125,5 +132,9 @@ Page({
 
   goLeaderboard() {
     wx.navigateTo({ url: '/pages/quiz-leaderboard/quiz-leaderboard' })
+  },
+
+  goQuizHome() {
+    wx.switchTab({ url: '/pages/quiz-home/quiz-home' })
   }
 })

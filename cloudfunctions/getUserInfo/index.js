@@ -368,6 +368,8 @@ exports.main = async (event, context) => {
           quizRewardDailyDate: syncedUser.quizRewardDailyDate || '',
           quizRewardDailyAwarded: syncedUser.quizRewardDailyAwarded || 0,
           displayAchievementIds: syncedUser.displayAchievementIds || [],
+          roles: syncedUser.roles || [],
+          isAdmin: syncedUser.isAdmin || false,
           signDays: signDays,
           signDates: signDates,
           totalChatCount: syncedUser.totalChatCount || 0,

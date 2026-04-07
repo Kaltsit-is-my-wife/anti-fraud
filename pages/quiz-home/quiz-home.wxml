@@ -1,0 +1,32 @@
+<view class="quiz-home-container">
+  <view class="hero-card">
+    <view class="hero-badge">题库入口</view>
+    <view class="hero-title">先选择题库，再开始答题</view>
+    <view class="hero-desc">每次答题会从所选题库中抽题，避免跨题库混抽。</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">题库加载中...</view>
+
+  <view wx:elif="{{banks.length === 0}}" class="empty">
+    <view class="empty-icon">🧠</view>
+    <view class="empty-text">当前还没有可用题库</view>
+    <view class="empty-subtext">题库发布后，这里会显示可进入的答题入口。</view>
+  </view>
+
+  <view wx:for="{{banks}}" wx:key="_id" class="bank-card" bindtap="startQuiz" data-id="{{item._id}}" data-name="{{item.name}}" data-count="{{item.defaultQuestionCount}}">
+    <image wx:if="{{item.coverImage}}" class="bank-cover" src="{{item.coverImage}}" mode="aspectFill"></image>
+    <view wx:else class="bank-cover bank-cover-placeholder">
+      <text class="bank-cover-icon">📘</text>
+    </view>
+
+    <view class="bank-body">
+      <view class="bank-title">{{item.name}}</view>
+      <view wx:if="{{item.summary}}" class="bank-summary">{{item.summary}}</view>
+      <view class="bank-meta">
+        <text>题量：{{item.questionCount}}</text>
+        <text>默认抽题：{{item.defaultQuestionCount}}</text>
+      </view>
+      <view class="bank-action">进入答题</view>
+    </view>
+  </view>
+</view>

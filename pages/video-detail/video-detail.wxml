@@ -1,0 +1,42 @@
+<view class="video-detail-container">
+  <view wx:if="{{loading}}" class="loading">加载中...</view>
+
+  <view wx:elif="{{video}}" class="content">
+    <video wx:if="{{video.videoUrl}}" class="player" src="{{video.videoUrl}}" poster="{{video.coverImage}}" controls autoplay="{{false}}"></video>
+    <view wx:else class="player player-placeholder">
+      <text>暂无可播放视频地址</text>
+    </view>
+
+    <view class="detail-card">
+      <view class="badge">视频学习</view>
+      <view class="title">{{video.title}}</view>
+      <view class="meta">
+        <text wx:if="{{video.category}}">{{video.category}}</text>
+        <text wx:if="{{video.publishedAtText}}">{{video.publishedAtText}}</text>
+      </view>
+      <view wx:if="{{video.summary}}" class="summary">{{video.summary}}</view>
+    </view>
+
+    <view class="detail-card" wx:if="{{relatedArticles.length > 0}}">
+      <view class="section-title">相关文章</view>
+      <view wx:for="{{relatedArticles}}" wx:key="_id" class="related-card" bindtap="goArticle" data-id="{{item._id}}">
+        <image wx:if="{{item.coverImage}}" class="related-cover" src="{{item.coverImage}}" mode="aspectFill"></image>
+        <view class="related-body">
+          <view class="related-title">{{item.title}}</view>
+          <view wx:if="{{item.summary}}" class="related-summary">{{item.summary}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-card" wx:if="{{relatedTopics.length > 0}}">
+      <view class="section-title">相关话题</view>
+      <view wx:for="{{relatedTopics}}" wx:key="_id" class="related-card" bindtap="goTopic" data-id="{{item._id}}">
+        <image wx:if="{{item.coverImage}}" class="related-cover" src="{{item.coverImage}}" mode="aspectFill"></image>
+        <view class="related-body">
+          <view class="related-title">{{item.title}}</view>
+          <view wx:if="{{item.summary}}" class="related-summary">{{item.summary}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

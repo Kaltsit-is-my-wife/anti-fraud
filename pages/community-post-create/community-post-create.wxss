@@ -2,7 +2,8 @@
 .page-header{display:flex;align-items:center;justify-content:space-between;padding:20rpx 24rpx;background:#fff;color:#0f172a;box-shadow:0 2rpx 8rpx rgba(0,0,0,0.05);}
 .header-title{font-size:34rpx;font-weight:700;}
 .card{margin:20rpx;background:#fff;border-radius:20rpx;padding:22rpx;box-shadow:0 10rpx 24rpx rgba(2,132,199,0.10);}
-.textarea{width:100%;min-height:320rpx;font-size:28rpx;line-height:1.5;}
-.hint{text-align:right;color:#94a3b8;font-size:24rpx;margin-top:10rpx;}
+.notice-badge{display:inline-flex;padding:8rpx 18rpx;border-radius:999rpx;background:#dbeafe;color:#1d4ed8;font-size:22rpx;font-weight:600;}
+.notice-title{margin-top:20rpx;font-size:34rpx;line-height:1.4;color:#0f172a;font-weight:700;}
+.notice-desc{margin-top:12rpx;font-size:28rpx;line-height:1.7;color:#475569;}
 .submit{margin-top:18rpx;background:#0ea5e9;color:#fff;border-radius:14rpx;font-size:30rpx;}
 

@@ -39,89 +39,70 @@ function sanitizeCount(count) {
   return Math.max(1, Math.min(20, Math.floor(n)))
 }
 
+function normalizeBankId(bankId) {
+  if (typeof bankId !== 'string') return ''
+  return bankId.trim()
+}
+
+function shuffle(list) {
+  const arr = list.slice()
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const temp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = temp
+  }
+  return arr
+}
+
 exports.main = async (event) => {
   try {
     await ensureCollection('quiz_questions')
 
     const count = sanitizeCount(event?.count ?? 10)
+    const bankId = normalizeBankId(event?.bankId)
+    const allRes = await db.collection('quiz_questions')
+      .where({ isActive: true })
+      .get()
 
-    // 优先使用聚合随机采样
-    let questions = []
-    try {
-      const res = await db.collection('quiz_questions')
-        .aggregate()
-        .match({ isActive: true })
-        .sample({ size: count })
-        .project({
-          _id: 0,
-          questionId: 1,
-          question: 1,
-          options: 1,
-          difficulty: 1,
-          tags: 1
-        })
-        .end()
-      questions = (res.list || []).map(item => ({
-        questionId: item.questionId,
-        question: item.question,
-        options: item.options,
-        difficulty: item.difficulty || 1,
-        tags: item.tags || []
-      }))
-    } catch (err) {
-      console.warn('aggregate.sample failed, fallback to non-random:', err.message)
+    let source = allRes.data || []
+    if (bankId && bankId !== 'default_bank') {
+      source = source.filter(item => String(item.bankId || '') === bankId)
+    } else if (bankId === 'default_bank') {
+      source = source.filter(item => !item.bankId || item.bankId === 'default_bank')
     }
 
-    // 降级：直接取前count道（不随机）
-    if (!questions || questions.length === 0) {
-      const res = await db.collection('quiz_questions')
-        .where({ isActive: true })
-        .limit(count)
-        .get()
-      questions = (res.data || []).map(item => ({
-        questionId: item.questionId,
-        question: item.question,
-        options: item.options,
-        difficulty: item.difficulty || 1,
-        tags: item.tags || []
-      }))
-    }
-
-    if (!questions || questions.length === 0) {
+    if (!source || source.length === 0) {
       try {
         await cloud.callFunction({ name: 'initQuizQuestions', data: {} })
         const res = await db.collection('quiz_questions')
           .where({ isActive: true })
-          .limit(count)
           .get()
-        questions = (res.data || []).map(item => ({
-          questionId: item.questionId,
-          question: item.question,
-          options: item.options,
-          difficulty: item.difficulty || 1,
-          tags: item.tags || []
-        }))
+        source = res.data || []
+        if (bankId && bankId !== 'default_bank') {
+          source = source.filter(item => String(item.bankId || '') === bankId)
+        } else if (bankId === 'default_bank') {
+          source = source.filter(item => !item.bankId || item.bankId === 'default_bank')
+        }
       } catch (err) {
         console.warn('initQuizQuestions failed:', err?.message || err)
       }
     }
 
-    if (!questions || questions.length === 0) {
-      const res = await db.collection('quiz_questions')
-        .limit(count)
-        .get()
-      questions = (res.data || []).map(item => ({
+    const questions = shuffle(source)
+      .slice(0, count)
+      .map(item => ({
         questionId: item.questionId,
         question: item.question,
         options: item.options,
         difficulty: item.difficulty || 1,
-        tags: item.tags || []
+        tags: item.tags || [],
+        bankId: item.bankId || 'default_bank'
       }))
-    }
 
     return {
       success: true,
-      data: { questions, count: questions.length }
+      data: { questions, count: questions.length, bankId: bankId || 'default_bank' }
     }
   } catch (err) {
     console.error('getQuizQuestions failed:', err)

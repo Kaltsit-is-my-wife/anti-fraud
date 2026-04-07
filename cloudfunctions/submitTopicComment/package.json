@@ -1,0 +1,9 @@
+{
+  "name": "submitTopicComment",
+  "version": "1.0.0",
+  "description": "提交话题评论并进入审核",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -64,6 +64,24 @@
     </swiper>
   </view>
 
+  <view class="entry-grid">
+    <view class="entry-card" bindtap="goTopicCommunity">
+      <view class="entry-icon">📌</view>
+      <view class="entry-title">热点话题</view>
+      <view class="entry-desc">进入官方话题讨论区</view>
+    </view>
+    <view class="entry-card" bindtap="goVideoList">
+      <view class="entry-icon">🎬</view>
+      <view class="entry-title">视频学习</view>
+      <view class="entry-desc">查看反诈视频内容</view>
+    </view>
+    <view class="entry-card" bindtap="goQuizHome">
+      <view class="entry-icon">🧠</view>
+      <view class="entry-title">题库答题</view>
+      <view class="entry-desc">先选题库再开始答题</view>
+    </view>
+  </view>
+
   <!-- 新闻列表 -->
   <view class="content-area">
     <view class="section-title">🔥 最新资讯</view>

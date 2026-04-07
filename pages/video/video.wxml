@@ -1,0 +1,32 @@
+<view class="video-container">
+  <view class="hero-card">
+    <view class="hero-badge">视频学习</view>
+    <view class="hero-title">反诈案例、情景演示、知识讲解</view>
+    <view class="hero-desc">支持从首页和热点话题进入视频内容，形成文章、视频、讨论的学习闭环。</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">视频加载中...</view>
+
+  <view wx:elif="{{videos.length === 0}}" class="empty">
+    <view class="empty-icon">🎬</view>
+    <view class="empty-text">当前还没有已发布视频</view>
+  </view>
+
+  <view wx:for="{{videos}}" wx:key="_id" class="video-card" bindtap="goDetail" data-id="{{item._id}}">
+    <image wx:if="{{item.coverImage}}" class="cover" src="{{item.coverImage}}" mode="aspectFill"></image>
+    <view wx:else class="cover cover-placeholder">
+      <text class="cover-icon">▶</text>
+    </view>
+
+    <view class="duration">{{item.durationText}}</view>
+
+    <view class="video-body">
+      <view class="video-title">{{item.title}}</view>
+      <view wx:if="{{item.summary}}" class="video-summary">{{item.summary}}</view>
+      <view class="video-meta">
+        <text>{{item.category || '视频内容'}}</text>
+        <text>查看详情</text>
+      </view>
+    </view>
+  </view>
+</view>

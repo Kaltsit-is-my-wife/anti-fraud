@@ -1,0 +1,40 @@
+<view class="manage-container">
+  <view class="panel">
+    <view class="panel-title">题库选择</view>
+    <picker mode="selector" range="{{banks}}" range-key="name" value="{{selectedBankIndex}}" bindchange="onBankChange">
+      <view class="picker">当前题库：{{selectedBankName}}</view>
+    </picker>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">{{editingId ? '编辑题目' : '新建题目'}}</view>
+    <textarea class="textarea large" placeholder="题目内容" value="{{form.question}}" bindinput="onInput" data-key="question" />
+    <textarea class="textarea" placeholder="选项，每行一个" value="{{form.optionsText}}" bindinput="onInput" data-key="optionsText" />
+    <input class="input" placeholder="正确答案索引（0开始）" value="{{form.answerIndex}}" bindinput="onInput" data-key="answerIndex" />
+    <textarea class="textarea" placeholder="题目解析" value="{{form.explanation}}" bindinput="onInput" data-key="explanation" />
+    <input class="input" placeholder="难度（1-5）" value="{{form.difficulty}}" bindinput="onInput" data-key="difficulty" />
+    <input class="input" placeholder="标签，逗号分隔" value="{{form.tagsText}}" bindinput="onInput" data-key="tagsText" />
+    <view class="switch-row">
+      <text class="switch-label">启用状态</text>
+      <switch checked="{{form.isActive}}" bindchange="onActiveChange" />
+    </view>
+    <view class="actions">
+      <button class="btn secondary" bindtap="resetForm">重置</button>
+      <button class="btn" bindtap="saveQuestion">保存</button>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">题目列表</view>
+    <view wx:if="{{loading}}" class="empty">加载中...</view>
+    <view wx:elif="{{questions.length === 0}}" class="empty">当前题库暂无题目</view>
+    <view wx:for="{{questions}}" wx:key="_id" class="list-card">
+      <view class="list-title" bindtap="editQuestion" data-id="{{item._id}}">{{item.question}}</view>
+      <view class="list-meta">答案索引：{{item.answerIndex}} ｜ 难度：{{item.difficulty || 1}}</view>
+      <view class="list-actions">
+        <button class="mini-btn secondary" bindtap="editQuestion" data-id="{{item._id}}">编辑</button>
+        <button class="mini-btn danger" bindtap="deleteQuestion" data-id="{{item._id}}">停用</button>
+      </view>
+    </view>
+  </view>
+</view>

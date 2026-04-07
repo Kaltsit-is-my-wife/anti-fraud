@@ -70,4 +70,26 @@
       </view>
     </view>
   </view>
+
+  <view wx:if="{{hasReviewAccess}}" class="settings-section">
+    <view class="section-title">审核管理</view>
+    <view class="settings-item" bindtap="navigateTo" data-url="/pages/review-center/review-center">
+      <view class="item-left">
+        <text class="item-icon">🛡️</text>
+        <text class="item-label">审核中心</text>
+      </view>
+      <text class="item-arrow">›</text>
+    </view>
+  </view>
+
+  <view wx:if="{{hasAdminAccess}}" class="settings-section">
+    <view class="section-title">运营管理</view>
+    <view class="settings-item" bindtap="navigateTo" data-url="/pages/admin-center/admin-center">
+      <view class="item-left">
+        <text class="item-icon">🗂️</text>
+        <text class="item-label">管理中心</text>
+      </view>
+      <text class="item-arrow">›</text>
+    </view>
+  </view>
 </view>

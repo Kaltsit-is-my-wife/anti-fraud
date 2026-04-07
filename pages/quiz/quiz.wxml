@@ -11,7 +11,14 @@
 <view class="container">
   <!-- 顶部操作栏 -->
   <view class="top-bar">
-    <view class="header-right" bindtap="goLeaderboard"><text class="rank-btn">🏆 排行榜</text></view>
+    <view class="bank-info">
+      <view class="bank-badge">当前题库</view>
+      <view class="bank-name">{{bankName}}</view>
+    </view>
+    <view class="header-actions">
+      <text class="switch-bank" bindtap="goQuizHome">切换题库</text>
+      <view class="header-right" bindtap="goLeaderboard"><text class="rank-btn">🏆 排行榜</text></view>
+    </view>
   </view>
 
   <view wx:if="{{loading}}" class="loading">加载题目中...</view>

@@ -1,0 +1,9 @@
+{
+  "name": "saveQuestionBank",
+  "version": "1.0.0",
+  "description": "管理端保存题库",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

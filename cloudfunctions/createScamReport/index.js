@@ -14,6 +14,11 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
+const DEFAULT_RULES = {
+  high: ['辱骂', '色情', '赌博', '裸聊'],
+  medium: ['微信', 'vx', 'v信', 'qq', '加群', '下载链接', '点击链接']
+}
+
 async function ensureCollection(name) {
   try {
     await db.collection(name).limit(1).get()
@@ -34,12 +39,41 @@ function sanitizeText(s, maxLen) {
   return s.trim().slice(0, maxLen)
 }
 
+async function loadRules() {
+  try {
+    await ensureCollection('review_keyword_rules')
+    const res = await db.collection('review_keyword_rules').where({ enabled: true }).get()
+    const rules = res.data || []
+    if (!rules.length) return DEFAULT_RULES
+
+    const high = []
+    const medium = []
+    rules.forEach(rule => {
+      const keyword = typeof rule.keyword === 'string' ? rule.keyword.trim() : ''
+      if (!keyword) return
+      if (rule.level === 'high') high.push(keyword)
+      if (rule.level === 'medium') medium.push(keyword)
+    })
+
+    return {
+      high: high.length ? high : DEFAULT_RULES.high,
+      medium: medium.length ? medium : DEFAULT_RULES.medium
+    }
+  } catch (err) {
+    return DEFAULT_RULES
+  }
+}
+
+function matchKeywords(content, keywords) {
+  return keywords.filter(keyword => keyword && content.includes(keyword))
+}
+
 exports.main = async (event) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
 
   try {
-    await Promise.all([ensureCollection('scam_reports'), ensureCollection('users')])
+    await Promise.all([ensureCollection('scam_reports'), ensureCollection('users'), ensureCollection('review_tasks')])
     const user = await getCurrentUser(openid)
     if (!user || !user.uid) return { success: false, errMsg: '用户不存在' }
 
@@ -51,6 +85,11 @@ exports.main = async (event) => {
     const images = Array.isArray(event?.images) ? event.images.slice(0, 9) : []
 
     if (!content) return { success: false, errMsg: '请填写反馈内容' }
+
+    const rules = await loadRules()
+    const highHits = matchKeywords(content, rules.high)
+    const mediumHits = matchKeywords(content, rules.medium)
+    if (highHits.length > 0) return { success: false, errMsg: '内容包含敏感信息，无法提交' }
 
     const now = new Date()
     const addRes = await db.collection('scam_reports').add({
@@ -64,11 +103,36 @@ exports.main = async (event) => {
         scamLink,
         content,
         images,
+        status: 'pending_review',
+        createdAt: now,
+        updatedAt: now
+      }
+    })
+
+    await db.collection('review_tasks').add({
+      data: {
+        targetType: 'scam_report',
+        targetId: addRes._id,
+        contentText: content,
+        keywordHits: mediumHits,
+        keywordHitLevel: mediumHits.length > 0 ? 'medium' : 'none',
+        autoReviewResult: 'pending_review',
+        reviewStatus: 'pending_review',
+        reviewReason: '',
+        reviewedBy: '',
+        reviewedAt: null,
         createdAt: now
       }
     })
 
-    return { success: true, data: { reportId: addRes._id } }
+    return {
+      success: true,
+      data: {
+        reportId: addRes._id,
+        status: 'pending_review',
+        message: '反馈已提交，等待审核'
+      }
+    }
   } catch (err) {
     console.error('createScamReport failed:', err)
     return { success: false, errMsg: err.message }

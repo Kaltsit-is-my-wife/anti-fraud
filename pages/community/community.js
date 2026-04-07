@@ -1,22 +1,21 @@
 /**
  * 社区页面 - 社区模块 (v3)
  *
- * 上游依赖：云函数(getPosts)，页面路由 community-post-create/community-post-detail
+ * 上游依赖：云函数(getTopics)，页面路由 topic-detail
  * 入口：Tab页 onShow/onLoad
- * 主要功能：帖子流分页加载、跳转发帖与详情
- * 输出：帖子列表渲染
+ * 主要功能：热点话题列表加载、跳转话题详情
+ * 输出：热点话题列表渲染
  *
  * 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
  */
 
-const { formatDateTimeLocal } = require('../../utils/util')
+const { formatDateLocal } = require('../../utils/util')
 
 Page({
   data: {
-    posts: [],
+    topics: [],
     loading: false,
-    hasMore: true,
-    cursor: null
+    loadFailed: false
   },
 
   onLoad() {
@@ -28,51 +27,53 @@ Page({
   },
 
   async refresh() {
-    this.setData({ posts: [], hasMore: true, cursor: null })
-    await this.loadMore()
-  },
-
-  async loadMore() {
-    if (this.data.loading || !this.data.hasMore) return
+    if (this.data.loading) return
     this.setData({ loading: true })
     try {
       const res = await wx.cloud.callFunction({
-        name: 'getPosts',
-        data: { pageSize: 10, cursor: this.data.cursor }
+        name: 'getTopics',
+        data: { pageSize: 20 }
       })
       if (res.result && res.result.success) {
-        const { posts, nextCursor } = res.result.data
-        const normalized = (posts || []).map(p => ({
-          ...p,
-          createdAtText: p.createdAt ? formatDateTimeLocal(new Date(p.createdAt)) : ''
+        const normalized = (res.result.data?.list || []).map(topic => ({
+          ...topic,
+          publishedAtText: topic.publishedAt ? formatDateLocal(new Date(topic.publishedAt)) : '',
+          periodText: this.formatPeriodText(topic.startAt, topic.endAt)
         }))
         this.setData({
-          posts: this.data.posts.concat(normalized),
-          cursor: nextCursor,
-          hasMore: !!nextCursor && normalized.length > 0,
+          topics: normalized,
+          loadFailed: false,
           loading: false
         })
       } else {
-        this.setData({ loading: false })
+        this.setData({ loading: false, loadFailed: true })
       }
     } catch (err) {
-      console.error('loadMore posts failed:', err)
-      this.setData({ loading: false })
+      console.error('load topics failed:', err)
+      this.setData({ loading: false, loadFailed: true })
     }
   },
 
-  goCreate() {
-    wx.navigateTo({ url: '/pages/community-post-create/community-post-create' })
+  formatPeriodText(startAt, endAt) {
+    const startText = startAt ? formatDateLocal(new Date(startAt)) : ''
+    const endText = endAt ? formatDateLocal(new Date(endAt)) : ''
+
+    if (startText && endText) return `${startText} - ${endText}`
+    if (startText) return `开始时间：${startText}`
+    if (endText) return `结束时间：${endText}`
+    return '长期开放'
   },
 
   goDetail(e) {
     const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: `/pages/community-post-detail/community-post-detail?id=${id}` })
+    if (!id) return
+    wx.navigateTo({ url: `/pages/topic-detail/topic-detail?id=${id}` })
   },
 
-  goProfile(e) {
-    const uid = e.currentTarget.dataset.uid
-    if (!uid) return
-    wx.navigateTo({ url: `/pages/profile/profile?uid=${uid}` })
+  showCommunityNotice() {
+    wx.showToast({
+      title: '社区已升级为官方话题讨论',
+      icon: 'none'
+    })
   }
 })

@@ -2,6 +2,9 @@
 "pages": [
     "pages/index/index",
     "pages/community/community",
+    "pages/topic-detail/topic-detail",
+    "pages/video/video",
+    "pages/video-detail/video-detail",
     "pages/chat/chat",
     "pages/user/user",
     "pages/sign-in/sign-in",
@@ -10,6 +13,7 @@
     "pages/search/search",
     "pages/profile/profile",
     "pages/messages/messages",
+    "pages/quiz-home/quiz-home",
     "pages/quiz/quiz",
     "pages/quiz-leaderboard/quiz-leaderboard",
     "pages/community-post-create/community-post-create",
@@ -27,6 +31,12 @@
     "pages/settings/settings",
     "pages/account/account",
     "pages/feedback/feedback",
+    "pages/admin-center/admin-center",
+    "pages/topic-management/topic-management",
+    "pages/video-management/video-management",
+    "pages/question-bank-management/question-bank-management",
+    "pages/question-editor/question-editor",
+    "pages/review-center/review-center",
     "pages/about/about"
   ],
   "window": {
@@ -54,7 +64,7 @@
         "selectedIconPath": "images/社区 (1).png"
       },
       {
-        "pagePath": "pages/quiz/quiz",
+        "pagePath": "pages/quiz-home/quiz-home",
         "text": "答题",
         "iconPath": "images/quiz.png",
         "selectedIconPath": "images/quiz-active.png"

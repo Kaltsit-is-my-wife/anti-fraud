@@ -1,0 +1,32 @@
+<view class="manage-container">
+  <view class="panel">
+    <view class="panel-title">{{editingId ? '编辑视频' : '新建视频'}}</view>
+    <input class="input" placeholder="视频标题" value="{{form.title}}" bindinput="onInput" data-key="title" />
+    <textarea class="textarea" placeholder="视频简介" value="{{form.summary}}" bindinput="onInput" data-key="summary" />
+    <input class="input" placeholder="封面图 URL / cloud:// 文件ID" value="{{form.coverImage}}" bindinput="onInput" data-key="coverImage" />
+    <input class="input" placeholder="视频地址 URL / cloud:// 文件ID" value="{{form.videoUrl}}" bindinput="onInput" data-key="videoUrl" />
+    <input class="input" placeholder="视频时长（秒）" value="{{form.duration}}" bindinput="onInput" data-key="duration" />
+    <input class="input" placeholder="分类" value="{{form.category}}" bindinput="onInput" data-key="category" />
+    <picker mode="selector" range="{{statusOptions}}" value="{{statusOptions.indexOf(form.status)}}" bindchange="onStatusChange">
+      <view class="picker">状态：{{form.status}}</view>
+    </picker>
+    <input class="input" placeholder="排序值" value="{{form.sort}}" bindinput="onInput" data-key="sort" />
+    <textarea class="textarea" placeholder="关联文章ID，逗号分隔" value="{{form.relatedArticleIdsText}}" bindinput="onInput" data-key="relatedArticleIdsText" />
+    <textarea class="textarea" placeholder="关联话题ID，逗号分隔" value="{{form.relatedTopicIdsText}}" bindinput="onInput" data-key="relatedTopicIdsText" />
+    <view class="actions">
+      <button class="btn secondary" bindtap="resetForm">重置</button>
+      <button class="btn" bindtap="saveVideo">保存</button>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">视频列表</view>
+    <view wx:if="{{loading}}" class="empty">加载中...</view>
+    <view wx:elif="{{videos.length === 0}}" class="empty">暂无视频</view>
+    <view wx:for="{{videos}}" wx:key="_id" class="list-card" bindtap="editVideo" data-id="{{item._id}}">
+      <view class="list-title">{{item.title || '未命名视频'}}</view>
+      <view class="list-meta">状态：{{item.status || 'draft'}} ｜ 分类：{{item.category || '未分类'}} ｜ 时长：{{item.duration || 0}}秒</view>
+      <view wx:if="{{item.summary}}" class="list-desc">{{item.summary}}</view>
+    </view>
+  </view>
+</view>

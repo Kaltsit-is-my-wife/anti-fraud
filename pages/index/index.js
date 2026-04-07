@@ -526,6 +526,18 @@ Page({
     })
   },
 
+  goTopicCommunity() {
+    wx.switchTab({ url: '/pages/community/community' })
+  },
+
+  goVideoList() {
+    wx.navigateTo({ url: '/pages/video/video' })
+  },
+
+  goQuizHome() {
+    wx.switchTab({ url: '/pages/quiz-home/quiz-home' })
+  },
+
   // 加载轮播图
   async loadBanners() {
     try {

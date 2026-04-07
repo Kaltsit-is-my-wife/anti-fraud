@@ -4,6 +4,7 @@ Page({
     currentTab: 'help', // help, feedback
     feedbackContent: '',
     contactInfo: '',
+    submitting: false,
     
     // 常见问题
     faqs: [
@@ -43,7 +44,7 @@ Page({
     this.setData({ contactInfo: e.detail.value })
   },
 
-  submitFeedback() {
+  async submitFeedback() {
     const { feedbackContent, contactInfo } = this.data
     
     if (!feedbackContent.trim()) {
@@ -53,21 +54,43 @@ Page({
       })
       return
     }
-    
-    wx.showLoading({ title: '提交中...' })
-    
-    // TODO: 提交到云数据库
-    setTimeout(() => {
-      wx.hideLoading()
+
+    if (this.data.submitting) return
+    this.setData({ submitting: true })
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'submitFeedback',
+        data: {
+          content: feedbackContent,
+          contactInfo
+        }
+      })
+
+      if (res.result && res.result.success) {
+        wx.showToast({
+          title: res.result.data?.message || '反馈已提交',
+          icon: 'none'
+        })
+        this.setData({
+          feedbackContent: '',
+          contactInfo: ''
+        })
+      } else {
+        wx.showToast({
+          title: res.result?.errMsg || '提交失败',
+          icon: 'none'
+        })
+      }
+    } catch (err) {
+      console.error('submitFeedback failed:', err)
       wx.showToast({
-        title: '提交成功',
-        icon: 'success'
+        title: '提交失败',
+        icon: 'none'
       })
-      this.setData({
-        feedbackContent: '',
-        contactInfo: ''
-      })
-    }, 1000)
+    } finally {
+      this.setData({ submitting: false })
+    }
   },
 
   goBack() {

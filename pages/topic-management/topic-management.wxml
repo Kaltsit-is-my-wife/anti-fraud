@@ -1,0 +1,32 @@
+<view class="manage-container">
+  <view class="panel">
+    <view class="panel-title">{{editingId ? '编辑话题' : '新建话题'}}</view>
+    <input class="input" placeholder="话题标题" value="{{form.title}}" bindinput="onInput" data-key="title" />
+    <textarea class="textarea" placeholder="摘要" value="{{form.summary}}" bindinput="onInput" data-key="summary" />
+    <textarea class="textarea large" placeholder="话题正文（纯文本）" value="{{form.contentText}}" bindinput="onInput" data-key="contentText" />
+    <input class="input" placeholder="封面图 URL / cloud:// 文件ID" value="{{form.coverImage}}" bindinput="onInput" data-key="coverImage" />
+    <picker mode="selector" range="{{statusOptions}}" value="{{statusOptions.indexOf(form.status)}}" bindchange="onStatusChange">
+      <view class="picker">状态：{{form.status}}</view>
+    </picker>
+    <input class="input" placeholder="排序值" value="{{form.sort}}" bindinput="onInput" data-key="sort" />
+    <input class="input" placeholder="开始日期（如 2026-04-10）" value="{{form.startAt}}" bindinput="onInput" data-key="startAt" />
+    <input class="input" placeholder="结束日期（如 2026-04-20）" value="{{form.endAt}}" bindinput="onInput" data-key="endAt" />
+    <textarea class="textarea" placeholder="关联文章ID，逗号分隔" value="{{form.relatedArticleIdsText}}" bindinput="onInput" data-key="relatedArticleIdsText" />
+    <textarea class="textarea" placeholder="关联视频ID，逗号分隔" value="{{form.relatedVideoIdsText}}" bindinput="onInput" data-key="relatedVideoIdsText" />
+    <view class="actions">
+      <button class="btn secondary" bindtap="resetForm">重置</button>
+      <button class="btn" bindtap="saveTopic">保存</button>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">话题列表</view>
+    <view wx:if="{{loading}}" class="empty">加载中...</view>
+    <view wx:elif="{{topics.length === 0}}" class="empty">暂无话题</view>
+    <view wx:for="{{topics}}" wx:key="_id" class="list-card" bindtap="editTopic" data-id="{{item._id}}">
+      <view class="list-title">{{item.title || '未命名话题'}}</view>
+      <view class="list-meta">状态：{{item.status || 'draft'}} ｜ 排序：{{item.sort || 0}}</view>
+      <view wx:if="{{item.summary}}" class="list-desc">{{item.summary}}</view>
+    </view>
+  </view>
+</view>
