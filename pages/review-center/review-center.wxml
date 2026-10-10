@@ -5,7 +5,7 @@
     </view>
   </view>
 
-  <view wx:if="{{loading}}" class="loading">审核任务加载中...</view>
+  <view wx:if="{{permissionLoading || loading}}" class="loading">审核任务加载中...</view>
 
   <view wx:elif="{{tasks.length === 0}}" class="empty">
     <view class="empty-icon">📭</view>
@@ -14,19 +14,41 @@
 
   <view wx:for="{{tasks}}" wx:key="_id" class="task-card">
     <view class="task-header">
-      <view class="task-type">{{item.targetType}}</view>
+      <view class="task-type">{{item.targetTypeLabel}}</view>
       <view class="task-time">{{item.createdAtText}}</view>
     </view>
     <view class="task-content">{{item.contentText}}</view>
+    <view wx:for="{{item.sourceMetaLines}}" wx:key="metaIndex" wx:for-item="metaLine" wx:for-index="metaIndex" class="task-meta">{{metaLine}}</view>
+    <view class="task-meta">风险等级：{{item.keywordLevelLabel}}</view>
     <view wx:if="{{item.keywordText}}" class="keyword-list">
       命中关键词：{{item.keywordText}}
     </view>
-    <view class="task-status">状态：{{item.reviewStatus}}</view>
+    <view class="task-status">状态：{{item.reviewStatusLabel}}</view>
+    <view wx:if="{{item.reviewedBy}}" class="task-meta">审核人：{{item.reviewedBy}}</view>
+    <view wx:if="{{item.reviewedAtText}}" class="task-meta">审核时间：{{item.reviewedAtText}}</view>
+    <view wx:if="{{item.reviewReason}}" class="task-meta">审核说明：{{item.reviewReason}}</view>
 
-    <view wx:if="{{currentStatus === 'pending_review'}}" class="task-actions">
-      <button class="action-btn approve" bindtap="reviewTask" data-id="{{item._id}}" data-action="approve">通过</button>
-      <button class="action-btn reject" bindtap="reviewTask" data-id="{{item._id}}" data-action="reject">驳回</button>
-      <button class="action-btn hide" bindtap="reviewTask" data-id="{{item._id}}" data-action="hide">隐藏</button>
+    <view wx:if="{{currentStatus === 'pending_review' && item.sourceExists}}" class="remark-box">
+      <textarea
+        class="remark-input"
+        placeholder="审核说明：驳回或隐藏时必填，最多 200 字"
+        maxlength="200"
+        auto-height
+        value="{{item.remark}}"
+        data-index="{{index}}"
+        bindinput="onRemarkInput"
+      />
+      <view class="remark-counter">{{item.remarkLength}}/200</view>
+    </view>
+
+    <view wx:if="{{currentStatus === 'pending_review' && item.sourceExists}}" class="task-actions">
+      <button class="action-btn approve" bindtap="reviewTask" data-id="{{item._id}}" data-index="{{index}}" data-action="approve" disabled="{{actionLoading}}">通过</button>
+      <button class="action-btn reject" bindtap="reviewTask" data-id="{{item._id}}" data-index="{{index}}" data-action="reject" disabled="{{actionLoading}}">驳回</button>
+      <button class="action-btn hide" bindtap="reviewTask" data-id="{{item._id}}" data-index="{{index}}" data-action="hide" disabled="{{actionLoading}}">隐藏</button>
+    </view>
+
+    <view wx:if="{{currentStatus === 'pending_review' && !item.sourceExists}}" class="task-warning">
+      原始内容不存在，当前任务不可处理，请先核对数据。
     </view>
   </view>
 </view>

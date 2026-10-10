@@ -1,59 +1,49 @@
-<!--
-趣味答题页面 - 趣味答题模块 (v3)
-
-上游依赖：云函数(getQuizQuestions/submitQuizAttempt)
-入口：/pages/quiz/quiz
-主要功能：随机抽取10题，答题后服务端判分，发放积分与展示解析
-输出：答题结果与积分提示，可跳转排行榜
-
-重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
--->
 <view class="container">
-  <!-- 顶部操作栏 -->
   <view class="top-bar">
     <view class="bank-info">
-      <view class="bank-badge">当前题库</view>
+      <view class="bank-badges">
+        <view class="bank-badge">当前题库</view>
+        <view wx:if="{{previewMode}}" class="preview-badge">预览模式</view>
+      </view>
       <view class="bank-name">{{bankName}}</view>
     </view>
     <view class="header-actions">
-      <text class="switch-bank" bindtap="goQuizHome">切换题库</text>
-      <view class="header-right" bindtap="goLeaderboard"><text class="rank-btn">🏆 排行榜</text></view>
+      <text class="switch-bank" bindtap="goQuizHome">{{previewMode ? '返回管理' : '切换题库'}}</text>
+      <view wx:if="{{!previewMode}}" class="header-right" bindtap="goLeaderboard"><text class="rank-btn">排行榜</text></view>
     </view>
   </view>
 
   <view wx:if="{{loading}}" class="loading">加载题目中...</view>
 
-  <!-- 答题区 -->
   <view wx:if="{{!loading && !submitted && currentQuestion}}" class="card">
+    <view wx:if="{{previewMode}}" class="preview-notice">预览模式不会记录积分、排行榜和答题记录，仅用于检查题库效果。</view>
     <view class="progress">第 {{currentIndex + 1}} / {{questions.length}} 题</view>
     <view class="question">{{currentQuestion.question}}</view>
 
     <view class="options">
-      <view wx:for="{{currentQuestion.options}}" wx:key="index"
-        class="option {{selectedIndex === index ? 'selected' : ''}}"
-        bindtap="selectOption" data-index="{{index}}">
-        <text class="opt-key">{{['A','B','C','D'][index]}}</text>
+      <view wx:for="{{currentQuestion.options}}" wx:key="index" class="option {{selectedIndex === index ? 'selected' : ''}}" bindtap="selectOption" data-index="{{index}}">
+        <text class="opt-key">{{['A','B','C','D','E','F'][index]}}</text>
         <text class="opt-text">{{item}}</text>
       </view>
     </view>
 
     <view class="actions">
       <button class="btn secondary" bindtap="prev" disabled="{{currentIndex === 0}}">上一题</button>
-      <button class="btn" bindtap="nextOrSubmit">{{currentIndex === questions.length - 1 ? '交卷' : '下一题'}}</button>
+      <button class="btn" bindtap="nextOrSubmit">{{currentIndex === questions.length - 1 ? '提交' : '下一题'}}</button>
     </view>
   </view>
 
-  <!-- 结果区 -->
   <view wx:if="{{submitted}}" class="result">
     <view class="result-card">
       <view class="score">本次答对 {{result.correctCount}} / {{questions.length}}</view>
-      <view class="gain">
+      <view wx:if="{{result.previewMode}}" class="preview-result">预览模式下不会累计积分，也不会写入排行榜。</view>
+      <view wx:else class="gain">
         <view>排行榜积分 +{{result.earnedQuizPoints}}</view>
         <view>商城积分 +{{result.earnedMallPoints}}（今日 {{result.dailyAwarded}}/{{result.dailyCap}}）</view>
       </view>
       <view class="result-actions">
-        <button class="btn" bindtap="restart">再来一局</button>
-        <button class="btn secondary" bindtap="goLeaderboard">查看排行榜</button>
+        <button class="btn" bindtap="restart">{{previewMode ? '重新预览' : '再来一局'}}</button>
+        <button class="btn secondary" bindtap="goQuizHome">{{previewMode ? '返回管理' : '切换题库'}}</button>
       </view>
     </view>
 
@@ -63,8 +53,9 @@
         <view class="analysis-q">
           <text class="tag {{item.correct ? 'ok' : 'bad'}}">{{item.correct ? '正确' : '错误'}}</text>
           <text class="qid">{{item.questionId}}</text>
+          <text class="correct-index">正确答案：{{['A','B','C','D','E','F'][item.correctIndex]}}</text>
         </view>
-        <view class="analysis-exp">{{item.explanation}}</view>
+        <view class="analysis-exp">{{item.explanation || '暂无解析'}}</view>
       </view>
     </view>
   </view>

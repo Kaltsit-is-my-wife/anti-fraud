@@ -3,9 +3,14 @@ function splitIds(value) {
   return value.split(/[，,\n]/).map(item => item.trim()).filter(Boolean)
 }
 
+const { ensurePagePermission } = require('../../utils/permission')
+const { getCloudFunctionErrorMessage } = require('../../utils/cloud')
+
 Page({
   data: {
     loading: true,
+    permissionLoading: true,
+    hasPageAccess: false,
     editingId: '',
     videos: [],
     form: {
@@ -23,7 +28,12 @@ Page({
     statusOptions: ['draft', 'published', 'offline']
   },
 
-  onLoad() {
+  async onLoad() {
+    const access = await ensurePagePermission(this, 'admin')
+    if (!access.allowed) {
+      this.setData({ loading: false })
+      return
+    }
     this.loadVideos()
   },
 
@@ -38,7 +48,10 @@ Page({
       wx.showToast({ title: res.result?.errMsg || '加载失败', icon: 'none' })
     } catch (err) {
       console.error('loadVideos failed:', err)
-      wx.showToast({ title: '加载失败', icon: 'none' })
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'getAdminVideoList', '视频列表加载失败'),
+        icon: 'none'
+      })
     }
     this.setData({ loading: false })
   },
@@ -124,7 +137,10 @@ Page({
       wx.showToast({ title: res.result?.errMsg || '保存失败', icon: 'none' })
     } catch (err) {
       console.error('saveVideo failed:', err)
-      wx.showToast({ title: '保存失败', icon: 'none' })
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'saveVideo', '保存失败'),
+        icon: 'none'
+      })
     }
   }
 })

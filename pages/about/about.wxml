@@ -1,16 +1,22 @@
 <!--pages/about/about.wxml-->
 <view class="about-container">
-  <!-- 应用信息 -->
-  <view class="app-info">
+  <view class="hero-card">
+    <view class="hero-badge">{{appInfo.stage}}</view>
     <view class="app-logo">🛡️</view>
     <view class="app-name">{{appInfo.name}}</view>
-    <view class="app-version">v{{appInfo.version}}</view>
     <view class="app-desc">{{appInfo.description}}</view>
+    <view class="app-mission">{{appInfo.mission}}</view>
   </view>
 
-  <!-- 核心功能 -->
+  <view class="facts-grid">
+    <view wx:for="{{facts}}" wx:key="label" class="fact-card">
+      <view class="fact-label">{{item.label}}</view>
+      <view class="fact-value">{{item.value}}</view>
+    </view>
+  </view>
+
   <view class="features-section">
-    <view class="section-title">✨ 核心功能</view>
+    <view class="section-title">当前能力</view>
     <view class="features-grid">
       <view wx:for="{{features}}" wx:key="title" class="feature-card">
         <view class="feature-icon">{{item.icon}}</view>
@@ -20,39 +26,55 @@
     </view>
   </view>
 
-  <!-- 团队介绍 -->
+  <view class="notes-section">
+    <view class="section-title">项目说明</view>
+    <view class="notes-list">
+      <view wx:for="{{projectNotes}}" wx:key="title" class="note-card">
+        <view class="note-title">{{item.title}}</view>
+        <view class="note-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+
   <view class="team-section">
-    <view class="section-title">👥 开发团队</view>
-    <view class="team-list">
-      <view wx:for="{{team}}" wx:key="name" class="team-member">
-        <view class="member-role">{{item.role}}</view>
-        <view class="member-name">{{item.name}}</view>
+    <view class="section-title">开发团队</view>
+    <view class="team-card">
+      <view class="team-name">{{teamInfo.name}}</view>
+      <view class="team-desc">{{teamInfo.desc}}</view>
+    </view>
+  </view>
+
+  <view class="notice-section">
+    <view class="section-title">使用提醒</view>
+    <view class="notice-card">
+      <view wx:for="{{emergencyTips}}" wx:key="*this" class="notice-item">
+        <text class="notice-dot"></text>
+        <text class="notice-text">{{item}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 联系方式 -->
   <view class="contact-section">
-    <view class="section-title">📧 联系我们</view>
+    <view class="section-title">联系与支持</view>
     <view class="contact-list">
-      <view class="contact-item" bindtap="copyContact" data-text="{{contact.email}}">
-        <view class="contact-label">📮 邮箱</view>
-        <view class="contact-value">{{contact.email}}</view>
-      </view>
-      <view class="contact-item" bindtap="copyContact" data-text="{{contact.wechat}}">
-        <view class="contact-label">💬 微信</view>
-        <view class="contact-value">{{contact.wechat}}</view>
-      </view>
-      <view class="contact-item" bindtap="copyContact" data-text="{{contact.hotline}}">
-        <view class="contact-label">📞 反诈专线</view>
-        <view class="contact-value">{{contact.hotline}}</view>
+      <view
+        wx:for="{{contacts}}"
+        wx:key="label"
+        class="contact-item"
+        bindtap="handleContactTap"
+        data-action="{{item.action}}"
+        data-value="{{item.value}}"
+        data-url="{{item.url}}"
+      >
+        <view class="contact-label">{{item.label}}</view>
+        <view class="contact-value">{{item.value}}</view>
+        <view class="contact-hint">{{item.hint}}</view>
       </view>
     </view>
   </view>
 
-  <!-- 版权信息 -->
   <view class="copyright">
-    <text>© 2026 反诈卫士团队</text>
-    <text>发布日期：{{appInfo.releaseDate}}</text>
+    <text>© 2026 反诈卫士</text>
+    <text>适用场景：大学生反诈教育与校园宣传</text>
   </view>
 </view>

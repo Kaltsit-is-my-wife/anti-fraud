@@ -22,6 +22,8 @@
   二期 backlog，按页面/云函数/数据表/审核与管理端拆分
 - `phase2_task_split.md`
   二期任务拆分，按任务包、责任角色和人日估算组织
+- `phase2_admin_execution_priority.md`
+  二期非图文管理端执行优先级，明确话题 / 审核 / 视频 / 题库 / 题目模块的推进顺序
 - `phase2_acceptance_checklist.md`
   二期验收清单，用于联调、提测和上线前检查
 - `phase2_page_task_list.md`
@@ -48,6 +50,10 @@
   云数据库设计说明
 - `ai_image_guide.md`
   AI 图片识别能力当前说明与部署方法
+- `topic-and-question-bank-init.md`n  社区话题和题库初始化部署与执行说明\n- `developer-handoff.md`
+  面向后续开发者的技术交接、部署、数据和排障手册
+- `project-handoff.md`
+  项目交接、部署、权限、数据结构、已知问题和接手清单
 
 ---
 
@@ -106,3 +112,7 @@
 - 阶段性排障、一次性修复记录不再长期保留在根目录
 - 新版本规划统一写入 `docs/phase*_development_plan.md`
 - 历史版本说明保留在 `docs/` 下，作为归档资料，不与当前计划混用
+
+
+
+

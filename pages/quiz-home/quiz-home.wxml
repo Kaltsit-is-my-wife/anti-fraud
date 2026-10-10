@@ -1,8 +1,14 @@
 <view class="quiz-home-container">
   <view class="hero-card">
-    <view class="hero-badge">题库入口</view>
-    <view class="hero-title">先选择题库，再开始答题</view>
-    <view class="hero-desc">每次答题会从所选题库中抽题，避免跨题库混抽。</view>
+    <view class="hero-badge">题库介绍</view>
+    <view class="hero-title">从题库选择开始，系统化学习反诈知识</view>
+    <view class="hero-desc">这里按主题整理基础认知、校园高发和热点专题内容。先选择学习方向，再通过答题巩固套路识别、止损步骤和应对方法。</view>
+    <view class="hero-tags">
+      <text class="hero-tag">基础认知</text>
+      <text class="hero-tag">校园诈骗</text>
+      <text class="hero-tag">热点专题</text>
+    </view>
+    <view class="hero-note">当前已开放 {{banks.length}} 个题库，答题范围会严格限定在所选题库内。</view>
   </view>
 
   <view wx:if="{{loading}}" class="loading">题库加载中...</view>
@@ -10,7 +16,7 @@
   <view wx:elif="{{banks.length === 0}}" class="empty">
     <view class="empty-icon">🧠</view>
     <view class="empty-text">当前还没有可用题库</view>
-    <view class="empty-subtext">题库发布后，这里会显示可进入的答题入口。</view>
+    <view class="empty-subtext">题库发布后，这里会展示对应的学习入口和题库简介。</view>
   </view>
 
   <view wx:for="{{banks}}" wx:key="_id" class="bank-card" bindtap="startQuiz" data-id="{{item._id}}" data-name="{{item.name}}" data-count="{{item.defaultQuestionCount}}">
@@ -26,7 +32,7 @@
         <text>题量：{{item.questionCount}}</text>
         <text>默认抽题：{{item.defaultQuestionCount}}</text>
       </view>
-      <view class="bank-action">进入答题</view>
+      <view class="bank-action">开始学习</view>
     </view>
   </view>
 </view>

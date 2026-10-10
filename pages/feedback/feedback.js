@@ -1,4 +1,6 @@
 // pages/feedback/feedback.js
+const { getCloudFunctionErrorMessage } = require('../../utils/cloud')
+
 Page({
   data: {
     currentTab: 'help', // help, feedback
@@ -18,7 +20,7 @@ Page({
       },
       {
         q: '积分有什么用？',
-        a: '积分可以在积分商城兑换礼品、道具卡等虚拟或实体商品。'
+        a: '积分会继续累计，用于学习激励和成长记录；积分商城当前暂未开放。'
       },
       {
         q: '如何查看学习记录？',
@@ -83,9 +85,8 @@ Page({
         })
       }
     } catch (err) {
-      console.error('submitFeedback failed:', err)
       wx.showToast({
-        title: '提交失败',
+        title: getCloudFunctionErrorMessage(err, 'submitFeedback', '提交失败'),
         icon: 'none'
       })
     } finally {

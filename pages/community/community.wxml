@@ -12,19 +12,25 @@
 <view class="community-container">
   <scroll-view scroll-y class="list">
     <view class="hero-card">
-      <view class="hero-badge">官方话题</view>
-      <view class="hero-title">社区已升级为热点话题讨论区</view>
-      <view class="hero-desc">由平台发布反诈热点话题，用户围绕主题进行学习与讨论。旧自由发帖入口已下线。</view>
+      <view class="hero-badge">社区介绍</view>
+      <view class="hero-title">聚焦校园反诈议题，围绕真实案例展开讨论</view>
+      <view class="hero-desc">这里集中呈现校园高发骗局、社会热点案例和实用避坑经验。每个话题都会先梳理背景与重点，再邀请大家交流见闻、提出问题和补充建议。</view>
+      <view class="hero-tags">
+        <text class="hero-tag">校园高发</text>
+        <text class="hero-tag">案例复盘</text>
+        <text class="hero-tag">经验交流</text>
+      </view>
+      <view class="hero-note">当前已发布 {{topics.length}} 个专题，可在话题详情中查看背景说明并参与评论交流。</view>
       <view class="hero-actions">
         <button class="hero-btn secondary" bindtap="refresh" loading="{{loading}}">刷新列表</button>
-        <button class="hero-btn" bindtap="showCommunityNotice">查看说明</button>
+        <button class="hero-btn" bindtap="showCommunityNotice">参与说明</button>
       </view>
     </view>
 
     <view wx:if="{{topics.length === 0 && !loading && !loadFailed}}" class="empty">
       <text class="empty-icon">📌</text>
       <view class="empty-text">当前还没有已发布的话题</view>
-      <view class="empty-subtext">管理端创建并发布后，这里会展示热点反诈话题。</view>
+      <view class="empty-subtext">平台发布专题后，这里会展示对应的讨论入口和背景说明。</view>
     </view>
 
     <view wx:if="{{loadFailed && !loading}}" class="empty">
@@ -34,27 +40,29 @@
     </view>
 
     <view wx:for="{{topics}}" wx:key="_id" class="topic-card" bindtap="goDetail" data-id="{{item._id}}">
-      <image wx:if="{{item.coverImage}}" class="cover" src="{{item.coverImage}}" mode="aspectFill"></image>
-      <view wx:else class="cover cover-placeholder">
-        <text class="cover-emoji">🛡️</text>
+      <view class="cover-wrap">
+        <image wx:if="{{item.coverImage}}" class="cover" src="{{item.coverImage}}" mode="aspectFill"></image>
+        <view wx:else class="cover cover-placeholder">
+          <text class="cover-emoji">🛡️</text>
+        </view>
+        <view class="cover-gradient"></view>
+        <view class="cover-status status-{{item.topicStage || 'published'}}">{{item.topicStageLabel || '进行中'}}</view>
       </view>
 
       <view class="topic-body">
-        <view class="topic-top">
-          <view class="topic-status status-{{item.topicStage || 'published'}}">{{item.topicStageLabel || '进行中'}}</view>
-          <view class="topic-date">{{item.publishedAtText}}</view>
-        </view>
-
         <view class="topic-title">{{item.title}}</view>
         <view class="topic-summary" wx:if="{{item.summary}}">{{item.summary}}</view>
 
         <view class="topic-footer">
-          <view class="period">{{item.periodText}}</view>
-          <view class="detail-link">查看详情</view>
+          <view class="period">
+            <text class="period-icon">🗓</text>
+            <text>{{item.periodText}}</text>
+          </view>
+          <view class="detail-btn">查看详情 ›</view>
         </view>
       </view>
     </view>
 
     <view wx:if="{{loading}}" class="loading">加载中...</view>
-  </view>
+  </scroll-view>
 </view>

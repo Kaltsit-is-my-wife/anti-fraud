@@ -1,0 +1,9 @@
+{
+  "name": "importQuizQuestions",
+  "version": "1.0.0",
+  "description": "管理端批量导入题目",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

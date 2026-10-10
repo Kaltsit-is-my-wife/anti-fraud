@@ -1,39 +1,89 @@
 <view class="manage-container">
-  <view class="panel">
-    <view class="panel-title">题库选择</view>
-    <picker mode="selector" range="{{banks}}" range-key="name" value="{{selectedBankIndex}}" bindchange="onBankChange">
-      <view class="picker">当前题库：{{selectedBankName}}</view>
-    </picker>
+  <view class="panel entry-panel">
+    <view class="panel-title">当前视图</view>
+    <view class="entry-title">{{selectedBankName}}</view>
+    <view class="entry-hint">{{entryHint}}</view>
+    <view class="entry-actions">
+      <button class="mini-btn {{entryMode === 'pool' ? '' : 'secondary'}}" bindtap="scrollToPoolPanel" disabled="{{submitting || processingQuestionId || importing}}">题目池选题</button>
+      <button class="mini-btn {{entryMode === 'create' ? '' : 'secondary'}}" bindtap="scrollToCreatePanel" disabled="{{submitting || processingQuestionId || importing}}">新建题目</button>
+      <button class="mini-btn {{entryMode === 'import' ? '' : 'secondary'}}" bindtap="scrollToImportPanel" disabled="{{submitting || processingQuestionId || importing}}">批量导入</button>
+    </view>
   </view>
 
   <view class="panel">
+    <view class="panel-title">题目池筛选</view>
+    <picker mode="selector" range="{{banks}}" range-key="name" value="{{selectedBankIndex}}" bindchange="onBankChange" disabled="{{submitting || processingQuestionId || importing}}">
+      <view class="picker">当前视图：{{selectedBankName}}</view>
+    </picker>
+    <picker mode="selector" range="{{statusFilterOptionList}}" range-key="label" value="{{selectedStatusIndex}}" bindchange="onStatusFilterChange" disabled="{{submitting || processingQuestionId || importing}}">
+      <view class="picker">题目状态：{{selectedStatusLabel}}</view>
+    </picker>
+    <picker mode="selector" range="{{difficultyFilterOptionList}}" range-key="label" value="{{selectedDifficultyIndex}}" bindchange="onDifficultyFilterChange" disabled="{{submitting || processingQuestionId || importing}}">
+      <view class="picker">题目难度：{{selectedDifficultyLabel}}</view>
+    </picker>
+    <picker wx:if="{{showRelationScope}}" mode="selector" range="{{relationScopeOptionList}}" range-key="label" value="{{selectedRelationIndex}}" bindchange="onRelationScopeChange" disabled="{{submitting || processingQuestionId || importing}}">
+      <view class="picker">关联状态：{{selectedRelationLabel}}</view>
+    </picker>
+    <input class="input" placeholder="关键词（题干 / 解析 / 选项 / 标签）" value="{{filterKeyword}}" bindinput="onFilterInput" data-key="filterKeyword" maxlength="100" disabled="{{submitting || processingQuestionId || importing}}" />
+    <input class="input" placeholder="标签筛选（支持模糊匹配）" value="{{filterTag}}" bindinput="onFilterInput" data-key="filterTag" maxlength="50" disabled="{{submitting || processingQuestionId || importing}}" />
+    <view class="actions">
+      <button class="btn secondary" bindtap="clearFilters" disabled="{{submitting || processingQuestionId || importing}}">清空筛选</button>
+      <button class="btn" bindtap="applyFilters" disabled="{{submitting || processingQuestionId || importing}}">应用筛选</button>
+    </view>
+  </view>
+
+  <view class="panel" id="create-panel">
     <view class="panel-title">{{editingId ? '编辑题目' : '新建题目'}}</view>
-    <textarea class="textarea large" placeholder="题目内容" value="{{form.question}}" bindinput="onInput" data-key="question" />
-    <textarea class="textarea" placeholder="选项，每行一个" value="{{form.optionsText}}" bindinput="onInput" data-key="optionsText" />
-    <input class="input" placeholder="正确答案索引（0开始）" value="{{form.answerIndex}}" bindinput="onInput" data-key="answerIndex" />
-    <textarea class="textarea" placeholder="题目解析" value="{{form.explanation}}" bindinput="onInput" data-key="explanation" />
-    <input class="input" placeholder="难度（1-5）" value="{{form.difficulty}}" bindinput="onInput" data-key="difficulty" />
-    <input class="input" placeholder="标签，逗号分隔" value="{{form.tagsText}}" bindinput="onInput" data-key="tagsText" />
+    <view class="hint">{{createHint}}</view>
+    <textarea class="textarea large" placeholder="题目内容" value="{{form.question}}" bindinput="onInput" data-key="question" maxlength="500" disabled="{{submitting || processingQuestionId || importing}}" />
+    <textarea class="textarea" placeholder="选项，每行一个" value="{{form.optionsText}}" bindinput="onInput" data-key="optionsText" maxlength="4000" disabled="{{submitting || processingQuestionId || importing}}" />
+    <input class="input" placeholder="正确答案索引（从 0 开始）" value="{{form.answerIndex}}" bindinput="onInput" data-key="answerIndex" disabled="{{submitting || processingQuestionId || importing}}" />
+    <textarea class="textarea" placeholder="题目解析" value="{{form.explanation}}" bindinput="onInput" data-key="explanation" maxlength="1000" disabled="{{submitting || processingQuestionId || importing}}" />
+    <input class="input" placeholder="难度（1-5）" value="{{form.difficulty}}" bindinput="onInput" data-key="difficulty" disabled="{{submitting || processingQuestionId || importing}}" />
+    <input class="input" placeholder="标签，逗号分隔" value="{{form.tagsText}}" bindinput="onInput" data-key="tagsText" maxlength="500" disabled="{{submitting || processingQuestionId || importing}}" />
     <view class="switch-row">
       <text class="switch-label">启用状态</text>
-      <switch checked="{{form.isActive}}" bindchange="onActiveChange" />
+      <switch checked="{{form.isActive}}" bindchange="onActiveChange" disabled="{{submitting || processingQuestionId || importing}}" />
     </view>
+    <view class="hint">启用题目必须填写解析；题目池中不允许重复题干。</view>
     <view class="actions">
-      <button class="btn secondary" bindtap="resetForm">重置</button>
-      <button class="btn" bindtap="saveQuestion">保存</button>
+      <button class="btn secondary" bindtap="resetForm" disabled="{{submitting || processingQuestionId || importing}}">重置</button>
+      <button class="btn" bindtap="saveQuestion" disabled="{{submitting || processingQuestionId || importing}}">{{submitting ? '保存中...' : '保存'}}</button>
     </view>
   </view>
 
-  <view class="panel">
-    <view class="panel-title">题目列表</view>
+  <view class="panel" id="import-panel">
+    <view class="panel-title">批量导入到题目池</view>
+    <view class="hint">{{importHint}}</view>
+    <textarea class="textarea import-area" placeholder="粘贴 JSON 数组格式题目数据" value="{{importText}}" bindinput="onImportInput" maxlength="-1" auto-height disabled="{{submitting || processingQuestionId || importing}}" />
+    <view class="hint">支持字段：question、options、answerIndex、explanation、difficulty、tags、isActive。</view>
+    <view class="actions">
+      <button class="btn secondary" bindtap="fillImportTemplate" disabled="{{submitting || processingQuestionId || importing}}">填入模板</button>
+      <button class="btn secondary" bindtap="clearImportText" disabled="{{submitting || processingQuestionId || importing}}">清空内容</button>
+    </view>
+    <view class="actions">
+      <button class="btn" bindtap="importQuestions" disabled="{{submitting || processingQuestionId || importing}}">{{importing ? '导入中...' : '开始导入'}}</button>
+    </view>
+  </view>
+
+  <view class="panel" id="pool-panel">
+    <view class="panel-title">题目池</view>
     <view wx:if="{{loading}}" class="empty">加载中...</view>
-    <view wx:elif="{{questions.length === 0}}" class="empty">当前题库暂无题目</view>
+    <view wx:elif="{{questions.length === 0}}" class="empty">当前筛选条件下暂无题目</view>
     <view wx:for="{{questions}}" wx:key="_id" class="list-card">
       <view class="list-title" bindtap="editQuestion" data-id="{{item._id}}">{{item.question}}</view>
-      <view class="list-meta">答案索引：{{item.answerIndex}} ｜ 难度：{{item.difficulty || 1}}</view>
+      <view class="list-meta">状态：{{item.statusText}} · 答案索引：{{item.answerIndex}} · 难度：{{item.difficulty || 1}} · 已加入 {{item.bankCount || 0}} 个题库</view>
+      <view wx:if="{{item.tagText}}" class="list-tags">标签：{{item.tagText}}</view>
+      <view wx:if="{{item.linkedBankNameText}}" class="list-bank-text">所属题库：{{item.linkedBankNameText}}</view>
+      <view wx:if="{{item.explanation}}" class="list-exp">解析：{{item.explanation}}</view>
       <view class="list-actions">
-        <button class="mini-btn secondary" bindtap="editQuestion" data-id="{{item._id}}">编辑</button>
-        <button class="mini-btn danger" bindtap="deleteQuestion" data-id="{{item._id}}">停用</button>
+        <button class="mini-btn secondary" bindtap="editQuestion" data-id="{{item._id}}" disabled="{{submitting || processingQuestionId || importing}}">编辑</button>
+        <button class="mini-btn {{item.relationButtonType}}" bindtap="toggleRelation" data-id="{{item._id}}" data-action="{{item.relationAction}}" disabled="{{submitting || processingQuestionId || importing}}">
+          {{processingQuestionId === item._id ? '处理中...' : item.relationActionLabel}}
+        </button>
+        <button class="mini-btn {{item.activeButtonType}}" bindtap="toggleQuestionActive" data-id="{{item._id}}" disabled="{{submitting || processingQuestionId || importing}}">
+          {{processingQuestionId === item._id ? '处理中...' : item.activeActionLabel}}
+        </button>
       </view>
     </view>
   </view>

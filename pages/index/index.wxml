@@ -2,19 +2,9 @@
 <view class="index-container">
   <!-- 固定顶部区域 -->
   <view class="fixed-header">
-    <!-- 顶部搜索栏 -->
+    <!-- 顶部区域 -->
     <view class="top-bar">
-      <view class="subtitle">守护校园，识破骗局</view>
-    </view>
-
-    <view class="search-bar">
-      <input
-        class="search-input"
-        type="text"
-        placeholder="搜索反诈知识、典型案例..."
-        bindconfirm="handleSearch"
-      />
-      <text class="search-icon">🔍</text>
+      <view class="subtitle">校园反诈学习平台</view>
     </view>
 
     <!-- 分类标签（横向滚动） -->
@@ -68,23 +58,23 @@
     <view class="entry-card" bindtap="goTopicCommunity">
       <view class="entry-icon">📌</view>
       <view class="entry-title">热点话题</view>
-      <view class="entry-desc">进入官方话题讨论区</view>
+      <view class="entry-desc">围绕校园高发与热点案例展开讨论</view>
     </view>
     <view class="entry-card" bindtap="goVideoList">
       <view class="entry-icon">🎬</view>
       <view class="entry-title">视频学习</view>
-      <view class="entry-desc">查看反诈视频内容</view>
+      <view class="entry-desc">通过短视频快速理解常见骗局</view>
     </view>
     <view class="entry-card" bindtap="goQuizHome">
       <view class="entry-icon">🧠</view>
       <view class="entry-title">题库答题</view>
-      <view class="entry-desc">先选题库再开始答题</view>
+      <view class="entry-desc">按主题学习并练习识骗要点</view>
     </view>
   </view>
 
   <!-- 新闻列表 -->
   <view class="content-area">
-    <view class="section-title">🔥 最新资讯</view>
+    <view class="section-title">🔥 反诈资讯</view>
 
     <view
       wx:for="{{articles}}"

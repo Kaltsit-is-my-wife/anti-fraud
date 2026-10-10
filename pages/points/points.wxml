@@ -10,93 +10,41 @@
 -->
 <!--pages/points/points.wxml-->
 <view class="points-container">
-   <!-- 积分卡片 -->
-   <view class="points-card">
-     <view class="points-content">
-       <view class="points-icon">⭐</view>
-       <view class="points-info">
-         <view class="points-label">我的积分</view>
-         <view class="points-value">{{userPoints}}</view>
-       </view>
-        <button class="view-backpack-btn" bindtap="navigateToBackpack">
-          查看背包
-        </button>
-     </view>
-   </view>
-
-  <!-- 分类筛选 -->
-  <view class="category-filter">
-    <view class="filter-item {{currentCategory === 'all' ? 'active' : ''}}" 
-          bindtap="filterCategory" data-category="all">
-      全部
-    </view>
-    <view class="filter-item {{currentCategory === 'virtual' ? 'active' : ''}}" 
-          bindtap="filterCategory" data-category="virtual">
-      虚拟商品
-    </view>
-    <view class="filter-item {{currentCategory === 'tool' ? 'active' : ''}}" 
-          bindtap="filterCategory" data-category="tool">
-      道具卡
-    </view>
-    <view class="filter-item {{currentCategory === 'physical' ? 'active' : ''}}" 
-          bindtap="filterCategory" data-category="physical">
-      实体商品
+  <view class="points-card closed">
+    <view class="points-content">
+      <view class="points-icon">⭐</view>
+      <view class="points-info">
+        <view class="points-label">当前积分</view>
+        <view class="points-value">{{userPoints}}</view>
+      </view>
+      <button class="view-backpack-btn" bindtap="navigateToBackpack">查看背包</button>
     </view>
   </view>
- 
-  <!-- 商品列表 -->
-  <view class="products-list">
-     <view wx:for="{{products}}" wx:key="id" 
-           wx:if="{{currentCategory === 'all' || item.category === currentCategory}}"
-           class="product-item">
-       
-       <!-- 热门标签 -->
-       <view wx:if="{{item.hot}}" class="hot-badge">🔥 热门</view>
-       
-       <view class="product-icon">
-         <text class="icon-emoji">{{item.icon}}</text>
-       </view>
-       
-       <view class="product-content">
-         <view class="product-name">{{item.name}}</view>
-         <view class="product-desc">{{item.desc}}</view>
-         
-         <view class="product-footer">
-           <view class="product-price">
-             <text class="price-value">{{item.points}}</text>
-             <text class="price-unit">积分</text>
-           </view>
-           <view class="product-stock">
-             <text wx:if="{{item.stock > 0}}">库存：{{item.stock}}</text>
-             <text wx:else class="out-of-stock">已兑完</text>
-           </view>
-         </view>
-       </view>
-       
-       <button class="exchange-btn {{item.stock <= 0 || userPoints < item.points ? 'disabled' : ''}}" 
-               bindtap="exchangeProduct" 
-               data-id="{{item.id}}"
-               disabled="{{item.stock <= 0 || userPoints < item.points}}">
-         {{item.stock <= 0 ? '已兑完' : userPoints < item.points ? '积分不足' : '兑换'}}
-       </button>
-     </view>
-   </view>
 
-  <!-- 空状态 -->
-  <view wx:if="{{products.length === 0}}" class="empty-state">
-    <text class="empty-icon">🎁</text>
-    <view class="empty-text">暂无商品</view>
-    <view class="empty-hint">敬请期待更多精彩商品</view>
+  <view class="closed-panel">
+    <view class="closed-badge">功能调整中</view>
+    <view class="closed-title">积分商城暂未开放</view>
+    <view class="closed-desc">{{closedNotice}}</view>
+
+    <view class="closed-list">
+      <view wx:for="{{closedHighlights}}" wx:key="*this" class="closed-item">
+        <text class="closed-dot"></text>
+        <text class="closed-text">{{item}}</text>
+      </view>
+    </view>
+
+    <view class="closed-actions">
+      <button class="ghost-btn" bindtap="goBack">返回上一页</button>
+      <button class="primary-btn" bindtap="navigateToBackpack">查看背包</button>
+    </view>
   </view>
 
-  <!-- 积分说明 -->
   <view class="points-tips">
-    <view class="tips-title">💡 积分获取方式</view>
+    <view class="tips-title">💡 积分仍可正常获取</view>
     <view class="tips-list">
-      <view class="tip-item">• 每日签到：10积分</view>
-      <view class="tip-item">• 连续签到7天：额外5积分</view>
-      <view class="tip-item">• 阅读文章：5积分/篇</view>
-      <view class="tip-item">• AI对话咨询：2积分/次</view>
+      <view class="tip-item">• 每日签到可继续获得积分</view>
+      <view class="tip-item">• 阅读文章与答题等学习行为仍会累计成长值</view>
+      <view class="tip-item">• 如有兑换建议，可在“帮助与反馈”中提交</view>
     </view>
   </view>
 </view>

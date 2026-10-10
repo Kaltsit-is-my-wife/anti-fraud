@@ -1,0 +1,9 @@
+{
+  "name": "updateQuestionBankRelation",
+  "version": "1.0.0",
+  "description": "管理端维护题目与题库的关联关系",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

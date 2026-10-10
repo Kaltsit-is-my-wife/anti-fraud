@@ -1,15 +1,13 @@
 /**
- * 社区页面 - 社区模块 (v3)
- *
- * 上游依赖：云函数(getTopics)，页面路由 topic-detail
- * 入口：Tab页 onShow/onLoad
- * 主要功能：热点话题列表加载、跳转话题详情
- * 输出：热点话题列表渲染
- *
- * 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
+ * 社区页面
  */
 
 const { formatDateLocal } = require('../../utils/util')
+const { resolveCloudFileUrls, getCloudFunctionErrorMessage } = require('../../utils/cloud')
+const { readCacheData, writeCacheData, shouldRefresh } = require('../../utils/cache')
+
+const TOPIC_CACHE_KEY = 'community:topics'
+const TOPIC_CACHE_TTL_MS = 60 * 1000
 
 Page({
   data: {
@@ -19,38 +17,76 @@ Page({
   },
 
   onLoad() {
-    this.refresh()
+    const hasCachedTopics = this.restoreCachedTopics()
+    if (!hasCachedTopics || shouldRefresh(TOPIC_CACHE_KEY, TOPIC_CACHE_TTL_MS)) {
+      this.refresh({ silent: hasCachedTopics })
+    }
   },
 
   onShow() {
-    // 回到列表时可轻量刷新
+    if (!this.data.loading && shouldRefresh(TOPIC_CACHE_KEY, TOPIC_CACHE_TTL_MS)) {
+      this.refresh({ silent: this.data.topics.length > 0 })
+    }
   },
 
-  async refresh() {
-    if (this.data.loading) return
+  restoreCachedTopics() {
+    const cached = readCacheData(TOPIC_CACHE_KEY)
+    const topics = cached?.data
+    if (!Array.isArray(topics) || topics.length === 0) {
+      return false
+    }
+
+    this.setData({
+      topics,
+      loadFailed: false
+    })
+    return true
+  },
+
+  async refresh(options = {}) {
+    if (this.data.loading) return false
+
     this.setData({ loading: true })
+
     try {
       const res = await wx.cloud.callFunction({
         name: 'getTopics',
         data: { pageSize: 20 }
       })
-      if (res.result && res.result.success) {
-        const normalized = (res.result.data?.list || []).map(topic => ({
-          ...topic,
-          publishedAtText: topic.publishedAt ? formatDateLocal(new Date(topic.publishedAt)) : '',
-          periodText: this.formatPeriodText(topic.startAt, topic.endAt)
-        }))
-        this.setData({
-          topics: normalized,
-          loadFailed: false,
-          loading: false
-        })
-      } else {
-        this.setData({ loading: false, loadFailed: true })
+
+      if (!(res.result && res.result.success)) {
+        throw new Error(res.result?.errMsg || '话题列表加载失败')
       }
+
+      const list = res.result.data?.list || []
+      const urlMap = await resolveCloudFileUrls(list.map(topic => topic.coverImage))
+      const topics = list.map(topic => ({
+        ...topic,
+        coverImage: urlMap[topic.coverImage] || topic.coverImage || '',
+        publishedAtText: topic.publishedAt ? formatDateLocal(new Date(topic.publishedAt)) : '',
+        periodText: this.formatPeriodText(topic.startAt, topic.endAt)
+      }))
+
+      this.setData({
+        topics,
+        loadFailed: false,
+        loading: false
+      })
+      writeCacheData(TOPIC_CACHE_KEY, topics)
+      return true
     } catch (err) {
-      console.error('load topics failed:', err)
-      this.setData({ loading: false, loadFailed: true })
+      if (!options.silent || this.data.topics.length === 0) {
+        wx.showToast({
+          title: getCloudFunctionErrorMessage(err, 'getTopics', '话题列表加载失败'),
+          icon: 'none'
+        })
+      }
+
+      this.setData({
+        loading: false,
+        loadFailed: true
+      })
+      return false
     }
   },
 
@@ -71,9 +107,11 @@ Page({
   },
 
   showCommunityNotice() {
-    wx.showToast({
-      title: '社区已升级为官方话题讨论',
-      icon: 'none'
+    wx.showModal({
+      title: '社区参与说明',
+      content: '这里展示的是平台整理的反诈专题。\n\n进入话题详情后可以查看背景说明、参与评论交流，也欢迎结合真实案例补充经验与提醒。',
+      showCancel: false,
+      confirmText: '知道了'
     })
   }
 })

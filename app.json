@@ -60,14 +60,14 @@
       {
         "pagePath": "pages/community/community",
         "text": "社区",
-        "iconPath": "images/社区.png",
-        "selectedIconPath": "images/社区 (1).png"
+        "iconPath": "images/社区-激活.png",
+        "selectedIconPath": "images/社区-激活-active.png"
       },
       {
         "pagePath": "pages/quiz-home/quiz-home",
         "text": "答题",
-        "iconPath": "images/quiz.png",
-        "selectedIconPath": "images/quiz-active.png"
+        "iconPath": "images/答题.png",
+        "selectedIconPath": "images/答题-active.png"
       },
       {
         "pagePath": "pages/chat/chat",

@@ -68,6 +68,40 @@ function matchKeywords(content, keywords) {
   return keywords.filter(keyword => keyword && content.includes(keyword))
 }
 
+async function createScamReviewTask(reportData, reviewTaskData) {
+  const run = async (txDb) => {
+    const reportRes = await txDb.collection('scam_reports').add({ data: reportData })
+    const reportId = reportRes._id
+
+    const reviewTaskRes = await txDb.collection('review_tasks').add({
+      data: {
+        ...reviewTaskData,
+        targetId: reportId,
+        sourceId: reportId
+      }
+    })
+    const reviewTaskId = reviewTaskRes._id
+
+    await txDb.collection('scam_reports').doc(reportId).update({
+      data: {
+        reviewTaskId,
+        updatedAt: reportData.updatedAt
+      }
+    })
+
+    return { reportId, reviewTaskId }
+  }
+
+  if (typeof db.runTransaction === 'function') {
+    return await db.runTransaction(async (transaction) => {
+      const txDb = transaction || db
+      return await run(txDb)
+    })
+  }
+
+  return await run(db)
+}
+
 exports.main = async (event) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
@@ -92,8 +126,8 @@ exports.main = async (event) => {
     if (highHits.length > 0) return { success: false, errMsg: '内容包含敏感信息，无法提交' }
 
     const now = new Date()
-    const addRes = await db.collection('scam_reports').add({
-      data: {
+    const writeResult = await createScamReviewTask(
+      {
         reporterUid: user.uid,
         reporterNickName: user.nickName || '',
         reporterAvatarUrl: user.avatarUrl || '',
@@ -104,31 +138,47 @@ exports.main = async (event) => {
         content,
         images,
         status: 'pending_review',
+        reviewTaskId: '',
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        targetType: 'scam_report',
+        sourceType: 'scam_report',
+        sourceCollection: 'scam_reports',
+        submitterUid: user.uid,
+        submitterNickName: user.nickName || '',
+        submitterAvatarUrl: user.avatarUrl || '',
+        contentText: content,
+        contentSnapshot: content,
+        sourceMeta: {
+          type,
+          channel,
+          scamAccount,
+          scamLink,
+          imageCount: images.length
+        },
+        keywordHits: mediumHits,
+        matchedKeywords: mediumHits.map(word => ({ word, riskLevel: 'medium' })),
+        keywordHitLevel: mediumHits.length > 0 ? 'medium' : 'none',
+        autoReviewResult: 'pending_review',
+        autoResult: 'pending_review',
+        reviewStatus: 'pending_review',
+        status: 'pending_review',
+        reviewReason: '',
+        reviewerRemark: '',
+        reviewedBy: '',
+        reviewerUid: '',
+        reviewedAt: null,
         createdAt: now,
         updatedAt: now
       }
-    })
-
-    await db.collection('review_tasks').add({
-      data: {
-        targetType: 'scam_report',
-        targetId: addRes._id,
-        contentText: content,
-        keywordHits: mediumHits,
-        keywordHitLevel: mediumHits.length > 0 ? 'medium' : 'none',
-        autoReviewResult: 'pending_review',
-        reviewStatus: 'pending_review',
-        reviewReason: '',
-        reviewedBy: '',
-        reviewedAt: null,
-        createdAt: now
-      }
-    })
+    )
 
     return {
       success: true,
       data: {
-        reportId: addRes._id,
+        reportId: writeResult.reportId,
         status: 'pending_review',
         message: '反馈已提交，等待审核'
       }

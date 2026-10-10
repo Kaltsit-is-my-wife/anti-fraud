@@ -69,7 +69,7 @@
     <view wx:if="{{backpack.length === 0 && !loading}}" class="empty-state">
       <text class="empty-icon">🎒</text>
       <view class="empty-text">背包是空的</view>
-      <view class="empty-hint">去积分商城兑换商品吧！</view>
+      <view class="empty-hint">当前还没有背包物品，商城恢复开放后可在这里查看已兑换内容。</view>
     </view>
 
     <view wx:for="{{backpack}}" wx:key="_id" class="backpack-item">

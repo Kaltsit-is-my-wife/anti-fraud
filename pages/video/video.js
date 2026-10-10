@@ -1,27 +1,11 @@
+const { resolveCloudFileUrls, getCloudFunctionErrorMessage } = require('../../utils/cloud')
+const { getBuiltinVideos, mergeBuiltinVideos } = require('../../utils/defaultVideos.js')
+
 function formatDuration(seconds) {
   const value = Number(seconds) || 0
   const minute = Math.floor(value / 60)
   const second = value % 60
   return `${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`
-}
-
-async function resolveCloudUrls(urls) {
-  const fileList = urls.filter(url => typeof url === 'string' && url.startsWith('cloud://'))
-  if (!fileList.length) return {}
-
-  try {
-    const res = await wx.cloud.getTempFileURL({ fileList })
-    const map = {}
-    ;(res.fileList || []).forEach(item => {
-      if (item.status === 0) {
-        map[item.fileID] = item.tempFileURL
-      }
-    })
-    return map
-  } catch (err) {
-    console.error('resolveCloudUrls failed:', err)
-    return {}
-  }
 }
 
 Page({
@@ -34,6 +18,12 @@ Page({
     this.loadVideos()
   },
 
+  onShow() {
+    if (!this.data.loading) {
+      this.loadVideos()
+    }
+  },
+
   async loadVideos() {
     this.setData({ loading: true })
 
@@ -43,25 +33,37 @@ Page({
         data: { pageSize: 20 }
       })
 
-      if (!(res.result && res.result.success)) {
-        wx.showToast({ title: res.result?.errMsg || '加载失败', icon: 'none' })
-        this.setData({ loading: false })
-        return
-      }
-
-      const list = res.result.data?.list || []
-      const urlMap = await resolveCloudUrls(list.map(item => item.coverImage))
-      const videos = list.map(item => ({
+      const list = res.result && res.result.success
+        ? (res.result.data?.list || [])
+        : []
+      const mergedList = mergeBuiltinVideos(list)
+      const urlMap = await resolveCloudFileUrls(mergedList.map(item => item.coverImage))
+      const videos = mergedList.map(item => ({
         ...item,
         coverImage: urlMap[item.coverImage] || item.coverImage || '',
-        durationText: formatDuration(item.duration)
+        durationText: item.durationText || formatDuration(item.duration)
       }))
 
       this.setData({ videos, loading: false })
     } catch (err) {
       console.error('loadVideos failed:', err)
-      wx.showToast({ title: '加载失败', icon: 'none' })
-      this.setData({ loading: false })
+
+      const fallbackVideos = getBuiltinVideos()
+      const urlMap = await resolveCloudFileUrls(fallbackVideos.map(item => item.coverImage))
+      const videos = fallbackVideos.map(item => ({
+        ...item,
+        coverImage: urlMap[item.coverImage] || item.coverImage || '',
+        durationText: item.durationText || formatDuration(item.duration)
+      }))
+
+      this.setData({ videos, loading: false })
+
+      if (videos.length === 0) {
+        wx.showToast({
+          title: getCloudFunctionErrorMessage(err, 'getVideos', '视频列表加载失败'),
+          icon: 'none'
+        })
+      }
     }
   },
 

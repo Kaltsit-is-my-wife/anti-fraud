@@ -36,6 +36,31 @@ function normalizeArray(value) {
   return value.map(item => String(item || '').trim()).filter(Boolean)
 }
 
+function buildTextContentBlocks(contentText) {
+  const paragraphs = contentText
+    .split(/\n{2,}/)
+    .map(item => normalizeText(item, 1000))
+    .filter(Boolean)
+
+  return paragraphs.map((text, index) => ({
+    id: `blk_text_${index + 1}`,
+    type: 'text',
+    text,
+    sort: index + 1
+  }))
+}
+
+function keepNonTextBlocks(blocks) {
+  if (!Array.isArray(blocks)) return []
+  return blocks.filter(block => block && !['text', 'paragraph'].includes(block.type))
+}
+
+async function getExistingTopic(id) {
+  if (!id) return null
+  const res = await db.collection('topics').where({ _id: id }).limit(1).get()
+  return res.data && res.data[0]
+}
+
 exports.main = async (event) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
@@ -50,6 +75,15 @@ exports.main = async (event) => {
     const status = ['draft', 'published', 'offline'].includes(payload.status) ? payload.status : 'draft'
     const contentText = normalizeText(payload.contentText, 3000)
     const now = new Date()
+    const existingTopic = await getExistingTopic(id)
+    if (id && !existingTopic) return { success: false, errMsg: '话题不存在' }
+
+    const textBlocks = buildTextContentBlocks(contentText)
+    const preservedBlocks = keepNonTextBlocks(existingTopic?.contentBlocks)
+      .map((block, index) => ({
+        ...block,
+        sort: textBlocks.length + index + 1
+      }))
 
     const data = {
       title: normalizeText(payload.title, 100),
@@ -61,13 +95,17 @@ exports.main = async (event) => {
       endAt: payload.endAt ? new Date(payload.endAt) : null,
       relatedArticleIds: normalizeArray(payload.relatedArticleIds),
       relatedVideoIds: normalizeArray(payload.relatedVideoIds),
-      contentBlocks: contentText ? [{ id: 'blk_text_1', type: 'text', text: contentText, sort: 1 }] : [],
+      contentBlocks: [...textBlocks, ...preservedBlocks],
       updatedAt: now
     }
 
     if (!data.title) return { success: false, errMsg: '标题不能为空' }
     if (status === 'published') {
-      data.publishedAt = payload.publishedAt ? new Date(payload.publishedAt) : now
+      data.publishedAt = payload.publishedAt
+        ? new Date(payload.publishedAt)
+        : (existingTopic?.publishedAt || now)
+    } else if (existingTopic?.publishedAt) {
+      data.publishedAt = existingTopic.publishedAt
     }
 
     if (id) {

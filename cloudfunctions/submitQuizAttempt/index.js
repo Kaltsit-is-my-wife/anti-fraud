@@ -61,6 +61,28 @@ function sanitizeBankId(value) {
   return value.trim()
 }
 
+function normalizeText(value, maxLen = 200) {
+  if (typeof value !== 'string') return ''
+  return value.trim().slice(0, maxLen)
+}
+
+function extractBankIds(question) {
+  if (Array.isArray(question.bankIds) && question.bankIds.length > 0) {
+    return Array.from(new Set(
+      question.bankIds
+        .map(item => normalizeText(String(item || ''), 64))
+        .filter(item => item && !['default_bank', '__all__', '__unassigned__'].includes(item))
+    ))
+  }
+
+  const legacyBankId = normalizeText(question.bankId, 64)
+  if (legacyBankId && !['default_bank', '__all__', '__unassigned__'].includes(legacyBankId)) {
+    return [legacyBankId]
+  }
+
+  return []
+}
+
 async function getCurrentUser(openid) {
   const userResult = await db.collection('users').where({ _openid: openid }).get()
   if (!userResult.data || userResult.data.length === 0) return null
@@ -147,6 +169,20 @@ exports.main = async (event, context) => {
     const qList = qRes.data || []
     if (qList.length !== questionIds.length) {
       return { success: false, errMsg: '题库数据不完整，请重试' }
+    }
+
+    if (bankId) {
+      const invalidQuestion = qList.find(question => {
+        const bankIds = extractBankIds(question)
+        if (bankId === '__unassigned__' || bankId === 'default_bank') {
+          return bankIds.length > 0
+        }
+        return !bankIds.includes(bankId)
+      })
+
+      if (invalidQuestion) {
+        return { success: false, errMsg: '题库题目关系已变化，请重新开始答题' }
+      }
     }
 
     const qMap = new Map(qList.map(q => [q.questionId, q]))

@@ -40,7 +40,7 @@
 
         <view wx:elif="{{item.type === 'video_link'}}" class="link-card video-link">
           <view class="link-label">关联视频</view>
-          <view class="link-text">该话题包含视频入口，视频页将在下一批接入。</view>
+          <view class="link-text">该话题包含视频入口，请查看下方相关视频。</view>
         </view>
       </block>
     </view>

@@ -53,7 +53,6 @@ Page({
         })
       }
     } catch (err) {
-      console.error('加载背包失败：', err)
       wx.showToast({
         title: '加载失败',
         icon: 'none'
@@ -185,7 +184,6 @@ Page({
       }
     } catch (err) {
       wx.hideLoading()
-      console.error('使用物品失败：', err)
       wx.showToast({
         title: '使用失败',
         icon: 'none'

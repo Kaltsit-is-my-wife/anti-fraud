@@ -1,4 +1,5 @@
 const { formatDateLocal } = require('../../utils/util')
+const { resolveCloudFileUrls, getCloudFunctionErrorMessage } = require('../../utils/cloud')
 
 Page({
   data: {
@@ -28,6 +29,12 @@ Page({
     this.loadComments()
   },
 
+  onShow() {
+    if (this.data.topicId && this.data.topic) {
+      this.loadComments()
+    }
+  },
+
   async loadTopicDetail() {
     this.setData({ loading: true })
 
@@ -45,21 +52,48 @@ Page({
 
       const data = res.result.data || {}
       const topic = data.topic || {}
+      const contentBlocks = Array.isArray(topic.contentBlocks) ? topic.contentBlocks : []
+      const relatedArticles = data.relatedArticles || []
+      const relatedVideos = data.relatedVideos || []
+      const imageUrls = [
+        topic.coverImage,
+        ...contentBlocks.filter(item => item && item.type === 'image').map(item => item.imageUrl),
+        ...relatedArticles.map(item => item.coverImage),
+        ...relatedVideos.map(item => item.coverImage)
+      ]
+      const urlMap = await resolveCloudFileUrls(imageUrls)
 
       this.setData({
         topic: {
           ...topic,
+          coverImage: urlMap[topic.coverImage] || topic.coverImage || '',
+          contentBlocks: contentBlocks.map(item => {
+            if (!item || item.type !== 'image') return item
+            return {
+              ...item,
+              imageUrl: urlMap[item.imageUrl] || item.imageUrl || ''
+            }
+          }),
           publishedAtText: topic.publishedAt ? formatDateLocal(new Date(topic.publishedAt)) : '',
           startAtText: topic.startAt ? formatDateLocal(new Date(topic.startAt)) : '',
           endAtText: topic.endAt ? formatDateLocal(new Date(topic.endAt)) : ''
         },
-        relatedArticles: data.relatedArticles || [],
-        relatedVideos: data.relatedVideos || [],
+        relatedArticles: relatedArticles.map(item => ({
+          ...item,
+          coverImage: urlMap[item.coverImage] || item.coverImage || ''
+        })),
+        relatedVideos: relatedVideos.map(item => ({
+          ...item,
+          coverImage: urlMap[item.coverImage] || item.coverImage || ''
+        })),
         loading: false
       })
     } catch (err) {
       console.error('loadTopicDetail failed:', err)
-      wx.showToast({ title: '加载失败', icon: 'none' })
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'getTopicDetail', '话题详情加载失败'),
+        icon: 'none'
+      })
       this.setData({ loading: false })
     }
   },
@@ -92,6 +126,10 @@ Page({
       this.setData({ comments })
     } catch (err) {
       console.error('loadComments failed:', err)
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'getTopicComments', '评论加载失败'),
+        icon: 'none'
+      })
     }
   },
 
@@ -154,7 +192,10 @@ Page({
       })
     } catch (err) {
       console.error('submitTopicComment failed:', err)
-      wx.showToast({ title: '提交失败', icon: 'none' })
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'submitTopicComment', '提交失败'),
+        icon: 'none'
+      })
     } finally {
       this.setData({ commentSubmitting: false })
     }

@@ -150,6 +150,8 @@ exports.main = async (event, context) => {
         isVerified: false,
         verifiedAt: null,
         isBound: false,
+        roles: [],
+        isAdmin: false,
         
         signDates: [],
         points: 0,
@@ -211,6 +213,8 @@ exports.main = async (event, context) => {
 
       // v3字段兜底：老用户缺字段时补齐（不破坏已有数据）
       const patch = {}
+      if (!Array.isArray(userData.roles)) patch.roles = []
+      if (typeof userData.isAdmin !== 'boolean') patch.isAdmin = false
       if (!Array.isArray(userData.displayAchievementIds)) patch.displayAchievementIds = []
       if (typeof userData.quizRewardDailyDate !== 'string') patch.quizRewardDailyDate = ''
       if (typeof userData.quizRewardDailyAwarded !== 'number') patch.quizRewardDailyAwarded = 0

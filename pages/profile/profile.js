@@ -46,7 +46,6 @@ Page({
         this.setData({ loading: false })
       }
     } catch (err) {
-      console.error('getPublicProfile failed:', err)
       wx.showToast({ title: '加载失败', icon: 'none' })
       this.setData({ loading: false })
     }
@@ -69,7 +68,6 @@ Page({
         wx.showToast({ title: res.result?.errMsg || '操作失败', icon: 'none' })
       }
     } catch (err) {
-      console.error('followUser failed:', err)
       wx.showToast({ title: '操作失败', icon: 'none' })
     }
   },

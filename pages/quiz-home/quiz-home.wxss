@@ -6,15 +6,30 @@
 }
 
 .hero-card {
+  position: relative;
+  overflow: hidden;
   padding: 30rpx;
   border-radius: 28rpx;
-  background: linear-gradient(135deg, #0f172a 0%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #14532d 0%, #0f766e 55%, #0f766e 100%);
   color: #fff;
-  box-shadow: 0 16rpx 40rpx rgba(14, 165, 233, 0.18);
+  box-shadow: 0 16rpx 40rpx rgba(15, 118, 110, 0.18);
   margin-bottom: 22rpx;
 }
 
+.hero-card::after {
+  content: '';
+  position: absolute;
+  right: -80rpx;
+  top: -80rpx;
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .hero-badge {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   padding: 8rpx 18rpx;
   border-radius: 999rpx;
@@ -23,6 +38,8 @@
 }
 
 .hero-title {
+  position: relative;
+  z-index: 1;
   margin-top: 18rpx;
   font-size: 38rpx;
   font-weight: 700;
@@ -30,10 +47,38 @@
 }
 
 .hero-desc {
+  position: relative;
+  z-index: 1;
   margin-top: 14rpx;
   font-size: 26rpx;
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.88);
+}
+
+.hero-tags {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.hero-tag {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hero-note {
+  position: relative;
+  z-index: 1;
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .loading,
@@ -62,7 +107,7 @@
   background: #fff;
   border-radius: 24rpx;
   margin-bottom: 18rpx;
-  box-shadow: 0 10rpx 24rpx rgba(2, 132, 199, 0.10);
+  box-shadow: 0 10rpx 24rpx rgba(15, 118, 110, 0.10);
   overflow: hidden;
 }
 
@@ -104,15 +149,29 @@
 
 .bank-meta {
   display: flex;
-  gap: 20rpx;
+  flex-wrap: wrap;
+  gap: 12rpx;
   margin-top: 16rpx;
   font-size: 24rpx;
   color: #64748b;
 }
 
+.bank-meta text {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #f0fdf4;
+  color: #047857;
+}
+
 .bank-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 18rpx;
+  padding: 10rpx 22rpx;
+  border-radius: 999rpx;
   font-size: 26rpx;
-  color: #0ea5e9;
+  color: #047857;
   font-weight: 600;
+  background: #ecfdf5;
 }

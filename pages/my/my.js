@@ -10,6 +10,7 @@
  */
 // pages/my/my.js
 const { formatDateLocal } = require('../../utils/util.js')
+const { FEATURE_FLAGS, POINTS_MALL_NOTICE } = require('../../utils/feature')
 
 Page({
 data: {
@@ -25,6 +26,7 @@ data: {
       owned: 0,
       equipped: 0
     },
+    pointsMallEnabled: FEATURE_FLAGS.pointsMallEnabled,
     tempNickname: '',
     isEditingNickname: false
   },
@@ -285,8 +287,22 @@ const achievements = achievementList
   },
 
   navigateToPoints() {
+    if (!this.data.pointsMallEnabled) {
+      this.showPointsMallClosed()
+      return
+    }
+
     wx.navigateTo({
       url: '/pages/points/points'
+    })
+  },
+
+  showPointsMallClosed() {
+    wx.showModal({
+      title: '积分商城暂未开放',
+      content: POINTS_MALL_NOTICE,
+      showCancel: false,
+      confirmText: '知道了'
     })
   },
 

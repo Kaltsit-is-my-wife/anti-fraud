@@ -1,23 +1,6 @@
 const { formatDateLocal } = require('../../utils/util')
-
-async function resolveCloudUrls(urls) {
-  const fileList = urls.filter(url => typeof url === 'string' && url.startsWith('cloud://'))
-  if (!fileList.length) return {}
-
-  try {
-    const res = await wx.cloud.getTempFileURL({ fileList })
-    const map = {}
-    ;(res.fileList || []).forEach(item => {
-      if (item.status === 0) {
-        map[item.fileID] = item.tempFileURL
-      }
-    })
-    return map
-  } catch (err) {
-    console.error('resolveCloudUrls failed:', err)
-    return {}
-  }
-}
+const { resolveCloudFileUrls, getCloudFunctionErrorMessage } = require('../../utils/cloud')
+const { getBuiltinVideoById } = require('../../utils/defaultVideos.js')
 
 Page({
   data: {
@@ -44,6 +27,23 @@ Page({
   async loadVideoDetail() {
     this.setData({ loading: true })
 
+    const builtinVideo = getBuiltinVideoById(this.data.videoId)
+    if (builtinVideo) {
+      const urlMap = await resolveCloudFileUrls([builtinVideo.coverImage, builtinVideo.videoUrl])
+      this.setData({
+        video: {
+          ...builtinVideo,
+          coverImage: urlMap[builtinVideo.coverImage] || builtinVideo.coverImage || '',
+          videoUrl: urlMap[builtinVideo.videoUrl] || builtinVideo.videoUrl || '',
+          publishedAtText: builtinVideo.publishedAt ? formatDateLocal(new Date(builtinVideo.publishedAt)) : ''
+        },
+        relatedArticles: [],
+        relatedTopics: [],
+        loading: false
+      })
+      return
+    }
+
     try {
       const res = await wx.cloud.callFunction({
         name: 'getVideoDetail',
@@ -58,8 +58,15 @@ Page({
 
       const data = res.result.data || {}
       const video = data.video || {}
-      const allUrls = [video.coverImage, video.videoUrl]
-      const urlMap = await resolveCloudUrls(allUrls)
+      const relatedArticles = data.relatedArticles || []
+      const relatedTopics = data.relatedTopics || []
+      const allUrls = [
+        video.coverImage,
+        video.videoUrl,
+        ...relatedArticles.map(item => item.coverImage),
+        ...relatedTopics.map(item => item.coverImage)
+      ]
+      const urlMap = await resolveCloudFileUrls(allUrls)
 
       this.setData({
         video: {
@@ -68,13 +75,22 @@ Page({
           videoUrl: urlMap[video.videoUrl] || video.videoUrl || '',
           publishedAtText: video.publishedAt ? formatDateLocal(new Date(video.publishedAt)) : ''
         },
-        relatedArticles: data.relatedArticles || [],
-        relatedTopics: data.relatedTopics || [],
+        relatedArticles: relatedArticles.map(item => ({
+          ...item,
+          coverImage: urlMap[item.coverImage] || item.coverImage || ''
+        })),
+        relatedTopics: relatedTopics.map(item => ({
+          ...item,
+          coverImage: urlMap[item.coverImage] || item.coverImage || ''
+        })),
         loading: false
       })
     } catch (err) {
       console.error('loadVideoDetail failed:', err)
-      wx.showToast({ title: '加载失败', icon: 'none' })
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'getVideoDetail', '视频详情加载失败'),
+        icon: 'none'
+      })
       this.setData({ loading: false })
     }
   },

@@ -1,59 +1,133 @@
 <!--pages/chat/chat.wxml-->
 <view class="chat-container">
-  <!-- 顶部工具栏 -->
-  <view class="chat-toolbar" wx:if="{{messages.length > 0}}">
-    <button class="clear-btn" bindtap="clearLocalMessages">
-      <text>🗑️ 清除历史</text>
-    </button>
-  </view>
-  <!-- 聊天消息区域 -->
-  <scroll-view class="chat-messages" scroll-y scroll-into-view="{{scrollToView}}" scroll-with-animation>
-    <!-- 欢迎消息 -->
-    <view class="message bot">
-      <view class="message-avatar">🤖</view>
-      <view class="message-content">
-        <text class="privacy-text">{{privacyText}}</text>
-        <text class="welcome-text">{{welcomeMessage}}</text>
+  <view class="chat-page">
+    <view class="chat-header">
+      <view class="chat-header-card">
+        <view class="chat-header-row">
+          <view class="chat-header-main">
+            <text class="chat-kicker">AI FRAUD SHIELD</text>
+            <text class="chat-title">AI反诈助手</text>
+            <text class="chat-subtitle">发送文字或截图，帮你快速判断诈骗风险。</text>
+          </view>
+          <button wx:if="{{messages.length > 0}}" class="clear-btn" bindtap="clearLocalMessages">清空</button>
+        </view>
+        <view class="chat-tag-row">
+          <view class="chat-tag">本地保存</view>
+          <view class="chat-tag">支持截图</view>
+          <view class="chat-tag">连续追问</view>
+        </view>
       </view>
     </view>
 
-    <!-- 聊天记录 -->
-    <view wx:for="{{messages}}" wx:key="id" class="message {{item.role}}" id="msg-{{index}}">
-      <view class="message-avatar">{{item.role === 'user' ? '👤' : '🤖'}}</view>
-      <view class="message-content">
-        <image wx:if="{{item.imageUrl}}" class="message-image" src="{{item.imageUrl}}" mode="widthFix" />
-        <text>{{item.content}}</text>
+    <scroll-view class="chat-messages" scroll-y scroll-into-view="{{scrollToView}}" scroll-with-animation>
+      <view wx:if="{{messages.length === 0}}" class="empty-panel">
+        <view class="intro-card">
+          <view class="privacy-banner">
+            <text class="privacy-text">{{privacyText}}</text>
+          </view>
+          <text class="intro-title">{{introTitle}}</text>
+          <text class="intro-description">{{introDescription}}</text>
+
+          <view class="quick-prompt-list">
+            <view wx:for="{{quickPrompts}}" wx:key="title" class="quick-prompt" bindtap="applyQuickPrompt" data-prompt="{{item.prompt}}">
+              <view class="quick-prompt-icon">{{item.icon}}</view>
+              <view class="quick-prompt-copy">
+                <text class="quick-prompt-title">{{item.title}}</text>
+                <text class="quick-prompt-desc">{{item.example}}</text>
+              </view>
+            </view>
+          </view>
+
+          <text class="intro-tip">可直接发聊天记录、短信内容、转账要求或页面截图。</text>
+        </view>
+      </view>
+
+      <view wx:if="{{messages.length > 0}}" class="conversation-banner">
+        <text class="conversation-banner-text">当前对话保存在本机，可围绕同一件事继续追问。</text>
+      </view>
+
+      <view wx:for="{{messages}}" wx:key="id" class="message-row {{item.role}}" id="msg-{{index}}">
+        <view class="message-avatar {{item.role === 'user' ? 'is-user' : 'is-bot'}}">{{item.role === 'user' ? '我' : 'AI'}}</view>
+        <view class="message-stack">
+          <text class="message-role">{{item.role === 'user' ? '你' : '反诈助手'}}</text>
+          <view class="message-bubble {{item.role}}">
+            <image wx:if="{{item.imageUrl}}" class="message-image" src="{{item.imageUrl}}" mode="widthFix" />
+            <text>{{item.content}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{loading}}" class="message-row bot">
+        <view class="message-avatar is-bot">AI</view>
+        <view class="message-stack">
+          <text class="message-role">反诈助手</text>
+          <view class="message-bubble bot loading-bubble">
+            <text>正在分析风险点，请稍等...</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="chat-input-area">
+      <view class="composer-main">
+        <view class="icon-btn camera-btn {{loading ? 'is-disabled' : ''}}" bindtap="uploadImage">
+          <view class="camera-icon">
+            <view class="camera-top"></view>
+            <view class="camera-body"></view>
+            <view class="camera-lens"></view>
+          </view>
+        </view>
+
+        <view wx:if="{{isTextMode}}" class="composer-center is-text">
+          <input
+            class="chat-input compact-input"
+            type="text"
+            maxlength="2000"
+            placeholder="把可疑内容发给我..."
+            placeholder-style="color: #8aa3b8; font-size: 28rpx;"
+            value="{{inputValue}}"
+            bindinput="onInput"
+            bindfocus="onInputFocus"
+            bindblur="onInputBlur"
+            bindconfirm="sendMessage"
+            confirm-type="send"
+            cursor-spacing="20"
+            focus="{{inputFocus}}"
+          />
+        </view>
+
+        <view wx:else class="composer-center is-voice {{loading ? 'is-disabled' : ''}}" bindtap="handleVoiceButtonTap">
+          <text class="voice-placeholder">{{loading ? '正在分析...' : '按住说话'}}</text>
+        </view>
+
+        <view class="icon-btn quick-btn {{loading ? 'is-disabled' : ''}}" bindtap="showQuickPromptSheet">
+          <view class="grid-icon">
+            <view class="grid-dot"></view>
+            <view class="grid-dot"></view>
+            <view class="grid-dot"></view>
+            <view class="grid-dot"></view>
+            <view class="grid-dot"></view>
+            <view class="grid-dot"></view>
+            <view class="grid-dot"></view>
+            <view class="grid-dot"></view>
+            <view class="grid-dot"></view>
+          </view>
+        </view>
+
+        <view
+          class="icon-btn action-toggle-btn {{isTextMode && inputFilled && !loading ? 'is-send' : ''}} {{loading ? 'is-disabled' : ''}}"
+          bindtap="handleComposerAction"
+        >
+          <view wx:if="{{isTextMode && inputFilled && !loading}}" class="send-icon">
+            <view class="send-icon-line"></view>
+            <view class="send-icon-head"></view>
+          </view>
+          <view wx:else class="plus-icon">
+            <view class="plus-icon-horizontal"></view>
+            <view class="plus-icon-vertical"></view>
+          </view>
+        </view>
       </view>
     </view>
-
-    <!-- 加载中提示 -->
-    <view wx:if="{{loading}}" class="message bot">
-      <view class="message-avatar">🤖</view>
-      <view class="message-content loading-text">
-        <text>正在思考中...</text>
-      </view>
-    </view>
-  </scroll-view>
-
-  <!-- 输入区域 -->
-  <view class="chat-input-area">
-    <!-- 按钮行 -->
-    <view class="input-buttons">
-      <button class="upload-btn" bindtap="uploadImage">📷</button>
-      <button class="send-btn" bindtap="sendMessage">发送</button>
-    </view>
-    <!-- 输入框 -->
-    <input 
-      class="chat-input" 
-      type="text" 
-      placeholder="输入您的问题，点击上方「发送」按钮..."
-      placeholder-style="color: #94a3b8; font-size: 28rpx;"
-      value="{{inputValue}}"
-      bindinput="onInput"
-      bindconfirm="sendMessage"
-      confirm-type="send"
-      cursor-spacing="20"
-    />
   </view>
 </view>
-

@@ -1,4 +1,6 @@
 // pages/settings/settings.js
+const { loadPermissionSnapshot } = require('../../utils/permission')
+
 Page({
   data: {
     settings: {
@@ -9,11 +11,16 @@ Page({
     },
     version: '1.0.0',
     hasReviewAccess: false,
-    hasAdminAccess: false
+    hasAdminAccess: false,
+    permissionLoading: true
   },
 
   onLoad() {
     this.loadSettings()
+    this.loadPermissionInfo()
+  },
+
+  onShow() {
     this.loadPermissionInfo()
   },
 
@@ -22,19 +29,19 @@ Page({
       const settings = wx.getStorageSync('appSettings') || this.data.settings
       this.setData({ settings })
     } catch (e) {
-      console.error('加载设置失败：', e)
     }
   },
 
-  loadPermissionInfo() {
+  async loadPermissionInfo() {
     try {
-      const userInfo = wx.getStorageSync('userInfo') || {}
-      const roles = Array.isArray(userInfo.roles) ? userInfo.roles : []
-      const hasReviewAccess = userInfo.isAdmin === true || roles.includes('reviewer') || roles.includes('operator')
-      const hasAdminAccess = userInfo.isAdmin === true || roles.includes('operator')
-      this.setData({ hasReviewAccess, hasAdminAccess })
+      const snapshot = await loadPermissionSnapshot()
+      this.setData({
+        hasReviewAccess: snapshot.hasReviewAccess,
+        hasAdminAccess: snapshot.hasAdminAccess,
+        permissionLoading: false
+      })
     } catch (e) {
-      console.error('加载权限信息失败：', e)
+      this.setData({ permissionLoading: false })
     }
   },
 
@@ -55,14 +62,23 @@ toggleSwitch(e) {
         duration: 1000
       })
     } catch (e) {
-      console.error('保存设置失败：', e)
     }
   },
 
   navigateTo(e) {
     const url = e.currentTarget.dataset.url
     if (!url) return
-    
+
+    if (url === '/pages/review-center/review-center' && !this.data.hasReviewAccess) {
+      wx.showToast({ title: '无审核权限', icon: 'none' })
+      return
+    }
+
+    if (url === '/pages/admin-center/admin-center' && !this.data.hasAdminAccess) {
+      wx.showToast({ title: '无管理权限', icon: 'none' })
+      return
+    }
+
     wx.navigateTo({ url })
   },
 
@@ -84,7 +100,6 @@ toggleSwitch(e) {
               })
             }, 1500)
           } catch (e) {
-            console.error('清除缓存失败：', e)
           }
         }
       }
@@ -113,12 +128,8 @@ toggleSwitch(e) {
               
               if (cloudResult.result && cloudResult.result.success) {
                 cloudSuccess = true
-                console.log('云端数据清空成功:', cloudResult.result.data)
-              } else {
-                console.warn('云端数据清空失败，仅清空本地数据')
               }
             } catch (cloudErr) {
-              console.warn('云函数调用失败，仅清空本地数据:', cloudErr)
               // 云函数未部署或其他错误，继续清空本地数据
             }
             
@@ -127,9 +138,9 @@ toggleSwitch(e) {
             
             wx.hideLoading()
             
-            const message = cloudSuccess 
-              ? '云端和本地数据已清空' 
-              : '本地数据已清空（云端数据未清空，请先部署clearUserData云函数）'
+            const message = cloudSuccess
+              ? '云端和本地数据已清空'
+              : '本地数据已清空'
             
             wx.showModal({
               title: '清空完成',
@@ -143,7 +154,6 @@ toggleSwitch(e) {
             })
           } catch (err) {
             wx.hideLoading()
-            console.error('清空数据失败：', err)
             wx.showModal({
               title: '清空失败',
               content: err.message || '清空数据失败，请重试',
@@ -158,11 +168,8 @@ toggleSwitch(e) {
   // 清空本地数据
   clearLocalData() {
     try {
-      // 清空所有本地存储
       wx.clearStorageSync()
-      console.log('本地数据已清空')
     } catch (e) {
-      console.error('清空本地数据失败：', e)
     }
   },
 

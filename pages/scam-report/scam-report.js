@@ -9,6 +9,8 @@
  * 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
  */
 
+const { getCloudFunctionErrorMessage } = require('../../utils/cloud')
+
 Page({
   data: {
     typeOptions: ['电信诈骗', '刷单返利', '冒充客服退款', '冒充公检法', '校园贷/网贷', '杀猪盘', '其他'],
@@ -79,8 +81,10 @@ Page({
         wx.showToast({ title: res.result?.errMsg || '提交失败', icon: 'none' })
       }
     } catch (err) {
-      console.error('createScamReport failed:', err)
-      wx.showToast({ title: '提交失败', icon: 'none' })
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'createScamReport', '提交失败'),
+        icon: 'none'
+      })
     } finally {
       this.setData({ submitting: false })
     }

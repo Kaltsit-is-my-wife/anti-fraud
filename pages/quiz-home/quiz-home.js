@@ -1,6 +1,8 @@
+const { resolveCloudFileUrls, getCloudFunctionErrorMessage } = require('../../utils/cloud')
+
 Page({
   data: {
-    loading: true,
+    loading: false,
     banks: []
   },
 
@@ -9,12 +11,13 @@ Page({
   },
 
   onShow() {
-    if (!this.data.loading && this.data.banks.length === 0) {
+    if (!this.data.loading) {
       this.loadBanks()
     }
   },
 
   async loadBanks() {
+    if (this.data.loading) return
     this.setData({ loading: true })
 
     try {
@@ -24,8 +27,13 @@ Page({
       })
 
       if (res.result && res.result.success) {
+        const list = res.result.data?.list || []
+        const urlMap = await resolveCloudFileUrls(list.map(item => item.coverImage))
         this.setData({
-          banks: res.result.data?.list || [],
+          banks: list.map(item => ({
+            ...item,
+            coverImage: urlMap[item.coverImage] || item.coverImage || ''
+          })),
           loading: false
         })
         return
@@ -33,8 +41,10 @@ Page({
 
       wx.showToast({ title: res.result?.errMsg || '加载失败', icon: 'none' })
     } catch (err) {
-      console.error('getQuestionBanks failed:', err)
-      wx.showToast({ title: '加载失败', icon: 'none' })
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'getQuestionBanks', '题库列表加载失败'),
+        icon: 'none'
+      })
     }
 
     this.setData({ loading: false })

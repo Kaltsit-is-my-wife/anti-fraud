@@ -1,0 +1,9 @@
+{
+  "name": "deleteTopic",
+  "version": "1.0.0",
+  "description": "管理端删除话题并清理评论与审核任务",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

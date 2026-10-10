@@ -14,10 +14,32 @@ async function ensureCollection(collectionName) {
       try {
         await db.createCollection(collectionName)
       } catch (createErr) {
-        console.error(`创建集合 ${collectionName} 失败:`, createErr.message)
+        console.error(`create collection ${collectionName} failed:`, createErr.message)
       }
     }
   }
+}
+
+function normalizeText(value, maxLen = 300) {
+  if (typeof value !== 'string') return ''
+  return value.trim().slice(0, maxLen)
+}
+
+function extractBankIds(question) {
+  if (Array.isArray(question.bankIds) && question.bankIds.length > 0) {
+    return Array.from(new Set(
+      question.bankIds
+        .map(item => normalizeText(String(item || ''), 64))
+        .filter(item => item && !['default_bank', '__all__', '__unassigned__'].includes(item))
+    ))
+  }
+
+  const legacyBankId = normalizeText(question.bankId, 64)
+  if (legacyBankId && !['default_bank', '__all__', '__unassigned__'].includes(legacyBankId)) {
+    return [legacyBankId]
+  }
+
+  return []
 }
 
 exports.main = async () => {
@@ -36,41 +58,24 @@ exports.main = async () => {
         .get()
     ])
 
-    const questions = questionsRes.data || []
-    const publishedBanks = (banksRes.data || []).slice().sort((a, b) => (a.sort || 0) - (b.sort || 0))
     const countMap = new Map()
-    let unassignedCount = 0
-
-    questions.forEach(question => {
-      const bankId = typeof question.bankId === 'string' ? question.bankId.trim() : ''
-      if (!bankId) {
-        unassignedCount += 1
-        return
-      }
-      countMap.set(bankId, (countMap.get(bankId) || 0) + 1)
+    ;(questionsRes.data || []).forEach(question => {
+      extractBankIds(question).forEach(bankId => {
+        countMap.set(bankId, (countMap.get(bankId) || 0) + 1)
+      })
     })
 
-    const list = publishedBanks.map(bank => ({
-      _id: bank._id,
-      name: bank.name || '未命名题库',
-      summary: bank.summary || '',
-      coverImage: bank.coverImage || '',
-      questionCount: countMap.get(bank._id) || 0,
-      defaultQuestionCount: bank.defaultQuestionCount || 10,
-      sort: bank.sort || 0
-    }))
-
-    if (unassignedCount > 0 || list.length === 0) {
-      list.unshift({
-        _id: 'default_bank',
-        name: '基础题库',
-        summary: '当前系统默认题库，收录现有启用题目。',
-        coverImage: '',
-        questionCount: unassignedCount > 0 ? unassignedCount : questions.length,
-        defaultQuestionCount: 10,
-        sort: -1
-      })
-    }
+    const list = (banksRes.data || [])
+      .map(bank => ({
+        _id: bank._id,
+        name: bank.name || '未命名题库',
+        summary: bank.summary || '',
+        coverImage: bank.coverImage || '',
+        questionCount: countMap.get(bank._id) || 0,
+        defaultQuestionCount: bank.defaultQuestionCount || 10,
+        sort: bank.sort || 0
+      }))
+      .sort((a, b) => (a.sort || 0) - (b.sort || 0))
 
     return {
       success: true,

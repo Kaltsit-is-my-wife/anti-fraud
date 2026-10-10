@@ -1,17 +1,36 @@
 <view class="manage-container">
+  <view class="panel notice-panel">
+    <view class="panel-title">题目池概览</view>
+    <view class="notice-text">当前题目池共有 {{summary.poolQuestionCount || 0}} 道题，其中未加入任何题库的题有 {{summary.unassignedQuestionCount || 0}} 道。</view>
+    <view class="list-actions">
+      <button class="mini-btn" bindtap="openQuestionPool" data-id="__all__" data-name="全部题目池" data-entry-mode="pool">查看题目池</button>
+      <button wx:if="{{summary.unassignedQuestionCount > 0}}" class="mini-btn secondary" bindtap="openQuestionPool" data-id="__unassigned__" data-name="未加入任何题库" data-entry-mode="pool">整理未入库题目</button>
+    </view>
+  </view>
+
   <view class="panel">
     <view class="panel-title">{{editingId ? '编辑题库' : '新建题库'}}</view>
-    <input class="input" placeholder="题库名称" value="{{form.name}}" bindinput="onInput" data-key="name" />
-    <textarea class="textarea" placeholder="题库简介" value="{{form.summary}}" bindinput="onInput" data-key="summary" />
-    <input class="input" placeholder="封面图 URL / cloud:// 文件ID" value="{{form.coverImage}}" bindinput="onInput" data-key="coverImage" />
-    <picker mode="selector" range="{{statusOptions}}" value="{{statusOptions.indexOf(form.status)}}" bindchange="onStatusChange">
+    <input class="input" placeholder="题库名称" value="{{form.name}}" bindinput="onInput" data-key="name" disabled="{{submitting || coverUploading || actionBankId}}" />
+    <textarea class="textarea" placeholder="题库简介" value="{{form.summary}}" bindinput="onInput" data-key="summary" disabled="{{submitting || coverUploading || actionBankId}}" />
+
+    <input class="input" placeholder="封面图 URL / cloud:// 文件 ID" value="{{form.coverImage}}" bindinput="onInput" data-key="coverImage" disabled="{{submitting || coverUploading || actionBankId}}" />
+    <view class="cover-tools">
+      <button class="mini-btn secondary" bindtap="chooseCoverImage" disabled="{{submitting || coverUploading || actionBankId}}">
+        {{coverUploading ? '上传中...' : (form.coverImage ? '重新上传封面' : '上传封面')}}
+      </button>
+      <button wx:if="{{form.coverImage}}" class="mini-btn secondary" bindtap="clearCoverImage" disabled="{{submitting || coverUploading || actionBankId}}">清空封面</button>
+    </view>
+    <image wx:if="{{form.coverImage}}" class="cover-preview" src="{{form.coverImage}}" mode="aspectFill"></image>
+
+    <picker mode="selector" range="{{statusOptions}}" value="{{statusOptions.indexOf(form.status)}}" bindchange="onStatusChange" disabled="{{submitting || coverUploading || actionBankId}}">
       <view class="picker">状态：{{form.status}}</view>
     </picker>
-    <input class="input" placeholder="排序值" value="{{form.sort}}" bindinput="onInput" data-key="sort" />
-    <input class="input" placeholder="默认抽题数量" value="{{form.defaultQuestionCount}}" bindinput="onInput" data-key="defaultQuestionCount" />
+    <input class="input" placeholder="排序值" value="{{form.sort}}" bindinput="onInput" data-key="sort" disabled="{{submitting || coverUploading || actionBankId}}" />
+    <input class="input" placeholder="默认抽题数量" value="{{form.defaultQuestionCount}}" bindinput="onInput" data-key="defaultQuestionCount" disabled="{{submitting || coverUploading || actionBankId}}" />
+    <view class="hint">发布校验：启用题数必须大于等于默认抽题数量；启用题缺解析或存在重复题会阻止发布。</view>
     <view class="actions">
-      <button class="btn secondary" bindtap="resetForm">重置</button>
-      <button class="btn" bindtap="saveBank">保存</button>
+      <button class="btn secondary" bindtap="resetForm" disabled="{{submitting || coverUploading || actionBankId}}">重置</button>
+      <button class="btn" bindtap="saveBank" disabled="{{submitting || coverUploading || actionBankId}}">{{submitting ? '保存中...' : '保存'}}</button>
     </view>
   </view>
 
@@ -19,10 +38,37 @@
     <view class="panel-title">题库列表</view>
     <view wx:if="{{loading}}" class="empty">加载中...</view>
     <view wx:elif="{{banks.length === 0}}" class="empty">暂无题库</view>
-    <view wx:for="{{banks}}" wx:key="_id" class="list-card" bindtap="editBank" data-id="{{item._id}}">
-      <view class="list-title">{{item.name || '未命名题库'}}</view>
-      <view class="list-meta">状态：{{item.status || 'draft'}} ｜ 默认抽题：{{item.defaultQuestionCount || 10}}</view>
+    <view wx:for="{{banks}}" wx:key="_id" class="list-card">
+      <view class="list-header" bindtap="editBank" data-id="{{item._id}}">
+        <view class="list-title">{{item.name || '未命名题库'}}</view>
+        <view class="status-badge status-{{item.status || 'draft'}}">{{item.status || 'draft'}}</view>
+      </view>
+      <view class="list-meta">启用 {{item.activeQuestionCount || 0}} / 总题 {{item.totalQuestionCount || 0}} / 停用 {{item.inactiveQuestionCount || 0}} / 默认抽题 {{item.defaultQuestionCount || 10}}</view>
       <view wx:if="{{item.summary}}" class="list-desc">{{item.summary}}</view>
+
+      <view class="check-grid">
+        <view class="check-item">缺解析：{{item.missingExplanationCount || 0}}</view>
+        <view class="check-item">无标签：{{item.untaggedActiveQuestionCount || 0}}</view>
+        <view class="check-item">重复题：{{item.duplicateQuestionCount || 0}}</view>
+        <view class="check-item">预览题数：{{item.previewQuestionCount || item.defaultQuestionCount || 10}}</view>
+      </view>
+
+      <view wx:if="{{!item.publishReady}}" class="list-warning">{{item.publishIssue}}</view>
+      <view wx:for="{{item.publishWarningList}}" wx:key="*this" class="list-hint">{{item}}</view>
+
+      <view class="list-actions">
+        <button class="mini-btn secondary" bindtap="editBank" data-id="{{item._id}}" disabled="{{submitting || coverUploading || actionBankId}}">编辑题库</button>
+        <button class="mini-btn" bindtap="openQuestionPool" data-id="{{item._id}}" data-name="{{item.name}}" data-entry-mode="pool" disabled="{{submitting || coverUploading || actionBankId}}">从题目池选题</button>
+        <button class="mini-btn secondary" bindtap="openQuestionPool" data-id="{{item._id}}" data-name="{{item.name}}" data-entry-mode="create" disabled="{{submitting || coverUploading || actionBankId}}">新建题目</button>
+        <button class="mini-btn secondary" bindtap="openQuestionPool" data-id="{{item._id}}" data-name="{{item.name}}" data-entry-mode="import" disabled="{{submitting || coverUploading || actionBankId}}">批量导入</button>
+        <button wx:if="{{item.activeQuestionCount > 0}}" class="mini-btn secondary" bindtap="previewBank" data-id="{{item._id}}" data-name="{{item.name}}" data-count="{{item.previewQuestionCount}}" disabled="{{submitting || coverUploading || actionBankId}}">预览答题</button>
+        <button wx:if="{{item.status !== 'offline'}}" class="mini-btn secondary" catchtap="offlineBank" data-id="{{item._id}}" data-name="{{item.name}}" disabled="{{submitting || coverUploading || actionBankId}}">
+          {{actionBankId === item._id && actionType === 'offline' ? '下线中...' : '下线'}}
+        </button>
+        <button class="mini-btn danger" catchtap="deleteBank" data-id="{{item._id}}" data-name="{{item.name}}" disabled="{{submitting || coverUploading || actionBankId}}">
+          {{actionBankId === item._id && actionType === 'delete' ? '删除中...' : '删除'}}
+        </button>
+      </view>
     </view>
   </view>
 </view>

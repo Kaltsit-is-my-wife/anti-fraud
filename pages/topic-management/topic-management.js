@@ -3,27 +3,71 @@ function splitIds(value) {
   return value.split(/[，,\n]/).map(item => item.trim()).filter(Boolean)
 }
 
+function getFileExtension(filePath) {
+  if (typeof filePath !== 'string') return '.jpg'
+  const cleanPath = filePath.split('?')[0]
+  const match = cleanPath.match(/\.[a-zA-Z0-9]+$/)
+  return match ? match[0].toLowerCase() : '.jpg'
+}
+
+function chooseSingleImage() {
+  return new Promise((resolve, reject) => {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: resolve,
+      fail: reject
+    })
+  })
+}
+
+const { ensurePagePermission } = require('../../utils/permission')
+const { getCloudFunctionErrorMessage } = require('../../utils/cloud')
+
+function createEmptyForm() {
+  return {
+    title: '',
+    summary: '',
+    contentText: '',
+    coverImage: '',
+    status: 'draft',
+    sort: '0',
+    startAt: '',
+    endAt: '',
+    relatedArticleIdsText: '',
+    relatedVideoIdsText: ''
+  }
+}
+
+function isStoragePermissionDenied(err) {
+  const errCode = String(err?.errCode || '')
+  const message = `${err?.errMsg || ''} ${err?.message || ''}`.toLowerCase()
+  return errCode === '-503002' ||
+    message.includes('storage permission denied') ||
+    message.includes('have no access right to the storage')
+}
+
 Page({
   data: {
     loading: true,
+    permissionLoading: true,
+    hasPageAccess: false,
+    submitting: false,
+    coverUploading: false,
+    deletingTopicId: '',
     editingId: '',
     topics: [],
-    form: {
-      title: '',
-      summary: '',
-      contentText: '',
-      coverImage: '',
-      status: 'draft',
-      sort: '0',
-      startAt: '',
-      endAt: '',
-      relatedArticleIdsText: '',
-      relatedVideoIdsText: ''
-    },
+    form: createEmptyForm(),
     statusOptions: ['draft', 'published', 'offline']
   },
 
-  onLoad() {
+  async onLoad() {
+    const access = await ensurePagePermission(this, 'admin')
+    if (!access.allowed) {
+      this.setData({ loading: false })
+      return
+    }
     this.loadTopics()
   },
 
@@ -38,7 +82,10 @@ Page({
       wx.showToast({ title: res.result?.errMsg || '加载失败', icon: 'none' })
     } catch (err) {
       console.error('loadTopics failed:', err)
-      wx.showToast({ title: '加载失败', icon: 'none' })
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'getAdminTopicList', '话题列表加载失败'),
+        icon: 'none'
+      })
     }
     this.setData({ loading: false })
   },
@@ -58,6 +105,7 @@ Page({
     const id = e.currentTarget.dataset.id
     const topic = this.data.topics.find(item => item._id === id)
     if (!topic) return
+
     const contentText = Array.isArray(topic.contentBlocks) && topic.contentBlocks.length > 0
       ? topic.contentBlocks.map(item => item.text || '').filter(Boolean).join('\n\n')
       : ''
@@ -82,26 +130,86 @@ Page({
   resetForm() {
     this.setData({
       editingId: '',
-      form: {
-        title: '',
-        summary: '',
-        contentText: '',
-        coverImage: '',
-        status: 'draft',
-        sort: '0',
-        startAt: '',
-        endAt: '',
-        relatedArticleIdsText: '',
-        relatedVideoIdsText: ''
-      }
+      form: createEmptyForm()
     })
   },
 
+  async chooseCoverImage() {
+    if (this.data.coverUploading || this.data.submitting || this.data.deletingTopicId) return
+
+    try {
+      const res = await chooseSingleImage()
+      const filePath = res?.tempFiles?.[0]?.tempFilePath
+      if (!filePath) return
+      await this.uploadCoverImage(filePath)
+    } catch (err) {
+      if (err && typeof err.errMsg === 'string' && err.errMsg.includes('cancel')) return
+      console.error('chooseCoverImage failed:', err)
+      wx.showToast({ title: '选择图片失败', icon: 'none' })
+    }
+  },
+
+  async uploadCoverImage(filePath) {
+    this.setData({ coverUploading: true })
+    wx.showLoading({ title: '上传中...' })
+
+    try {
+      const ext = getFileExtension(filePath)
+      const cloudPath = `topics/covers/${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`
+      const uploadRes = await wx.cloud.uploadFile({
+        cloudPath,
+        filePath
+      })
+
+      this.setData({
+        'form.coverImage': uploadRes.fileID || ''
+      })
+      wx.showToast({ title: '上传成功', icon: 'success' })
+    } catch (err) {
+      console.error('uploadCoverImage failed:', err)
+      if (isStoragePermissionDenied(err)) {
+        wx.showModal({
+          title: '封面上传失败',
+          content: '当前云环境未开放小程序端云存储上传权限，所以图片被拒绝写入。请先到云开发控制台为当前环境开启存储上传权限，再重试上传。',
+          showCancel: false
+        })
+      } else {
+        wx.showToast({ title: '封面上传失败', icon: 'none' })
+      }
+    } finally {
+      this.setData({ coverUploading: false })
+      wx.hideLoading()
+    }
+  },
+
+  clearCoverImage() {
+    if (this.data.coverUploading || this.data.submitting || this.data.deletingTopicId) return
+    this.setData({ 'form.coverImage': '' })
+  },
+
   async saveTopic() {
+    if (this._savingTopic || this.data.submitting) return
+    if (this.data.coverUploading) {
+      wx.showToast({ title: '请等待封面上传完成', icon: 'none' })
+      return
+    }
+
     if (!this.data.form.title.trim()) {
       wx.showToast({ title: '请填写话题标题', icon: 'none' })
       return
     }
+
+    if (this.data.form.startAt && this.data.form.endAt) {
+      const startAt = new Date(this.data.form.startAt).getTime()
+      const endAt = new Date(this.data.form.endAt).getTime()
+      if (Number.isFinite(startAt) && Number.isFinite(endAt) && startAt > endAt) {
+        wx.showToast({ title: '结束时间不能早于开始时间', icon: 'none' })
+        return
+      }
+    }
+
+    this._savingTopic = true
+    this.setData({ submitting: true })
 
     try {
       const payload = {
@@ -121,13 +229,65 @@ Page({
       if (res.result && res.result.success) {
         wx.showToast({ title: '保存成功', icon: 'success' })
         this.resetForm()
-        this.loadTopics()
+        await this.loadTopics()
         return
       }
       wx.showToast({ title: res.result?.errMsg || '保存失败', icon: 'none' })
     } catch (err) {
       console.error('saveTopic failed:', err)
-      wx.showToast({ title: '保存失败', icon: 'none' })
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'saveTopic', '保存失败'),
+        icon: 'none'
+      })
+    } finally {
+      this._savingTopic = false
+      this.setData({ submitting: false })
+    }
+  },
+
+  async deleteTopic(e) {
+    const id = e.currentTarget.dataset.id
+    if (!id || this.data.submitting || this.data.coverUploading || this.data.deletingTopicId) return
+
+    const topic = this.data.topics.find(item => item._id === id)
+    const confirmed = await new Promise(resolve => {
+      wx.showModal({
+        title: '确认删除',
+        content: `删除“${topic?.title || '该话题'}”后不可恢复，并会清理该话题下的评论和审核任务。确定继续吗？`,
+        confirmColor: '#ef4444',
+        success: res => resolve(Boolean(res.confirm)),
+        fail: () => resolve(false)
+      })
+    })
+
+    if (!confirmed) return
+
+    this.setData({ deletingTopicId: id })
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'deleteTopic',
+        data: { id }
+      })
+
+      if (res.result && res.result.success) {
+        if (this.data.editingId === id) {
+          this.resetForm()
+        }
+        wx.showToast({ title: '删除成功', icon: 'success' })
+        await this.loadTopics()
+        return
+      }
+
+      wx.showToast({ title: res.result?.errMsg || '删除失败', icon: 'none' })
+    } catch (err) {
+      console.error('deleteTopic failed:', err)
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'deleteTopic', '删除失败'),
+        icon: 'none'
+      })
+    } finally {
+      this.setData({ deletingTopicId: '' })
     }
   }
 })

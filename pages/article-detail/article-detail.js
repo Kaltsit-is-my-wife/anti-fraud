@@ -80,7 +80,6 @@ Page({
         return
       }
     } catch (err) {
-      console.error('从云函数加载失败：', err)
     }
 
     try {
@@ -89,7 +88,6 @@ Page({
       const result = await db.collection('articles').doc(id).get()
       
       if (result.data) {
-        console.log('从云数据库加载文章成功')
         const article = {
           id: result.data._id,
           tag: result.data.tag || '知识科普',
@@ -116,11 +114,9 @@ Page({
         return
       }
     } catch (err) {
-      console.error('从云数据库加载失败：', err)
     }
-    
+
     // 云数据库加载失败，使用本地备份数据
-    console.log('使用本地备份数据')
     wx.hideLoading()
     this.loadMockArticle(id)
   },
@@ -237,51 +233,36 @@ Page({
           views: _.inc(1)  // 浏览量 +1
         }
       })
-      
-      console.log('浏览量已更新')
     } catch (err) {
-      console.error('更新浏览量失败：', err)
     }
   },
 
 syncActionData(actionData, countKey) {
     if (!actionData) return
 
-    console.log('同步actionData:', actionData)
-    console.log('当前本地积分:', wx.getStorageSync('points') || 0)
-
     if (typeof actionData.updatedCount === 'number') {
       wx.setStorageSync(countKey, actionData.updatedCount)
-      console.log(`更新${countKey}:`, actionData.updatedCount)
     }
     if (typeof actionData.userPoints === 'number') {
       wx.setStorageSync('points', actionData.userPoints)
-      console.log('更新用户积分:', actionData.userPoints)
     } else if (actionData.totalPoints) {
       const points = wx.getStorageSync('points') || 0
-      const newPoints = points + actionData.totalPoints
-      wx.setStorageSync('points', newPoints)
-      console.log('增加积分:', points, '+', actionData.totalPoints, '=', newPoints)
-    } else {
-      console.warn('actionData中没有积分信息:', { userPoints: actionData.userPoints, totalPoints: actionData.totalPoints })
+      wx.setStorageSync('points', points + actionData.totalPoints)
     }
     if (Array.isArray(actionData.newAchievements) && actionData.newAchievements.length > 0) {
       const achievementIds = actionData.newAchievements
         .map(item => item.achievementId)
         .filter(Boolean)
       const userInfo = wx.getStorageSync('userInfo') || {}
-      
+
       if (Array.isArray(userInfo.achievements) && achievementIds.length > 0) {
         const merged = Array.from(new Set([...userInfo.achievements, ...achievementIds]))
         userInfo.achievements = merged
         wx.setStorageSync('userInfo', userInfo)
         wx.setStorageSync('achievements', merged.length)
-        console.log('更新用户成就列表:', merged)
       } else {
         const achievements = wx.getStorageSync('achievements') || 0
-        const newAchievementsCount = achievements + actionData.newAchievements.length
-        wx.setStorageSync('achievements', newAchievementsCount)
-        console.log('更新成就数量:', achievements, '+', actionData.newAchievements.length, '=', newAchievementsCount)
+        wx.setStorageSync('achievements', achievements + actionData.newAchievements.length)
       }
     }
   },
@@ -324,7 +305,7 @@ syncActionData(actionData, countKey) {
         }
       }
     } catch (err) {
-      console.error('syncUserInfoFromCloud failed:', err)
+      // 静默失败
     }
   },
 
@@ -369,7 +350,7 @@ syncActionData(actionData, countKey) {
         this.setData({ comments: normalized })
       }
     } catch (err) {
-      console.error('loadComments failed:', err)
+      // 静默失败
     }
   },
 
@@ -419,7 +400,6 @@ syncActionData(actionData, countKey) {
         wx.showToast({ title: res.result?.errMsg || '发送失败', icon: 'none' })
       }
     } catch (err) {
-      console.error('createComment failed:', err)
       wx.showToast({ title: '发送失败', icon: 'none' })
     } finally {
       this.setData({ commentSubmitting: false })

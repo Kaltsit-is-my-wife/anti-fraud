@@ -60,6 +60,40 @@ function matchKeywords(content, keywords) {
   return keywords.filter(keyword => keyword && content.includes(keyword))
 }
 
+async function createCommentReviewTask(commentData, reviewTaskData) {
+  const run = async (txDb) => {
+    const commentRes = await txDb.collection('comments').add({ data: commentData })
+    const commentId = commentRes._id
+
+    const reviewTaskRes = await txDb.collection('review_tasks').add({
+      data: {
+        ...reviewTaskData,
+        targetId: commentId,
+        sourceId: commentId
+      }
+    })
+    const reviewTaskId = reviewTaskRes._id
+
+    await txDb.collection('comments').doc(commentId).update({
+      data: {
+        reviewTaskId,
+        updatedAt: commentData.updatedAt
+      }
+    })
+
+    return { commentId, reviewTaskId }
+  }
+
+  if (typeof db.runTransaction === 'function') {
+    return await db.runTransaction(async (transaction) => {
+      const txDb = transaction || db
+      return await run(txDb)
+    })
+  }
+
+  return await run(db)
+}
+
 exports.main = async (event) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
@@ -84,7 +118,8 @@ exports.main = async (event) => {
     if (!content) return { success: false, errMsg: '评论内容不能为空' }
 
     const topicRes = await db.collection('topics').where({ _id: topicId, status: 'published' }).limit(1).get()
-    if (!topicRes.data || !topicRes.data.length) {
+    const topic = topicRes.data && topicRes.data[0]
+    if (!topic) {
       return { success: false, errMsg: '话题不存在或未发布' }
     }
 
@@ -123,8 +158,8 @@ exports.main = async (event) => {
       }
     }
 
-    const addRes = await db.collection('comments').add({
-      data: {
+    const writeResult = await createCommentReviewTask(
+      {
         targetType: 'topic',
         targetId: topicId,
         authorUid: user.uid,
@@ -134,31 +169,46 @@ exports.main = async (event) => {
         parentId,
         replyToUid,
         status: 'pending_review',
+        reviewTaskId: '',
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        targetType: 'topic_comment',
+        sourceType: 'topic_comment',
+        sourceCollection: 'comments',
+        submitterUid: user.uid,
+        submitterNickName: user.nickName || '',
+        submitterAvatarUrl: user.avatarUrl || '',
+        contentText: content,
+        contentSnapshot: content,
+        sourceMeta: {
+          topicId,
+          topicTitle: topic.title || '',
+          parentId: parentId || '',
+          replyToUid: replyToUid || ''
+        },
+        keywordHits: mediumHits,
+        matchedKeywords: mediumHits.map(word => ({ word, riskLevel: 'medium' })),
+        keywordHitLevel: mediumHits.length > 0 ? 'medium' : 'none',
+        autoReviewResult: 'pending_review',
+        autoResult: 'pending_review',
+        reviewStatus: 'pending_review',
+        status: 'pending_review',
+        reviewReason: '',
+        reviewerRemark: '',
+        reviewedBy: '',
+        reviewerUid: '',
+        reviewedAt: null,
         createdAt: now,
         updatedAt: now
       }
-    })
-
-    await db.collection('review_tasks').add({
-      data: {
-        targetType: 'topic_comment',
-        targetId: addRes._id,
-        contentText: content,
-        keywordHits: mediumHits,
-        keywordHitLevel: mediumHits.length > 0 ? 'medium' : 'none',
-        autoReviewResult: mediumHits.length > 0 ? 'pending_review' : 'pending_review',
-        reviewStatus: 'pending_review',
-        reviewReason: '',
-        reviewedBy: '',
-        reviewedAt: null,
-        createdAt: now
-      }
-    })
+    )
 
     return {
       success: true,
       data: {
-        commentId: addRes._id,
+        commentId: writeResult.commentId,
         status: 'pending_review',
         duplicate: false,
         message: '评论已提交，审核通过后显示'

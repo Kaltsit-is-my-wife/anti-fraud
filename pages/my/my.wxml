@@ -43,10 +43,15 @@
         <view class="stat-value">{{signDays}}</view>
         <view class="stat-label">连续签到</view>
       </view>
-      <view class="stat-item clickable" bindtap="navigateToPoints">
+      <view wx:if="{{pointsMallEnabled}}" class="stat-item clickable" bindtap="navigateToPoints">
         <view class="stat-value">{{points}}</view>
         <view class="stat-label">积分</view>
         <text class="click-hint">›</text>
+      </view>
+      <view wx:else class="stat-item disabled" bindtap="showPointsMallClosed">
+        <view class="stat-value">{{points}}</view>
+        <view class="stat-label">积分</view>
+        <text class="stat-tag">保留中</text>
       </view>
       <view class="stat-item">
         <view class="stat-value">{{achievements}}</view>
@@ -115,7 +120,7 @@
   </view>
 
   <!-- 积分商城入口 -->
-  <view class="menu-card" bindtap="navigateToPoints">
+  <view wx:if="{{pointsMallEnabled}}" class="menu-card" bindtap="navigateToPoints">
     <view class="menu-item">
       <view class="menu-icon">⭐</view>
       <view class="menu-content">
@@ -123,6 +128,17 @@
         <view class="menu-desc">使用积分兑换精美礼品和道具</view>
       </view>
       <view class="menu-arrow">›</view>
+    </view>
+  </view>
+
+  <view wx:else class="menu-card disabled" bindtap="showPointsMallClosed">
+    <view class="menu-item">
+      <view class="menu-icon">⭐</view>
+      <view class="menu-content">
+        <view class="menu-title">积分商城</view>
+        <view class="menu-desc">当前暂未开放，积分会继续保留</view>
+      </view>
+      <view class="menu-status">暂未开放</view>
     </view>
   </view>
 

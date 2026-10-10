@@ -2,67 +2,107 @@
 .about-container {
   min-height: 100vh;
   background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
-  padding-bottom: 40rpx;
+  padding: 32rpx 0 40rpx;
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(20rpx + env(safe-area-inset-top)) 40rpx 20rpx 40rpx;
-  background: white;
-  border-bottom: 2rpx solid #e0f2fe;
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  margin: 0 40rpx 28rpx;
+  padding: 44rpx 36rpx;
+  border-radius: 32rpx;
+  background: linear-gradient(135deg, #0f172a 0%, #0369a1 55%, #0891b2 100%);
+  color: #fff;
+  box-shadow: 0 18rpx 50rpx rgba(3, 105, 161, 0.18);
 }
 
-.header-left, .header-right {
-  width: 80rpx;
+.hero-card::after {
+  content: '';
+  position: absolute;
+  right: -90rpx;
+  top: -80rpx;
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.back-icon {
-  font-size: 64rpx;
-  color: #0ea5e9;
-  line-height: 1;
-}
-
-.header-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-/* 应用信息 */
-.app-info {
-  text-align: center;
-  padding: 60rpx 40rpx;
+.hero-badge {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 22rpx;
+  letter-spacing: 1rpx;
 }
 
 .app-logo {
-  font-size: 120rpx;
-  margin-bottom: 24rpx;
+  position: relative;
+  z-index: 1;
+  font-size: 104rpx;
+  margin-top: 26rpx;
 }
 
 .app-name {
-  font-size: 44rpx;
+  position: relative;
+  z-index: 1;
+  font-size: 48rpx;
   font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 16rpx;
-}
-
-.app-version {
-  font-size: 26rpx;
-  color: #94a3b8;
-  margin-bottom: 24rpx;
+  margin-top: 16rpx;
 }
 
 .app-desc {
+  position: relative;
+  z-index: 1;
+  margin-top: 14rpx;
   font-size: 28rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.app-mission {
+  position: relative;
+  z-index: 1;
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.facts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  margin: 0 40rpx 40rpx;
+}
+
+.fact-card {
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 24rpx;
+  padding: 24rpx 20rpx;
+  box-shadow: 0 10rpx 30rpx rgba(15, 23, 42, 0.06);
+}
+
+.fact-label {
+  font-size: 22rpx;
   color: #64748b;
+  line-height: 1.5;
+}
+
+.fact-value {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #0f172a;
   line-height: 1.6;
 }
 
-/* 功能区域 */
 .features-section,
+.notes-section,
 .team-section,
+.notice-section,
 .contact-section {
   margin: 0 40rpx 40rpx;
 }
@@ -106,33 +146,86 @@
   line-height: 1.5;
 }
 
-/* 团队列表 */
-.team-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20rpx;
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
 }
 
-.team-member {
+.note-card {
   background: white;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  text-align: center;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
 }
 
-.member-role {
-  font-size: 24rpx;
-  color: #64748b;
-  margin-bottom: 8rpx;
-}
-
-.member-name {
+.note-title {
   font-size: 28rpx;
   font-weight: 600;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-/* 联系方式 */
+.note-desc {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #64748b;
+  line-height: 1.8;
+}
+
+.team-card {
+  background: white;
+  border-radius: 24rpx;
+  padding: 30rpx 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
+}
+
+.team-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.team-desc {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #64748b;
+  line-height: 1.8;
+}
+
+.notice-card {
+  background: white;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
+}
+
+.notice-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.notice-item + .notice-item {
+  margin-top: 18rpx;
+}
+
+.notice-dot {
+  width: 12rpx;
+  height: 12rpx;
+  margin-top: 12rpx;
+  border-radius: 50%;
+  background: #f97316;
+  flex-shrink: 0;
+}
+
+.notice-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #334155;
+  line-height: 1.8;
+}
+
 .contact-list {
   background: white;
   border-radius: 20rpx;
@@ -151,7 +244,7 @@
 .contact-label {
   font-size: 26rpx;
   color: #64748b;
-  margin-bottom: 8rpx;
+  margin-bottom: 10rpx;
 }
 
 .contact-value {
@@ -160,7 +253,12 @@
   font-weight: 500;
 }
 
-/* 版权信息 */
+.contact-hint {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
 .copyright {
   text-align: center;
   padding: 40rpx;

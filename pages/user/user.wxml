@@ -84,7 +84,7 @@
       <text class="menu-arrow">›</text>
     </view>
 
-    <view class="menu-item" bindtap="navigateTo" data-url="/pages/points/points">
+    <view wx:if="{{pointsMallEnabled}}" class="menu-item" bindtap="navigateTo" data-url="/pages/points/points">
       <view class="menu-left">
         <text class="menu-icon">⭐</text>
         <text class="menu-label">积分商城</text>
@@ -92,10 +92,38 @@
       <text class="menu-arrow">›</text>
     </view>
 
+    <view wx:else class="menu-item disabled" bindtap="showPointsMallClosed">
+      <view class="menu-left">
+        <text class="menu-icon">⭐</text>
+        <text class="menu-label">积分商城</text>
+      </view>
+      <view class="menu-right">
+        <text class="menu-badge maintenance">暂未开放</text>
+      </view>
+    </view>
+
     <view class="menu-item" bindtap="navigateTo" data-url="/pages/learning/learning">
       <view class="menu-left">
         <text class="menu-icon">📚</text>
         <text class="menu-label">学习记录</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <view wx:if="{{hasReviewAccess || hasAdminAccess}}" class="user-menu">
+    <view wx:if="{{hasReviewAccess}}" class="menu-item" bindtap="navigateTo" data-url="/pages/review-center/review-center">
+      <view class="menu-left">
+        <text class="menu-icon">🛡️</text>
+        <text class="menu-label">审核中心</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+
+    <view wx:if="{{hasAdminAccess}}" class="menu-item" bindtap="navigateTo" data-url="/pages/admin-center/admin-center">
+      <view class="menu-left">
+        <text class="menu-icon">🗂️</text>
+        <text class="menu-label">管理中心</text>
       </view>
       <text class="menu-arrow">›</text>
     </view>

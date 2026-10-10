@@ -283,6 +283,22 @@
   background: #f8fafc;
 }
 
+.menu-item.disabled {
+  background: #f8fafc;
+}
+
+.menu-item.disabled:active {
+  background: #f8fafc;
+}
+
+.menu-item.disabled .menu-icon {
+  opacity: 0.65;
+}
+
+.menu-item.disabled .menu-label {
+  color: #64748b;
+}
+
 .menu-left {
   display: flex;
   align-items: center;
@@ -318,6 +334,11 @@
 .menu-badge.signed {
   color: #10b981;
   background: #d1fae5;
+}
+
+.menu-badge.maintenance {
+  color: #b45309;
+  background: #fef3c7;
 }
 
 .menu-arrow {

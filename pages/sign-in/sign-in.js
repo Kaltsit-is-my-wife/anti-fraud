@@ -59,10 +59,8 @@ Page({
         wx.setStorageSync('signDates', signDates)
         wx.setStorageSync('points', points)
         
-        console.log('从云端刷新签到状态成功:', { signDays, signDates, points })
       }
     } catch (err) {
-      console.error('从云端刷新签到状态失败：', err)
       this.refreshState()
     }
   },
@@ -256,7 +254,6 @@ Page({
       if (showLoading) {
         wx.hideLoading()
       }
-      console.error('签到失败：', err)
       if (!isAuto) {
         wx.showToast({
           title: '签到失败，请重试',

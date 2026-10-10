@@ -203,7 +203,6 @@ Page({
   },
 
   onLoad() {
-    console.log('achievements onLoad')
     this.refreshAchievementData()
   },
 
@@ -227,8 +226,6 @@ Page({
         const displayAchievementIds = Array.isArray(userInfo.displayAchievementIds)
           ? userInfo.displayAchievementIds
           : []
-
-        console.log('Loaded stats from cloud:', { signDays, points, readArticles, chatTimes })
 
         const nextData = {
           signDays,
@@ -269,7 +266,6 @@ Page({
         return true
       }
     } catch (err) {
-      console.error('loadUserDataFromCloud failed:', err)
     }
 
     this.loadUserData()
@@ -279,7 +275,6 @@ Page({
 
 
   onShow() {
-    console.log('achievements onShow')
     this.refreshAchievementData()
   },
 
@@ -298,9 +293,7 @@ Page({
       const displayAchievementIds = wx.getStorageSync('displayAchievementIds')
         || (wx.getStorageSync('userInfo') || {}).displayAchievementIds
         || []
-      
-      console.log('加载用户数据:', { signDays, points, readArticles, chatTimes })
-      
+
       this.setData({
         signDays,
         totalPoints: points,
@@ -309,7 +302,6 @@ Page({
         displayAchievementIds
       })
     } catch (e) {
-      console.error('加载用户数据失败：', e)
     }
   },
   formatAchievementTime(value) {
@@ -383,8 +375,7 @@ Page({
   // 检查成就解锁状态
   checkAchievements() {
     const { signDays, totalPoints, readArticles, chatTimes } = this.data
-    console.log('检查成就状态:', { signDays, totalPoints, readArticles, chatTimes })
-    
+
     let achievements = this.data.achievements.map(item => {
       let current = 0
       
@@ -406,9 +397,7 @@ Page({
       
       // 检查是否解锁
       const unlocked = current >= item.target
-      
-      console.log(`成就 ${item.id}: 当前=${current}, 目标=${item.target}, 解锁=${unlocked}`)
-      
+
       return {
         ...item,
         current,
@@ -427,9 +416,7 @@ Page({
     const unlocked = achievements.filter(item => item.unlocked).length
     const total = achievements.length
     const progress = total > 0 ? Math.round((unlocked / total) * 100) : 0
-    
-    console.log('成就统计:', { unlocked, total, progress })
-    
+
     const displayAchievementIds = Array.isArray(this.data.displayAchievementIds)
       ? this.data.displayAchievementIds
       : []
@@ -452,9 +439,6 @@ Page({
 
   // 切换成就类型筛选
   filterAchievements(e) {
-    const type = e.currentTarget.dataset.type
-    // TODO: 实现筛选功能
-    console.log('筛选类型：', type)
   },
 
   // 分享成就
@@ -470,9 +454,8 @@ Page({
       return
     }
     
-    // TODO: 实现分享功能
     wx.showToast({
-      title: '分享功能开发中',
+      title: '请点击右上角菜单分享',
       icon: 'none'
     })
   },
@@ -523,7 +506,6 @@ Page({
       }
     } catch (err) {
       wx.hideLoading()
-      console.error('updateProfileDisplay failed:', err)
       wx.showToast({ title: '保存失败', icon: 'none' })
     }
   },

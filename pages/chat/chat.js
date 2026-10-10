@@ -3,11 +3,35 @@ Page({
   data: {
     messages: [],
     inputValue: '',
+    inputFilled: false,
+    isTextMode: false,
+    inputFocus: false,
+    voiceHintShown: false,
     loading: false,
     scrollToView: '',
-    // 欢迎消息
-    welcomeMessage: '你好！我是反诈AI助手，可以帮你：\n\n• 解答反诈骗问题\n• 识别可疑信息\n• 提供防骗建议\n• 分析上传的截图\n\n💡 我会记住最近10轮对话，所以您可以追问"那怎么办"、"还有呢"等问题，我会基于之前的对话内容回答。\n\n有什么可以帮你的吗？',
-    privacyText: '🔒 隐私保护：对话记录仅保存在您的手机本地，不会上传到服务器。'
+    introTitle: '遇到可疑短信、链接或转账要求，先别急着处理。',
+    introDescription: '把聊天内容、来电话术或截图发给我，我会帮你拆风险点、判断套路，并告诉你下一步该怎么做。',
+    privacyText: '隐私保护已开启：对话记录只保存在本机，不会作为历史记录上传存储。',
+    quickPrompts: [
+      {
+        icon: '短信',
+        title: '判断这条短信',
+        example: '收到“快递异常需点链接处理”，这是真的吗？',
+        prompt: '帮我判断这条短信是否存在诈骗风险：'
+      },
+      {
+        icon: '转账',
+        title: '分析转账要求',
+        example: '对方让我先垫付后返款，这种说法靠谱吗？',
+        prompt: '请帮我分析这个转账要求有没有诈骗风险：'
+      },
+      {
+        icon: '截图',
+        title: '我想发张截图',
+        example: '上传聊天记录、付款页面或陌生链接页面进行识别。',
+        prompt: '我准备上传一张截图，请先告诉我该重点看哪些风险点。'
+      }
+    ]
   },
 
   onLoad(options) {
@@ -33,10 +57,9 @@ Page({
           messages: localMessages,
           scrollToView: `msg-${localMessages.length - 1}`
         })
-        console.log(`已加载 ${localMessages.length} 条本地消息`)
       }
     } catch (err) {
-      console.error('加载本地消息失败：', err)
+      // 静默失败
     }
   },
 
@@ -46,11 +69,11 @@ Page({
       // 最多保存最近100条消息（避免占用太多空间）
       const messagesToSave = messages.slice(-100)
       wx.setStorageSync('chat_messages', messagesToSave)
-      console.log(`已保存 ${messagesToSave.length} 条消息到本地`)
     } catch (err) {
-      console.error('保存本地消息失败：', err)
+      // 静默失败
     }
   },
+
   // Sync user info from cloud
   async syncUserInfoFromCloud() {
     try {
@@ -90,9 +113,10 @@ Page({
         }
       }
     } catch (err) {
-      console.error('syncUserInfoFromCloud failed:', err)
+      // 静默失败
     }
   },
+
   // Clear local messages
   clearLocalMessages() {
     wx.showModal({
@@ -104,13 +128,18 @@ Page({
         if (res.confirm) {
           try {
             wx.removeStorageSync('chat_messages')
-            this.setData({ messages: [] })
+            this.setData({
+              messages: [],
+              inputValue: '',
+              inputFilled: false,
+              inputFocus: false,
+              isTextMode: false
+            })
             wx.showToast({
               title: '已清除历史记录',
               icon: 'success'
             })
           } catch (err) {
-            console.error('清除失败：', err)
             wx.showToast({
               title: '清除失败',
               icon: 'none'
@@ -122,8 +151,121 @@ Page({
   },
 
   onInput(e) {
+    const value = e.detail.value || ''
     this.setData({
-      inputValue: e.detail.value
+      inputValue: value,
+      inputFilled: value.trim().length > 0,
+      isTextMode: true
+    })
+  },
+
+  onInputFocus() {
+    this.setData({
+      isTextMode: true,
+      inputFocus: true
+    })
+  },
+
+  onInputBlur() {
+    const hasValue = (this.data.inputValue || '').trim().length > 0
+    this.setData({
+      inputFocus: false,
+      isTextMode: hasValue
+    })
+  },
+
+  handleVoiceButtonTap() {
+    if (this.data.loading) {
+      return
+    }
+
+    const showHint = !this.data.voiceHintShown
+    this.setData({
+      isTextMode: true,
+      inputFocus: true,
+      voiceHintShown: true
+    })
+
+    if (showHint) {
+      wx.showToast({
+        title: '语音功能待接入，先用文字输入',
+        icon: 'none'
+      })
+    }
+  },
+
+  showQuickPromptSheet() {
+    if (this.data.loading) {
+      return
+    }
+
+    const itemList = this.data.quickPrompts.map(item => item.title)
+    wx.showActionSheet({
+      itemList,
+      success: (res) => {
+        const promptItem = this.data.quickPrompts[res.tapIndex]
+        if (!promptItem) {
+          return
+        }
+
+        this.setData({
+          inputValue: promptItem.prompt,
+          inputFilled: promptItem.prompt.trim().length > 0,
+          isTextMode: true,
+          inputFocus: true
+        })
+      }
+    })
+  },
+
+  handleComposerAction() {
+    if (this.data.loading) {
+      return
+    }
+
+    if (this.data.isTextMode && this.data.inputFilled) {
+      this.sendMessage()
+      return
+    }
+
+    const itemList = [
+      this.data.isTextMode ? '收起输入框' : '输入文字',
+      '上传图片'
+    ]
+
+    if (this.data.messages.length > 0) {
+      itemList.push('清空本地对话')
+    }
+
+    wx.showActionSheet({
+      itemList,
+      success: (res) => {
+        const action = itemList[res.tapIndex]
+        if (action === '上传图片') {
+          this.uploadImage()
+          return
+        }
+
+        if (action === '清空本地对话') {
+          this.clearLocalMessages()
+          return
+        }
+
+        this.setData({
+          isTextMode: !this.data.isTextMode,
+          inputFocus: !this.data.isTextMode
+        })
+      }
+    })
+  },
+
+  applyQuickPrompt(e) {
+    const prompt = e.currentTarget.dataset.prompt || ''
+    this.setData({
+      inputValue: prompt,
+      inputFilled: prompt.trim().length > 0,
+      isTextMode: true,
+      inputFocus: true
     })
   },
 
@@ -147,6 +289,9 @@ Page({
     this.setData({
       messages: [...this.data.messages, userMsg],
       inputValue: '',
+      inputFilled: false,
+      inputFocus: false,
+      isTextMode: true,
       loading: true,
       scrollToView: `msg-${this.data.messages.length}`
     })
@@ -174,73 +319,46 @@ Page({
       if (result.result.success) {
         const reply = result.result.data.reply
         const actionData = result.result.data.actionData
-        console.log('AI对话成功，actionData:', actionData)
-        console.log('当前本地积分:', wx.getStorageSync('points') || 0)
-        
+
         if (actionData) {
-          console.log('处理actionData数据')
-          
           if (typeof actionData.updatedCount === 'number') {
-            console.log('更新对话次数:', actionData.updatedCount)
             wx.setStorageSync('chatTimes', actionData.updatedCount)
           } else {
-            console.warn('actionData.updatedCount不是数字:', actionData.updatedCount)
-            // 备用：从本地消息计算并更新
             const currentChatTimes = wx.getStorageSync('chatTimes') || 0
-            const newChatTimes = currentChatTimes + 1
-            console.log('备用更新对话次数:', currentChatTimes, '+', 1, '=', newChatTimes)
-            wx.setStorageSync('chatTimes', newChatTimes)
+            wx.setStorageSync('chatTimes', currentChatTimes + 1)
           }
-          
+
           if (typeof actionData.userPoints === 'number') {
-            console.log('更新用户积分:', actionData.userPoints)
             wx.setStorageSync('points', actionData.userPoints)
-            console.log('积分已更新，新积分:', actionData.userPoints)
           } else if (actionData.totalPoints) {
             const points = wx.getStorageSync('points') || 0
-            const newPoints = points + actionData.totalPoints
-            console.log('增加积分:', points, '+', actionData.totalPoints, '=', newPoints)
-            wx.setStorageSync('points', newPoints)
-            console.log('积分已更新，新积分:', newPoints)
-          } else {
-            console.warn('actionData中没有积分信息:', { userPoints: actionData.userPoints, totalPoints: actionData.totalPoints })
+            wx.setStorageSync('points', points + actionData.totalPoints)
           }
-          
+
           if (Array.isArray(actionData.newAchievements) && actionData.newAchievements.length > 0) {
-            console.log('获得新成就:', actionData.newAchievements)
             const achievementIds = actionData.newAchievements
               .map(item => item.achievementId)
               .filter(Boolean)
             const userInfo = wx.getStorageSync('userInfo') || {}
-            
+
             if (Array.isArray(userInfo.achievements) && achievementIds.length > 0) {
               const merged = Array.from(new Set([...userInfo.achievements, ...achievementIds]))
               userInfo.achievements = merged
               wx.setStorageSync('userInfo', userInfo)
               wx.setStorageSync('achievements', merged.length)
-              console.log('更新用户成就列表:', merged)
             } else {
               const achievements = wx.getStorageSync('achievements') || 0
-              const newAchievementsCount = achievements + actionData.newAchievements.length
-              wx.setStorageSync('achievements', newAchievementsCount)
-              console.log('更新成就数量:', achievements, '+', actionData.newAchievements.length, '=', newAchievementsCount)
+              wx.setStorageSync('achievements', achievements + actionData.newAchievements.length)
             }
-          } else {
-            console.log('没有新成就获得')
           }
         } else {
-          console.warn('actionData为空，使用备用逻辑')
           // 备用：手动更新本地计数
           const currentChatTimes = wx.getStorageSync('chatTimes') || 0
-          const newChatTimes = currentChatTimes + 1
           const points = wx.getStorageSync('points') || 0
-          const newPoints = points + 2 // 基础积分
-          
-          console.log('备用更新数据:', { chatTimes: newChatTimes, points: newPoints })
-          wx.setStorageSync('chatTimes', newChatTimes)
-          wx.setStorageSync('points', newPoints)
-          console.log('积分已更新，新积分:', newPoints)
+          wx.setStorageSync('chatTimes', currentChatTimes + 1)
+          wx.setStorageSync('points', points + 2) // 基础积分
         }
+
         const botMsg = {
           id: Date.now() + 1,
           role: 'bot',
@@ -262,8 +380,6 @@ Page({
         throw new Error(result.result.errMsg || 'AI 服务返回失败')
       }
     } catch (err) {
-      console.error('AI对话失败：', err)
-
       const botMsg = {
         id: Date.now() + 1,
         role: 'bot',
@@ -283,6 +399,10 @@ Page({
   },
 
   uploadImage() {
+    if (this.data.loading) {
+      return
+    }
+
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
@@ -292,8 +412,6 @@ Page({
         const tempFile = res.tempFiles[0]
         let tempFilePath = tempFile.tempFilePath
         const fileSize = tempFile.size
-
-        console.log('选择图片成功:', tempFilePath, '文件大小:', fileSize)
 
         // 检查文件大小（限制5MB）
         if (fileSize > 5 * 1024 * 1024) {
@@ -321,10 +439,8 @@ Page({
             })
 
             tempFilePath = downloadRes.tempFilePath
-            console.log('图片下载成功:', tempFilePath)
             wx.hideLoading()
           } catch (err) {
-            console.error('图片下载失败:', err)
             wx.hideLoading()
             wx.showToast({
               title: '图片下载失败',
@@ -347,7 +463,6 @@ Page({
           encoding: 'base64',
           success: async (fileRes) => {
             const base64Image = fileRes.data
-            console.log('图片转base64成功，长度:', base64Image.length)
 
             // 添加用户消息（显示图片）
             const userMsg = {
@@ -398,8 +513,7 @@ Page({
                     wx.setStorageSync('points', actionData.userPoints)
                   } else if (actionData.totalPoints) {
                     const points = wx.getStorageSync('points') || 0
-                    const newPoints = points + actionData.totalPoints
-                    wx.setStorageSync('points', newPoints)
+                    wx.setStorageSync('points', points + actionData.totalPoints)
                   }
                   if (Array.isArray(actionData.newAchievements) && actionData.newAchievements.length > 0) {
                     const achievementIds = actionData.newAchievements
@@ -414,8 +528,7 @@ Page({
                       wx.setStorageSync('achievements', merged.length)
                     } else {
                       const achievements = wx.getStorageSync('achievements') || 0
-                      const newAchievementsCount = achievements + actionData.newAchievements.length
-                      wx.setStorageSync('achievements', newAchievementsCount)
+                      wx.setStorageSync('achievements', achievements + actionData.newAchievements.length)
                     }
                   }
                 }
@@ -439,7 +552,6 @@ Page({
                 throw new Error(result.result.errMsg || '识别失败')
               }
             } catch (err) {
-              console.error('图片识别失败：', err)
               wx.hideLoading()
 
               const botMsg = {
@@ -459,18 +571,16 @@ Page({
             }
           },
           fail: (err) => {
-            console.error('读取图片失败：', err)
             wx.hideLoading()
             wx.showModal({
               title: '读取图片失败',
-              content: '无法读取图片文件，请尝试重新选择图片。\n错误信息: ' + (err.errMsg || JSON.stringify(err)),
+              content: '无法读取图片文件，请尝试重新选择图片。',
               showCancel: false
             })
           }
         })
       },
       fail: (err) => {
-        console.error('选择图片失败：', err)
         if (err.errMsg && !err.errMsg.includes('cancel')) {
           wx.showToast({
             title: '选择图片失败',
@@ -481,4 +591,3 @@ Page({
     })
   }
 })
-

@@ -56,6 +56,40 @@ function matchKeywords(content, keywords) {
   return keywords.filter(keyword => keyword && content.includes(keyword))
 }
 
+async function createFeedbackReviewTask(feedbackData, reviewTaskData) {
+  const run = async (txDb) => {
+    const feedbackRes = await txDb.collection('feedback_records').add({ data: feedbackData })
+    const feedbackId = feedbackRes._id
+
+    const reviewTaskRes = await txDb.collection('review_tasks').add({
+      data: {
+        ...reviewTaskData,
+        targetId: feedbackId,
+        sourceId: feedbackId
+      }
+    })
+    const reviewTaskId = reviewTaskRes._id
+
+    await txDb.collection('feedback_records').doc(feedbackId).update({
+      data: {
+        reviewTaskId,
+        updatedAt: feedbackData.updatedAt
+      }
+    })
+
+    return { feedbackId, reviewTaskId }
+  }
+
+  if (typeof db.runTransaction === 'function') {
+    return await db.runTransaction(async (transaction) => {
+      const txDb = transaction || db
+      return await run(txDb)
+    })
+  }
+
+  return await run(db)
+}
+
 exports.main = async (event) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
@@ -82,39 +116,51 @@ exports.main = async (event) => {
     }
 
     const now = new Date()
-    const addRes = await db.collection('feedback_records').add({
-      data: {
+    const writeResult = await createFeedbackReviewTask(
+      {
         reporterUid: user.uid,
         reporterNickName: user.nickName || '',
         reporterAvatarUrl: user.avatarUrl || '',
         content,
         contactInfo,
         status: 'pending_review',
+        reviewTaskId: '',
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        targetType: 'feedback',
+        sourceType: 'feedback',
+        sourceCollection: 'feedback_records',
+        submitterUid: user.uid,
+        submitterNickName: user.nickName || '',
+        submitterAvatarUrl: user.avatarUrl || '',
+        contentText: content,
+        contentSnapshot: content,
+        sourceMeta: {
+          contactInfo
+        },
+        keywordHits: mediumHits,
+        matchedKeywords: mediumHits.map(word => ({ word, riskLevel: 'medium' })),
+        keywordHitLevel: mediumHits.length > 0 ? 'medium' : 'none',
+        autoReviewResult: 'pending_review',
+        autoResult: 'pending_review',
+        reviewStatus: 'pending_review',
+        status: 'pending_review',
+        reviewReason: '',
+        reviewerRemark: '',
+        reviewedBy: '',
+        reviewerUid: '',
+        reviewedAt: null,
         createdAt: now,
         updatedAt: now
       }
-    })
-
-    await db.collection('review_tasks').add({
-      data: {
-        targetType: 'feedback',
-        targetId: addRes._id,
-        contentText: content,
-        keywordHits: mediumHits,
-        keywordHitLevel: mediumHits.length > 0 ? 'medium' : 'none',
-        autoReviewResult: 'pending_review',
-        reviewStatus: 'pending_review',
-        reviewReason: '',
-        reviewedBy: '',
-        reviewedAt: null,
-        createdAt: now
-      }
-    })
+    )
 
     return {
       success: true,
       data: {
-        feedbackId: addRes._id,
+        feedbackId: writeResult.feedbackId,
         status: 'pending_review',
         message: '反馈已提交，等待审核'
       }
