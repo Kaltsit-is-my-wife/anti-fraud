@@ -132,6 +132,9 @@ miniprogram-14/
 
 ## 说明
 
-- 当前开发主依据：`README.md`、`ARCHITECTURE.md`、`docs/phase2_development_plan.md`
+- 项目记忆、当前实现事实、架构约束和发布流程统一优先参考 [`CLAUDE.md`](./CLAUDE.md)。
+- `AGENTS.md` 和 `ARCHITECTURE.md` 保留作历史/补充说明；如与代码或 `CLAUDE.md` 冲突，以 `CLAUDE.md` 和当前代码为准。
+- `README.md` 负责项目简介、快速开始和文档导航，不重复维护详细实现记忆。
+- 产品规划以 [`docs/phase2_development_plan.md`](./docs/phase2_development_plan.md) 为准，但规划内容不代表当前已经实现或部署。
 - 历史版本文档已迁入 `docs/archive/`
 - 一次性排障与临时修复记录不再作为长期文档保留
