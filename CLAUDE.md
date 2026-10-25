@@ -133,7 +133,7 @@ const res = await wx.cloud.callFunction({
         pages/article-detail/article-detail.js 的 mockArticles
 ```
 
-文章内容管理不在当前小程序管理端内完成，项目约定继续使用 CMS/云端 `articles` 集合。正式发布前应清理或明确标记本地示例数据，并确认 `articles` 中有正式内容。
+文章内容管理不在当前小程序管理端内完成，项目约定继续使用 CMS/云端 `articles` 集合。本地示例数据作为开发和云端故障时的演示兜底保留；首页或详情页使用兜底时会显示“当前为演示数据/演示文章”提示，不应将其视为正式内容。
 
 当前产品决策：文章继续由管理者通过 CMS/云端后台创建、编辑、上传和设置发布状态；暂不新增小程序内文章管理页、文章编辑页、`saveArticle` 或 `getAdminArticleList`。
 

@@ -12,6 +12,31 @@
   margin-bottom: 20rpx;
 }
 
+.demo-notice {
+  padding: 24rpx 28rpx;
+  margin-bottom: 30rpx;
+  border: 1rpx solid #fcd34d;
+  border-radius: 20rpx;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.demo-notice-title,
+.demo-notice-text {
+  display: block;
+}
+
+.demo-notice-title {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.demo-notice-text {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
 .tag {
   display: inline-block;
   padding: 8rpx 24rpx;

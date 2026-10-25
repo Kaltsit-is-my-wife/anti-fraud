@@ -74,6 +74,10 @@
 
   <!-- 新闻列表 -->
   <view class="content-area">
+    <view wx:if="{{isDemoData}}" class="demo-notice">
+      <text class="demo-notice-title">当前为演示数据</text>
+      <text class="demo-notice-text">云端资讯暂时不可用，以下内容仅供功能演示。</text>
+    </view>
     <view class="section-title">🔥 反诈资讯</view>
 
     <view

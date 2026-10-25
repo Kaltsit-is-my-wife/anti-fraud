@@ -14,6 +14,7 @@ Page({
     relatedArticles: [],
     liked: false,
     collected: false,
+    isDemoData: false,
 
     // v3 评论区
     comments: [],
@@ -57,7 +58,7 @@ Page({
           author: articleData.author || '反诈小助手'
         }
         
-        this.setData({ article })
+        this.setData({ article, isDemoData: false })
         
         if (Array.isArray(data.relatedArticles) && data.relatedArticles.length > 0) {
           const relatedArticles = data.relatedArticles.map(item => ({
@@ -101,7 +102,7 @@ Page({
           author: result.data.author || '反诈小助手'
         }
         
-        this.setData({ article })
+        this.setData({ article, isDemoData: false })
         wx.hideLoading()
         
         // 增加浏览量
@@ -193,7 +194,12 @@ Page({
     }
 
     const article = mockArticles[id] || mockArticles['1']
-    this.setData({ article })
+    this.setData({ article, isDemoData: true })
+    wx.showToast({
+      title: '当前为演示文章',
+      icon: 'none',
+      duration: 2000
+    })
 
     // 检查是否已点赞、收藏
     this.checkLikeStatus(id)

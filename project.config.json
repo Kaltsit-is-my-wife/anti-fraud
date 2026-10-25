@@ -39,5 +39,6 @@
   },
   "appid": "wx230ea6c2166b8085",
   "simulatorPluginLibVersion": {},
-  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/"
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/",
+  "isGameTourist": false
 }
