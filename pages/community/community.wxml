@@ -43,7 +43,7 @@
       <view class="cover-wrap">
         <image wx:if="{{item.coverImage}}" class="cover" src="{{item.coverImage}}" mode="aspectFill"></image>
         <view wx:else class="cover cover-placeholder">
-          <text class="cover-emoji">🛡️</text>
+          <text class="cover-emoji">🐉</text>
         </view>
         <view class="cover-gradient"></view>
         <view class="cover-status status-{{item.topicStage || 'published'}}">{{item.topicStageLabel || '进行中'}}</view>

@@ -12,7 +12,7 @@
       </button>
       <button wx:if="{{form.coverImage}}" class="mini-btn secondary" bindtap="clearCoverImage" disabled="{{submitting || coverUploading || deletingTopicId}}">清空封面</button>
     </view>
-    <image wx:if="{{form.coverImage}}" class="cover-preview" src="{{form.coverImage}}" mode="aspectFill"></image>
+    <image wx:if="{{form.coverImage}}" class="cover-preview" src="{{form.coverImagePreview}}" mode="aspectFill"></image>
 
     <picker mode="selector" range="{{statusOptions}}" value="{{statusOptions.indexOf(form.status)}}" bindchange="onStatusChange" disabled="{{submitting || coverUploading || deletingTopicId}}">
       <view class="picker">状态：{{form.status}}</view>
@@ -36,7 +36,7 @@
 
     <view wx:for="{{topics}}" wx:key="_id" class="list-card">
       <view class="list-main" bindtap="editTopic" data-id="{{item._id}}">
-        <image wx:if="{{item.coverImage}}" class="list-cover" src="{{item.coverImage}}" mode="aspectFill"></image>
+        <image wx:if="{{item.coverImage}}" class="list-cover" src="{{item.coverImagePreview}}" mode="aspectFill"></image>
         <view class="list-body">
           <view class="list-title">{{item.title || '未命名话题'}}</view>
           <view class="list-meta">状态：{{item.status || 'draft'}} · 排序：{{item.sort || 0}}</view>

@@ -1,3 +1,4 @@
+const { resolveCloudFileUrls, getCloudFunctionErrorMessage } = require('../../utils/cloud')
 function splitIds(value) {
   if (typeof value !== 'string') return []
   return value.split(/[，,\n]/).map(item => item.trim()).filter(Boolean)
@@ -31,6 +32,7 @@ function createEmptyForm() {
     summary: '',
     contentText: '',
     coverImage: '',
+    coverImagePreview: '', 
     status: 'draft',
     sort: '0',
     startAt: '',
@@ -76,7 +78,29 @@ Page({
     try {
       const res = await wx.cloud.callFunction({ name: 'getAdminTopicList', data: {} })
       if (res.result && res.result.success) {
-        this.setData({ topics: res.result.data?.list || [], loading: false })
+        const list = res.result.data?.list || []
+        const coverIds = list
+          .map(item => item.coverImage)
+          .filter(v => typeof v === 'string' && v.startsWith('cloud://'))
+  
+        let urlMap = {}
+        if (coverIds.length > 0) {
+          try {
+            urlMap = await resolveCloudFileUrls(coverIds)
+          } catch (err) {
+            console.error('resolve list covers failed:', err)
+          }
+        }
+  
+        const topics = list.map(item => {
+          const cover = item.coverImage || ''
+          const preview = (cover && urlMap[cover]) || cover
+          return { ...item, coverImagePreview: preview }
+        })
+
+
+
+        this.setData({ topics, loading: false })
         return
       }
       wx.showToast({ title: res.result?.errMsg || '加载失败', icon: 'none' })
@@ -109,6 +133,16 @@ Page({
     const contentText = Array.isArray(topic.contentBlocks) && topic.contentBlocks.length > 0
       ? topic.contentBlocks.map(item => item.text || '').filter(Boolean).join('\n\n')
       : ''
+      const coverImage = topic.coverImage || ''
+      let coverImagePreview = coverImage
+      if (coverImage.startsWith('cloud://')) {
+        try {
+          const urlMap = await resolveCloudFileUrls([coverImage])
+          coverImagePreview = urlMap[coverImage] || coverImage
+        } catch (err) {
+          console.error('resolve edit cover failed:', err)
+        }
+      }
 
     this.setData({
       editingId: id,
@@ -160,9 +194,20 @@ Page({
         cloudPath,
         filePath
       })
+      const fileID = uploadRes.fileID || ''
 
+      let previewUrl = fileID
+      if (fileID.startsWith('cloud://')) {
+        try {
+          const urlMap = await resolveCloudFileUrls([fileID])
+          previewUrl = urlMap[fileID] || fileID
+        } catch (e) {
+          console.error('resolve cover url failed:', e)
+        }
+    }
       this.setData({
-        'form.coverImage': uploadRes.fileID || ''
+        'form.coverImage': fileID,
+        'form.coverImagePreview': previewUrl
       })
       wx.showToast({ title: '上传成功', icon: 'success' })
     } catch (err) {
@@ -184,7 +229,7 @@ Page({
 
   clearCoverImage() {
     if (this.data.coverUploading || this.data.submitting || this.data.deletingTopicId) return
-    this.setData({ 'form.coverImage': '' })
+    this.setData({ 'form.coverImage': '' , 'form.coverImagePreview': ''})
   },
 
   async saveTopic() {
@@ -212,8 +257,9 @@ Page({
     this.setData({ submitting: true })
 
     try {
+      const { coverImagePreview, ...formData } = this.data.form
       const payload = {
-        ...this.data.form,
+        ...formData,
         sort: Number(this.data.form.sort) || 0,
         relatedArticleIds: splitIds(this.data.form.relatedArticleIdsText),
         relatedVideoIds: splitIds(this.data.form.relatedVideoIdsText)
