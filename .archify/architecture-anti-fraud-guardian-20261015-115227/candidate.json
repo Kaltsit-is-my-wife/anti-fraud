@@ -1,0 +1,547 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "反诈卫士 · 系统架构",
+    "locale": "zh-CN",
+    "output": ".archify/architecture-anti-fraud-guardian-20261015-115227/anti-fraud-guardian.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/codingfeng-fufu/anti-fraud.git",
+      "provider": "github",
+      "revision": "81a7d232d47098e84a156b956706783546a2c807"
+    }
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "大学生用户",
+      "sublabel": "浏览 · 答题 · 举报",
+      "pos": [
+        40,
+        140
+      ],
+      "size": [
+        110,
+        64
+      ]
+    },
+    {
+      "id": "reviewer",
+      "type": "external",
+      "label": "审核员 / 管理员",
+      "sublabel": "内容审核 · 内容管理",
+      "pos": [
+        40,
+        260
+      ],
+      "size": [
+        110,
+        64
+      ]
+    },
+    {
+      "id": "miniapp",
+      "type": "frontend",
+      "label": "微信小程序",
+      "sublabel": "39 个页面 · 76 个云函数",
+      "pos": [
+        240,
+        170
+      ],
+      "size": [
+        130,
+        180
+      ],
+      "sources": [
+        {
+          "path": "app.js",
+          "line": 14,
+          "end_line": 15
+        },
+        {
+          "path": "pages/index/index.js",
+          "line": 257,
+          "end_line": 260
+        },
+        {
+          "path": "pages/chat/chat.js",
+          "line": 80,
+          "end_line": 82
+        }
+      ]
+    },
+    {
+      "id": "auth-user",
+      "type": "backend",
+      "label": "用户与账户",
+      "sublabel": "login · getUserInfo · bindStudent",
+      "pos": [
+        480,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/login/index.js",
+          "line": 75,
+          "end_line": 97
+        },
+        {
+          "path": "cloudfunctions/login/index.js",
+          "line": 180,
+          "end_line": 202
+        }
+      ]
+    },
+    {
+      "id": "content",
+      "type": "backend",
+      "label": "内容与资讯",
+      "sublabel": "getArticles · getArticleDetail",
+      "pos": [
+        660,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/getArticles/index.js",
+          "line": 100,
+          "end_line": 103
+        },
+        {
+          "path": "cloudfunctions/getArticleDetail/index.js",
+          "line": 104,
+          "end_line": 115
+        },
+        {
+          "path": "cloudfunctions/getArticleDetail/index.js",
+          "line": 158,
+          "end_line": 162
+        }
+      ]
+    },
+    {
+      "id": "quiz",
+      "type": "backend",
+      "label": "答题",
+      "sublabel": "getQuizQuestions · submitQuizAttempt",
+      "pos": [
+        840,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/submitQuizAttempt/index.js",
+          "line": 165,
+          "end_line": 167
+        },
+        {
+          "path": "cloudfunctions/submitQuizAttempt/index.js",
+          "line": 219,
+          "end_line": 220
+        }
+      ]
+    },
+    {
+      "id": "db-private",
+      "type": "database",
+      "label": "云数据库 · 私有数据",
+      "sublabel": "users · points_records · quiz_attempts · read_records",
+      "pos": [
+        480,
+        175
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/database.md",
+          "line": 5,
+          "end_line": 69
+        },
+        {
+          "path": "cloudfunctions/database.md",
+          "line": 147,
+          "end_line": 166
+        },
+        {
+          "path": "cloudfunctions/database.md",
+          "line": 296,
+          "end_line": 310
+        }
+      ]
+    },
+    {
+      "id": "db-public",
+      "type": "database",
+      "label": "云数据库 · 公共数据",
+      "sublabel": "articles · quiz_questions · posts · scam_reports",
+      "pos": [
+        840,
+        175
+      ],
+      "size": [
+        190,
+        84
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/database.md",
+          "line": 70,
+          "end_line": 93
+        },
+        {
+          "path": "cloudfunctions/database.md",
+          "line": 278,
+          "end_line": 295
+        },
+        {
+          "path": "cloudfunctions/database.md",
+          "line": 373,
+          "end_line": 392
+        }
+      ]
+    },
+    {
+      "id": "scam-review",
+      "type": "backend",
+      "label": "反诈反馈与审核",
+      "sublabel": "createScamReport · reviewContent",
+      "pos": [
+        480,
+        350
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/createScamReport/index.js",
+          "line": 45,
+          "end_line": 47
+        },
+        {
+          "path": "cloudfunctions/createScamReport/index.js",
+          "line": 73,
+          "end_line": 85
+        },
+        {
+          "path": "cloudfunctions/reviewContent/index.js",
+          "line": 18,
+          "end_line": 26
+        }
+      ]
+    },
+    {
+      "id": "community",
+      "type": "backend",
+      "label": "社区与社交",
+      "sublabel": "getPosts · createComment · followUser",
+      "pos": [
+        660,
+        350
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/createComment/index.js",
+          "line": 90,
+          "end_line": 94
+        },
+        {
+          "path": "cloudfunctions/createComment/index.js",
+          "line": 123,
+          "end_line": 127
+        }
+      ]
+    },
+    {
+      "id": "points-mall",
+      "type": "backend",
+      "label": "积分与商城",
+      "sublabel": "userSignIn · trackAction · redeemProduct",
+      "pos": [
+        840,
+        350
+      ],
+      "size": [
+        156,
+        64
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/trackAction/index.js",
+          "line": 96,
+          "end_line": 98
+        },
+        {
+          "path": "cloudfunctions/trackAction/index.js",
+          "line": 272,
+          "end_line": 275
+        },
+        {
+          "path": "cloudfunctions/redeemProduct/index.js",
+          "line": 76,
+          "end_line": 78
+        }
+      ]
+    },
+    {
+      "id": "ai-chat",
+      "type": "backend",
+      "label": "AI 助手",
+      "sublabel": "aiChat · qwen-vl-plus 多模态",
+      "pos": [
+        1020,
+        350
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/aiChat/index.js",
+          "line": 34,
+          "end_line": 35
+        },
+        {
+          "path": "cloudfunctions/aiChat/index.js",
+          "line": 55,
+          "end_line": 62
+        }
+      ]
+    },
+    {
+      "id": "qwen",
+      "type": "external",
+      "label": "通义千问 Qwen",
+      "sublabel": "DashScope · 多模态大模型",
+      "pos": [
+        1020,
+        500
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "cloudfunctions/aiChat/index.js",
+          "line": 34,
+          "end_line": 35
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "微信云开发环境",
+      "wraps": [
+        "auth-user",
+        "content",
+        "quiz",
+        "db-private",
+        "db-public",
+        "scam-review",
+        "community",
+        "points-mall",
+        "ai-chat"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "user-to-miniapp",
+      "from": "user",
+      "to": "miniapp",
+      "label": "使用小程序",
+      "variant": "emphasis"
+    },
+    {
+      "id": "reviewer-to-miniapp",
+      "from": "reviewer",
+      "to": "miniapp",
+      "label": "审核 / 管理"
+    },
+    {
+      "id": "miniapp-to-auth",
+      "from": "miniapp",
+      "to": "auth-user",
+      "label": "登录 · 绑定学生"
+    },
+    {
+      "id": "miniapp-to-content",
+      "from": "miniapp",
+      "to": "content",
+      "label": "资讯流 · 文章详情"
+    },
+    {
+      "id": "miniapp-to-quiz",
+      "from": "miniapp",
+      "to": "quiz",
+      "label": "抽题 · 提交答案"
+    },
+    {
+      "id": "miniapp-to-scam",
+      "from": "miniapp",
+      "to": "scam-review",
+      "label": "举报 · 审核处理"
+    },
+    {
+      "id": "miniapp-to-community",
+      "from": "miniapp",
+      "to": "community",
+      "label": "发帖 · 评论 · 关注"
+    },
+    {
+      "id": "miniapp-to-points",
+      "from": "miniapp",
+      "to": "points-mall",
+      "label": "签到 · 积分兑换"
+    },
+    {
+      "id": "miniapp-to-aichat",
+      "from": "miniapp",
+      "to": "ai-chat",
+      "label": "AI 对话"
+    },
+    {
+      "id": "auth-to-db-private",
+      "from": "auth-user",
+      "to": "db-private",
+      "label": "users 读写"
+    },
+    {
+      "id": "auth-to-db-public",
+      "from": "auth-user",
+      "to": "db-public",
+      "label": "公开资料同步"
+    },
+    {
+      "id": "content-to-db-public",
+      "from": "content",
+      "to": "db-public",
+      "label": "articles"
+    },
+    {
+      "id": "content-to-db-private",
+      "from": "content",
+      "to": "db-private",
+      "label": "read_records"
+    },
+    {
+      "id": "quiz-to-db-public",
+      "from": "quiz",
+      "to": "db-public",
+      "label": "quiz_questions"
+    },
+    {
+      "id": "quiz-to-db-private",
+      "from": "quiz",
+      "to": "db-private",
+      "label": "quiz_attempts"
+    },
+    {
+      "id": "scam-to-db-public",
+      "from": "scam-review",
+      "to": "db-public",
+      "label": "scam_reports"
+    },
+    {
+      "id": "scam-to-db-private",
+      "from": "scam-review",
+      "to": "db-private",
+      "label": "review_tasks"
+    },
+    {
+      "id": "points-to-db-private",
+      "from": "points-mall",
+      "to": "db-private"
+    },
+    {
+      "id": "points-to-db-public",
+      "from": "points-mall",
+      "to": "db-public",
+      "label": "products"
+    },
+    {
+      "id": "community-to-db-public",
+      "from": "community",
+      "to": "db-public",
+      "label": "posts · comments"
+    },
+    {
+      "id": "aichat-to-qwen",
+      "from": "ai-chat",
+      "to": "qwen",
+      "label": "HTTPS 多模态生成"
+    },
+    {
+      "id": "aichat-to-points",
+      "from": "ai-chat",
+      "to": "points-mall",
+      "label": "trackAction",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          1095,
+          332
+        ],
+        [
+          918,
+          332
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "反诈闭环",
+      "items": [
+        "举报先经 review_keyword_rules 关键词规则筛查",
+        "命中后生成 scam_reports 与 review_tasks 记录",
+        "审核员在 review-center 页面通过 reviewContent 处理"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "数据分层",
+      "items": [
+        "users、points_records 等私有集合仅本人可见",
+        "public_profiles、articles 等公共集合用于展示与排行",
+        "前端统一走云函数,不直接读写数据库"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "管理与初始化",
+      "items": [
+        "getAdminTopicList、saveTopic 等管理云函数复用同一小程序前端",
+        "initQuizQuestions、initProducts 等负责初始化数据"
+      ]
+    }
+  ]
+}

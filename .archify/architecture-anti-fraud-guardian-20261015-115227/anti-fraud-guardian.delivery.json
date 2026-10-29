@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e00c2d3e-ef03-43c6-88ae-8898ac68c5ef",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\candidate.json",
+  "output": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+  "specification": {
+    "sha256": "8cb9e4eb23646a2ff906ddffa77cc37de5aa3e8ef8acc4c82877f71f3c28b03d",
+    "bytes": 11602
+  },
+  "artifact": {
+    "sha256": "db7ee32ca3ff16a297c0a7fc1c2011669cede30218c4808d2f8d732c5a6f6a35",
+    "bytes": 850259
+  }
+}

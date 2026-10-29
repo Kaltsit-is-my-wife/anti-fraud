@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\candidate.json",
+    "sha256": "8cb9e4eb23646a2ff906ddffa77cc37de5aa3e8ef8acc4c82877f71f3c28b03d",
+    "bytes": 11602
+  },
+  "artifact": {
+    "path": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+    "sha256": "db7ee32ca3ff16a297c0a7fc1c2011669cede30218c4808d2f8d732c5a6f6a35",
+    "bytes": 850259
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.finalize.json",
+    "summaryReceipt": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.finalize-summary.json",
+    "browserCheckReceipt": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1326
+}

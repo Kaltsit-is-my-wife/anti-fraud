@@ -1,0 +1,955 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-15T04:34:28.753Z",
+  "specification": {
+    "path": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\candidate.json",
+    "sha256": "8cb9e4eb23646a2ff906ddffa77cc37de5aa3e8ef8acc4c82877f71f3c28b03d",
+    "bytes": 11602
+  },
+  "artifact": {
+    "path": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+    "sha256": "db7ee32ca3ff16a297c0a7fc1c2011669cede30218c4808d2f8d732c5a6f6a35",
+    "bytes": 850259
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\ASUS-\\.claude\\skills\\archify\\bin\\archify.mjs",
+        "deliver",
+        "architecture",
+        "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\candidate.json",
+        "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "E:\\anti_fraud\\anti-fraud",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "8cb9e4eb23646a2ff906ddffa77cc37de5aa3e8ef8acc4c82877f71f3c28b03d",
+          "bytes": 11602
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 767,
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\ASUS-\\.claude\\skills\\archify\\bin\\archify.mjs",
+        "deliver",
+        "architecture",
+        "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\candidate.json",
+        "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "E:\\anti_fraud\\anti-fraud",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "e00c2d3e-ef03-43c6-88ae-8898ac68c5ef",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\candidate.json",
+        "output": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+        "specification": {
+          "sha256": "8cb9e4eb23646a2ff906ddffa77cc37de5aa3e8ef8acc4c82877f71f3c28b03d",
+          "bytes": 11602
+        },
+        "artifact": {
+          "sha256": "db7ee32ca3ff16a297c0a7fc1c2011669cede30218c4808d2f8d732c5a6f6a35",
+          "bytes": 850259
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "evidence": {
+          "verified": true,
+          "repository": "https://github.com/codingfeng-fufu/anti-fraud",
+          "revision": "81a7d232d47098e84a156b956706783546a2c807",
+          "references": 27
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 210,
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\ASUS-\\.claude\\skills\\archify\\bin\\archify.mjs",
+        "check",
+        "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+        "artifact": {
+          "sha256": "db7ee32ca3ff16a297c0a7fc1c2011669cede30218c4808d2f8d732c5a6f6a35",
+          "bytes": 850259
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 23,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 4,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 6,
+            "maxBends": 4,
+            "routesOverSuggestedBends": 5,
+            "maxStretch": 1.203,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 18,
+            "minInteriorSegmentPx": 25,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [
+              {
+                "left": {
+                  "id": "miniapp-to-auth",
+                  "from": "miniapp",
+                  "to": "auth-user",
+                  "label": "登录 · 绑定学生",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "id": "miniapp-to-content",
+                  "from": "miniapp",
+                  "to": "content",
+                  "label": "资讯流 · 文章详情",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "point": [
+                  466,
+                  82
+                ],
+                "sharedNode": "miniapp"
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-community",
+                  "from": "miniapp",
+                  "to": "community",
+                  "label": "发帖 · 评论 · 关注",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "right": {
+                  "id": "miniapp-to-points",
+                  "from": "miniapp",
+                  "to": "points-mall",
+                  "label": "签到 · 积分兑换",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "point": [
+                  636,
+                  347
+                ],
+                "sharedNode": "miniapp"
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-community",
+                  "from": "miniapp",
+                  "to": "community",
+                  "label": "发帖 · 评论 · 关注",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "right": {
+                  "id": "miniapp-to-aichat",
+                  "from": "miniapp",
+                  "to": "ai-chat",
+                  "label": "AI 对话",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "point": [
+                  417,
+                  274
+                ],
+                "sharedNode": "miniapp"
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-community",
+                  "from": "miniapp",
+                  "to": "community",
+                  "label": "发帖 · 评论 · 关注",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "right": {
+                  "id": "scam-to-db-public",
+                  "from": "scam-review",
+                  "to": "db-public",
+                  "label": "scam_reports",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "point": [
+                  636,
+                  302
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-community",
+                  "from": "miniapp",
+                  "to": "community",
+                  "label": "发帖 · 评论 · 关注",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "right": {
+                  "id": "scam-to-db-private",
+                  "from": "scam-review",
+                  "to": "db-private",
+                  "label": "review_tasks",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "point": [
+                  573,
+                  274
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-community",
+                  "from": "miniapp",
+                  "to": "community",
+                  "label": "发帖 · 评论 · 关注",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "right": {
+                  "id": "points-to-db-private",
+                  "from": "points-mall",
+                  "to": "db-private",
+                  "label": "",
+                  "collectionIndex": 17,
+                  "artifactIndex": 18
+                },
+                "point": [
+                  587,
+                  274
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-points",
+                  "from": "miniapp",
+                  "to": "points-mall",
+                  "label": "签到 · 积分兑换",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "right": {
+                  "id": "miniapp-to-aichat",
+                  "from": "miniapp",
+                  "to": "ai-chat",
+                  "label": "AI 对话",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "point": [
+                  417,
+                  288.0000000000001
+                ],
+                "sharedNode": "miniapp"
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-points",
+                  "from": "miniapp",
+                  "to": "points-mall",
+                  "label": "签到 · 积分兑换",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "right": {
+                  "id": "scam-to-db-public",
+                  "from": "scam-review",
+                  "to": "db-public",
+                  "label": "scam_reports",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "point": [
+                  562,
+                  347
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-points",
+                  "from": "miniapp",
+                  "to": "points-mall",
+                  "label": "签到 · 积分兑换",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "right": {
+                  "id": "scam-to-db-private",
+                  "from": "scam-review",
+                  "to": "db-private",
+                  "label": "review_tasks",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "point": [
+                  548,
+                  347
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-points",
+                  "from": "miniapp",
+                  "to": "points-mall",
+                  "label": "签到 · 积分兑换",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "right": {
+                  "id": "points-to-db-private",
+                  "from": "points-mall",
+                  "to": "db-private",
+                  "label": "",
+                  "collectionIndex": 17,
+                  "artifactIndex": 18
+                },
+                "point": [
+                  633,
+                  347
+                ],
+                "sharedNode": "points-mall"
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-points",
+                  "from": "miniapp",
+                  "to": "points-mall",
+                  "label": "签到 · 积分兑换",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "right": {
+                  "id": "community-to-db-public",
+                  "from": "community",
+                  "to": "db-public",
+                  "label": "posts · comments",
+                  "collectionIndex": 19,
+                  "artifactIndex": 20
+                },
+                "point": [
+                  794.0000000000001,
+                  347.00000000000006
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-aichat",
+                  "from": "miniapp",
+                  "to": "ai-chat",
+                  "label": "AI 对话",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "right": {
+                  "id": "scam-to-db-public",
+                  "from": "scam-review",
+                  "to": "db-public",
+                  "label": "scam_reports",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "point": [
+                  562,
+                  326
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-aichat",
+                  "from": "miniapp",
+                  "to": "ai-chat",
+                  "label": "AI 对话",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "right": {
+                  "id": "scam-to-db-private",
+                  "from": "scam-review",
+                  "to": "db-private",
+                  "label": "review_tasks",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "point": [
+                  548,
+                  326
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-aichat",
+                  "from": "miniapp",
+                  "to": "ai-chat",
+                  "label": "AI 对话",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "right": {
+                  "id": "points-to-db-private",
+                  "from": "points-mall",
+                  "to": "db-private",
+                  "label": "",
+                  "collectionIndex": 17,
+                  "artifactIndex": 18
+                },
+                "point": [
+                  633,
+                  326
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-aichat",
+                  "from": "miniapp",
+                  "to": "ai-chat",
+                  "label": "AI 对话",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "right": {
+                  "id": "points-to-db-public",
+                  "from": "points-mall",
+                  "to": "db-public",
+                  "label": "products",
+                  "collectionIndex": 18,
+                  "artifactIndex": 19
+                },
+                "point": [
+                  949,
+                  326
+                ]
+              },
+              {
+                "left": {
+                  "id": "miniapp-to-aichat",
+                  "from": "miniapp",
+                  "to": "ai-chat",
+                  "label": "AI 对话",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "right": {
+                  "id": "community-to-db-public",
+                  "from": "community",
+                  "to": "db-public",
+                  "label": "posts · comments",
+                  "collectionIndex": 19,
+                  "artifactIndex": 20
+                },
+                "point": [
+                  794,
+                  326
+                ]
+              },
+              {
+                "left": {
+                  "id": "auth-to-db-public",
+                  "from": "auth-user",
+                  "to": "db-public",
+                  "label": "公开资料同步",
+                  "collectionIndex": 10,
+                  "artifactIndex": 11
+                },
+                "right": {
+                  "id": "content-to-db-public",
+                  "from": "content",
+                  "to": "db-public",
+                  "label": "articles",
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
+                },
+                "point": [
+                  742,
+                  138
+                ],
+                "sharedNode": "db-public"
+              },
+              {
+                "left": {
+                  "id": "auth-to-db-public",
+                  "from": "auth-user",
+                  "to": "db-public",
+                  "label": "公开资料同步",
+                  "collectionIndex": 10,
+                  "artifactIndex": 11
+                },
+                "right": {
+                  "id": "content-to-db-private",
+                  "from": "content",
+                  "to": "db-private",
+                  "label": "read_records",
+                  "collectionIndex": 12,
+                  "artifactIndex": 13
+                },
+                "point": [
+                  728,
+                  138
+                ]
+              },
+              {
+                "left": {
+                  "id": "auth-to-db-public",
+                  "from": "auth-user",
+                  "to": "db-public",
+                  "label": "公开资料同步",
+                  "collectionIndex": 10,
+                  "artifactIndex": 11
+                },
+                "right": {
+                  "id": "quiz-to-db-private",
+                  "from": "quiz",
+                  "to": "db-private",
+                  "label": "quiz_attempts",
+                  "collectionIndex": 14,
+                  "artifactIndex": 15
+                },
+                "point": [
+                  816,
+                  138
+                ]
+              },
+              {
+                "left": {
+                  "id": "content-to-db-public",
+                  "from": "content",
+                  "to": "db-public",
+                  "label": "articles",
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
+                },
+                "right": {
+                  "id": "quiz-to-db-private",
+                  "from": "quiz",
+                  "to": "db-private",
+                  "label": "quiz_attempts",
+                  "collectionIndex": 14,
+                  "artifactIndex": 15
+                },
+                "point": [
+                  816,
+                  151
+                ]
+              },
+              {
+                "left": {
+                  "id": "scam-to-db-public",
+                  "from": "scam-review",
+                  "to": "db-public",
+                  "label": "scam_reports",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "right": {
+                  "id": "scam-to-db-private",
+                  "from": "scam-review",
+                  "to": "db-private",
+                  "label": "review_tasks",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "point": [
+                  563.6111111111111,
+                  304.5
+                ],
+                "sharedNode": "scam-review"
+              },
+              {
+                "left": {
+                  "id": "scam-to-db-public",
+                  "from": "scam-review",
+                  "to": "db-public",
+                  "label": "scam_reports",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "right": {
+                  "id": "points-to-db-private",
+                  "from": "points-mall",
+                  "to": "db-private",
+                  "label": "",
+                  "collectionIndex": 17,
+                  "artifactIndex": 18
+                },
+                "point": [
+                  633,
+                  302
+                ]
+              },
+              {
+                "left": {
+                  "id": "scam-to-db-public",
+                  "from": "scam-review",
+                  "to": "db-public",
+                  "label": "scam_reports",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "right": {
+                  "id": "community-to-db-public",
+                  "from": "community",
+                  "to": "db-public",
+                  "label": "posts · comments",
+                  "collectionIndex": 19,
+                  "artifactIndex": 20
+                },
+                "point": [
+                  794,
+                  302
+                ],
+                "sharedNode": "db-public"
+              }
+            ],
+            "detours": [
+              {
+                "relationship": {
+                  "id": "miniapp-to-content",
+                  "from": "miniapp",
+                  "to": "content",
+                  "label": "资讯流 · 文章详情",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "bends": 4,
+                "stretch": 1.159
+              },
+              {
+                "relationship": {
+                  "id": "miniapp-to-quiz",
+                  "from": "miniapp",
+                  "to": "quiz",
+                  "label": "抽题 · 提交答案",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "bends": 3,
+                "stretch": 1.173
+              },
+              {
+                "relationship": {
+                  "id": "miniapp-to-points",
+                  "from": "miniapp",
+                  "to": "points-mall",
+                  "label": "签到 · 积分兑换",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "bends": 4,
+                "stretch": 1
+              },
+              {
+                "relationship": {
+                  "id": "miniapp-to-aichat",
+                  "from": "miniapp",
+                  "to": "ai-chat",
+                  "label": "AI 对话",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "bends": 3,
+                "stretch": 1
+              },
+              {
+                "relationship": {
+                  "id": "points-to-db-private",
+                  "from": "points-mall",
+                  "to": "db-private",
+                  "label": "",
+                  "collectionIndex": 17,
+                  "artifactIndex": 18
+                },
+                "bends": 4,
+                "stretch": 1.099
+              }
+            ]
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 8,
+            "emptyTopRatio": 0.013,
+            "occupiedTop": 8,
+            "viewBoxTop": 0,
+            "canvasHeight": 632,
+            "typicalNodeHeight": 64,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1240,
+            "actualBudgetPx": 1240,
+            "actualReaderWidth": 1270,
+            "desiredReaderWidth": 1270,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": false,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "node",
+              "id": "db-private"
+            },
+            "minimumSourceTextPx": 6,
+            "minimumProjectedTextPx": 6,
+            "semanticTextCount": 48
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "e00c2d3e-ef03-43c6-88ae-8898ac68c5ef"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 67,
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\ASUS-\\.claude\\skills\\archify\\bin\\archify.mjs",
+        "browser-check",
+        "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "e00c2d3e-ef03-43c6-88ae-8898ac68c5ef",
+        "artifact": {
+          "path": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html",
+          "sha256": "db7ee32ca3ff16a297c0a7fc1c2011669cede30218c4808d2f8d732c5a6f6a35",
+          "bytes": 850259
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "anti-fraud-guardian.browser-check.json",
+          "files": []
+        },
+        "error": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.finalize.json",
+    "summaryReceipt": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.finalize-summary.json",
+    "browserCheckReceipt": "E:\\anti_fraud\\anti-fraud\\.archify\\architecture-anti-fraud-guardian-20261015-115227\\anti-fraud-guardian.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-10-15T04:34:30.079Z",
+  "durationMs": 1326,
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "invalid-local-release"
+  }
+}
