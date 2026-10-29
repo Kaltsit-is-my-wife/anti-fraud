@@ -26,6 +26,7 @@
 
 ## 开发与专项指南
 
+- [用户手册与测试案例](./manual/README.md)
 - [AI 图片识别说明](./guides/ai_image_guide.md)
 - [开发者交接手册](./guides/developer-handoff.md)
 - [项目交接手册](./guides/project-handoff.md)
