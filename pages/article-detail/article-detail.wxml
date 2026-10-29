@@ -2,6 +2,10 @@
 <view class="article-container">
   <!-- 文章头部 -->
   <view class="article-header">
+    <view wx:if="{{isDemoData}}" class="demo-notice">
+      <text class="demo-notice-title">当前为演示文章</text>
+      <text class="demo-notice-text">云端文章暂时不可用，以下内容仅供功能演示。</text>
+    </view>
     <view class="tag tag-{{article.tagType}}">{{article.tag}}</view>
     <view class="article-title">{{article.title}}</view>
     <view class="article-meta">

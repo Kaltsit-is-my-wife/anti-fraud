@@ -91,6 +91,7 @@ Page({
     totalCount: 0,
     hasMore: true,
     isLoading: false,
+    isDemoData: false,
     allArticles: [
       {
         id: 1,
@@ -277,7 +278,8 @@ Page({
         totalCount: total,
         hasMore,
         currentPage: nextPage,
-        isLoading: false
+        isLoading: false,
+        isDemoData: false
       })
 
       if (isRefresh && this.data.selectedCategory === '全部') {
@@ -340,9 +342,15 @@ Page({
       totalCount: filteredArticles.length,
       hasMore: end < filteredArticles.length,
       currentPage: currentPage + 1,
-      isLoading: false
+      isLoading: false,
+      isDemoData: true
     })
 
+    wx.showToast({
+      title: '当前为演示数据',
+      icon: 'none',
+      duration: 2000
+    })
     wx.hideLoading()
   },
 
