@@ -2,7 +2,7 @@
 
 本文档描述 `反诈卫士` 当前代码架构、模块边界与数据分层。
 
-不讨论详细产品规划；规划请看 [二期开发计划](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/phase2_development_plan.md)。
+不讨论详细产品规划；规划请看 [二期开发计划](./docs/planning/phase2_development_plan.md)。
 
 ---
 
@@ -283,7 +283,7 @@ Mini Program Pages
 
 详细规划见：
 
-- [二期开发计划](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/phase2_development_plan.md)
+- [二期开发计划](./docs/planning/phase2_development_plan.md)
 
 ---
 
@@ -293,7 +293,7 @@ Mini Program Pages
   负责项目总览、启动方式、文档导航
 - `ARCHITECTURE.md`
   负责当前技术结构与模块边界
-- `docs/phase2_development_plan.md`
+- `docs/planning/phase2_development_plan.md`
   负责未来版本规划
 - `docs/archive/`
   负责历史版本归档

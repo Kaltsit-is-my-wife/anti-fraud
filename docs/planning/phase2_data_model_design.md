@@ -8,8 +8,8 @@
 
 关联文档：
 
-- `docs/phase2_requirements.md`
-- `docs/phase2_cloud_function_task_list.md`
+- `docs/planning/phase2_requirements.md`
+- `docs/planning/phase2_cloud_function_task_list.md`
 - `cloudfunctions/database.md`
 
 说明：

@@ -413,10 +413,32 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - `README.md`：项目简介、快速开始和文档入口；不重复维护详细架构。
 - `ARCHITECTURE.md`：历史/独立架构说明，若与代码或本文件冲突，以本文件为准。
 - `AGENTS.md`：历史的通用代理说明，新增规则应先写入本文件。
+- `docs/README.md`：文档目录导航和分类规则。
 - `CMS使用文档.md`、`CMS使用文档-简洁版.md`：CMS 操作手册，尤其是 `articles` 和设计中的 `banners` 字段说明。
-- `docs/developer-handoff.md`：较详细的交接与回归清单；修改关键流程后应同步检查。
-- `docs/phase2_*`：二期计划、验收和任务拆分，不代表全部功能都已实现。
+- `docs/guides/developer-handoff.md`：较详细的交接与回归清单；修改关键流程后应同步检查。
+- `docs/planning/`：二期计划、需求、任务、验收、数据模型和预算；不代表全部功能都已实现。
+- `docs/operations/`：云函数部署、快速部署、数据维护和运维说明。
+- `docs/guides/`：开发者交接、AI、题库、话题等可执行专项指南。
+- `docs/research/`：性能调查和问题分析材料。
+- `member-a-article-cms.md`、`member-b-banner.md`、`member-c-video.md`、`member-d-support-and-acceptance.md`：当前多人协作分工文档，属于正式协作约定，应纳入 Git 跟踪。
+- `docs/team-collaboration/acceptance-checklist.md`：本地验收工作表，包含环境和账号记录，已被 `.gitignore` 忽略，不纳入 Git。
 - `docs/archive/`：历史归档，不作为当前实现依据。
+
+### 文档目录使用规则
+
+新增或移动文档时，先按用途选择目录，不要把文件直接堆在 `docs/` 根目录：
+
+| 目录 | 放置内容 | 判断标准 |
+|---|---|---|
+| `docs/planning/` | 产品规划、需求、Backlog、任务拆分、阶段验收、预算 | 描述未来建设或阶段计划 |
+| `docs/operations/` | 部署、云环境、数据维护、发布运维 | 需要执行部署或运维操作 |
+| `docs/guides/` | 开发交接、模块操作、专项功能指南、导入样例 | 能按步骤执行的当前工作说明 |
+| `docs/research/` | 性能调查、问题分析、技术调研 | 记录分析过程、证据和候选方案 |
+| `docs/archive/` | 已结束版本或历史方案 | 只用于追溯，不作为当前实现依据 |
+| 根目录 `member-*.md` | 多人协作分工和责任边界 | 正式协作约定，应纳入 Git |
+| `docs/team-collaboration/` | 本地验收记录和临时协作资料 | 仅本地使用；当前只忽略验收清单 |
+
+`docs/README.md` 是分类入口。移动文件后必须同步更新其中的链接，以及仓库内引用该文件的相对路径；新增正式文档也要在导航中登记。根目录 `CLAUDE.md` 只记录当前实现事实和长期约束，不复制整篇操作手册。
 
 ## 当前已知架构缺口
 

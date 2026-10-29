@@ -38,3 +38,6 @@ config/secret.js
 
 # 微信开发者工具生成的文件
 .miniprogram-ci/
+
+# 本地多人协作验收记录（不纳入 Git）
+docs/team-collaboration/acceptance-checklist.md

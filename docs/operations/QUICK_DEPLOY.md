@@ -116,6 +116,6 @@
 ## 获取帮助
 
 如遇到问题，请查看：
-- 详细部署指南：`docs/cloud_function_deployment.md`
+- 详细部署指南：`docs/operations/cloud_function_deployment.md`
 - 微信云开发文档：https://docs.cloudbase.net/
 - 错误码说明：https://docs.cloudbase.net/error-code/basic.html

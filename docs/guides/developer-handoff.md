@@ -1,6 +1,6 @@
 # 反诈卫士开发者技术交接手册
 
-> 面向后续开发、运维和发布人员。本文与 `docs/project-handoff.md` 配套使用；本文讲技术细节，用户操作请阅读 `docs/manual/user-manual/`。
+> 面向后续开发、运维和发布人员。本文与 `docs/guides/project-handoff.md` 配套使用；本文讲技术细节，用户操作请阅读 `docs/manual/user-manual/`。
 >
 > 更新时间：2026-10-10
 

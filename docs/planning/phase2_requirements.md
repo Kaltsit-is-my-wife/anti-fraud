@@ -16,8 +16,8 @@
 
 关联文档：
 
-- `docs/phase2_development_plan.md`：阶段规划与节奏
-- `docs/phase2_backlog.md`：任务拆解与排期
+- `docs/planning/phase2_development_plan.md`：阶段规划与节奏
+- `docs/planning/phase2_backlog.md`：任务拆解与排期
 - `ARCHITECTURE.md`：当前系统结构
 - `cloudfunctions/database.md`：现有数据结构基础
 
@@ -543,7 +543,7 @@
 
 进入执行阶段后，建议基于本文档继续输出：
 
-- `docs/phase2_page_task_list.md`
-- `docs/phase2_cloud_function_task_list.md`
-- `docs/phase2_data_model_design.md`
-- 结合 `docs/phase2_backlog.md` 与 `docs/phase2_task_split.md` 继续细化审核与管理端任务
+- `docs/planning/phase2_page_task_list.md`
+- `docs/planning/phase2_cloud_function_task_list.md`
+- `docs/planning/phase2_data_model_design.md`
+- 结合 `docs/planning/phase2_backlog.md` 与 `docs/planning/phase2_task_split.md` 继续细化审核与管理端任务
