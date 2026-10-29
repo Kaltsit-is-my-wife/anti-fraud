@@ -8,7 +8,7 @@
 
 配套文档：
 
-- `docs/phase2_requirements.md`：需求确认、任务拆分与验收依据
+- `docs/planning/phase2_requirements.md`：需求确认、任务拆分与验收依据
 - `ARCHITECTURE.md`：当前系统结构
 
 ---

@@ -8,11 +8,11 @@
 
 关联文档：
 
-- `docs/phase2_backlog.md`
-- `docs/phase2_task_split.md`
-- `docs/phase2_acceptance_checklist.md`
-- `docs/phase2_page_task_list.md`
-- `docs/phase2_cloud_function_task_list.md`
+- `docs/planning/phase2_backlog.md`
+- `docs/planning/phase2_task_split.md`
+- `docs/planning/phase2_acceptance_checklist.md`
+- `docs/planning/phase2_page_task_list.md`
+- `docs/planning/phase2_cloud_function_task_list.md`
 - `CMS使用文档.md`
 
 ---

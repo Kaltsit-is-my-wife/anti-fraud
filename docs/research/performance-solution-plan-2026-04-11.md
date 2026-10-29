@@ -2,7 +2,7 @@
 
 日期：2026-04-11
 
-前置文档：`docs/performance-investigation-2026-04-11.md`
+前置文档：`docs/research/performance-investigation-2026-04-11.md`
 
 说明：本文件只讨论解决方案，不包含本轮运行代码修改。
 

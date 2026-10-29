@@ -165,7 +165,7 @@
 
 示例文件位置：
 
-- `docs/question-bank-import-sample.json`
+- `docs/guides/question-bank-import-sample.json`
 
 ---
 

@@ -180,7 +180,7 @@ clearAllData() {
 2. 右键点击 → 选择"上传并部署：云端安装依赖"
 3. 等待部署完成（约30秒）
 
-**快速部署指南**：参见 `docs/QUICK_DEPLOY.md`
+**快速部署指南**：参见 `docs/operations/QUICK_DEPLOY.md`
 
 ### 2. 临时方案（云函数未部署时）
 如果云函数未部署，系统会：

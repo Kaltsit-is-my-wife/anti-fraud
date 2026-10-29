@@ -27,7 +27,7 @@
 
 后续产品演进以二期计划为准：
 
-- [二期开发计划](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/phase2_development_plan.md)
+- [二期开发计划](./docs/planning/phase2_development_plan.md)
 
 二期已确认方向：
 
@@ -89,29 +89,29 @@ wx.cloud.init({
 
 ### 当前有效文档
 
-- [文档导航](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/README.md)
-- [项目架构](C:/Users/冯宗林/WeChatProjects/miniprogram-14/ARCHITECTURE.md)
-- [二期开发计划](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/phase2_development_plan.md)
-- [二期功能描述](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/phase2_feature_description.md)
-- [二期需求文档](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/phase2_requirements.md)
-- [二期 Backlog](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/phase2_backlog.md)
-- [二期任务拆分](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/phase2_task_split.md)
-- [二期验收清单](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/phase2_acceptance_checklist.md)
-- [AI 图片识别说明](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/ai_image_guide.md)
-- [数据库设计](C:/Users/冯宗林/WeChatProjects/miniprogram-14/cloudfunctions/database.md)
-- [CMS 使用文档](C:/Users/冯宗林/WeChatProjects/miniprogram-14/CMS使用文档.md)
-- [CMS 使用文档-简洁版](C:/Users/冯宗林/WeChatProjects/miniprogram-14/CMS使用文档-简洁版.md)
+- [文档导航](./docs/README.md)
+- [项目架构](./ARCHITECTURE.md)
+- [二期开发计划](./docs/planning/phase2_development_plan.md)
+- [二期功能描述](./docs/planning/phase2_feature_description.md)
+- [二期需求文档](./docs/planning/phase2_requirements.md)
+- [二期 Backlog](./docs/planning/phase2_backlog.md)
+- [二期任务拆分](./docs/planning/phase2_task_split.md)
+- [二期验收清单](./docs/planning/phase2_acceptance_checklist.md)
+- [AI 图片识别说明](./docs/guides/ai_image_guide.md)
+- [数据库设计](./cloudfunctions/database.md)
+- [CMS 使用文档](./CMS使用文档.md)
+- [CMS 使用文档-简洁版](./CMS使用文档-简洁版.md)
 
 ### 运维与部署文档
 
-- [云函数部署说明](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/cloud_function_deployment.md)
-- [快速部署说明](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/QUICK_DEPLOY.md)
-- [用户数据架构](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/user_data_architecture.md)
-- [清空用户数据功能说明](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/clear_data_feature.md)
+- [云函数部署说明](./docs/operations/cloud_function_deployment.md)
+- [快速部署说明](./docs/operations/QUICK_DEPLOY.md)
+- [用户数据架构](./docs/operations/user_data_architecture.md)
+- [清空用户数据功能说明](./docs/operations/clear_data_feature.md)
 
 ### 历史归档
 
-- [历史归档入口](C:/Users/冯宗林/WeChatProjects/miniprogram-14/docs/archive/README.md)
+- [历史归档入口](./docs/archive/README.md)
 
 ---
 
@@ -135,6 +135,6 @@ miniprogram-14/
 - 项目记忆、当前实现事实、架构约束和发布流程统一优先参考 [`CLAUDE.md`](./CLAUDE.md)。
 - `AGENTS.md` 和 `ARCHITECTURE.md` 保留作历史/补充说明；如与代码或 `CLAUDE.md` 冲突，以 `CLAUDE.md` 和当前代码为准。
 - `README.md` 负责项目简介、快速开始和文档导航，不重复维护详细实现记忆。
-- 产品规划以 [`docs/phase2_development_plan.md`](./docs/phase2_development_plan.md) 为准，但规划内容不代表当前已经实现或部署。
+- 产品规划以 [`docs/planning/phase2_development_plan.md`](./docs/planning/phase2_development_plan.md) 为准，但规划内容不代表当前已经实现或部署。
 - 历史版本文档已迁入 `docs/archive/`
 - 一次性排障与临时修复记录不再作为长期文档保留

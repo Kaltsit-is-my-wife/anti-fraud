@@ -6,9 +6,9 @@
 
 关联文档：
 
-- `docs/phase2_requirements.md`
-- `docs/phase2_backlog.md`
-- `docs/phase2_task_split.md`
+- `docs/planning/phase2_requirements.md`
+- `docs/planning/phase2_backlog.md`
+- `docs/planning/phase2_task_split.md`
 
 ---
 
