@@ -24,7 +24,6 @@ function chooseSingleImage() {
 }
 
 const { ensurePagePermission } = require('../../utils/permission')
-const { getCloudFunctionErrorMessage } = require('../../utils/cloud')
 
 function createEmptyForm() {
   return {
@@ -125,7 +124,7 @@ Page({
     this.setData({ 'form.status': this.data.statusOptions[index] })
   },
 
-  editTopic(e) {
+  async editTopic(e) {
     const id = e.currentTarget.dataset.id
     const topic = this.data.topics.find(item => item._id === id)
     if (!topic) return
@@ -151,6 +150,7 @@ Page({
         summary: topic.summary || '',
         contentText,
         coverImage: topic.coverImage || '',
+        coverImagePreview,
         status: topic.status || 'draft',
         sort: String(topic.sort || 0),
         startAt: topic.startAt ? String(topic.startAt).slice(0, 10) : '',

@@ -2,6 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 变更记录要求
+
+根目录的 [CHANGELOG.md](./CHANGELOG.md) 是项目功能变更和问题修复的追踪记录，不是可选的发布说明。每次修改问题或新增功能时，都必须同步在 `CHANGELOG.md` 中留痕；纯格式调整或不改变行为的微小排版修改可以不单独记录。
+
+每条变更记录至少应包含：
+
+1. **问题场景**：说明用户如何遇到问题、当前行为是什么，以及影响范围。
+2. **修改方案**：说明修改了哪些文件或模块、采用什么处理方式，以及重要的兼容或数据处理规则。
+3. **验证结果**：记录执行过的语法检查、测试、构建、微信开发者工具验证或仍待完成的人工验证。
+
+新增功能也必须说明原先缺少的能力、具体实现方案和验证方式；如果只是调研或规划，应明确标记为“当前已实现”“已知问题”或“后续规划”，不能把规划写成已完成能力。涉及云函数、数据库、CMS、云存储或部署的变更，还应记录必要的发布/部署步骤和环境注意事项。
+
+推荐记录结构：
+
+```markdown
+## YYYY-MM-DD - 变更标题
+
+### 问题场景
+- ...
+
+### 修改方案
+- ...
+
+### 验证结果
+- ...
+```
+
+完成代码修改前，应先确认对应的 `CHANGELOG.md` 条目会随同代码变更提交；代码审查时也要检查功能修改和变更记录是否保持一致。
+
 ## Project Overview
 
 **反诈卫士 (Anti-Fraud Guardian)** - A WeChat Mini Program for anti-fraud education targeting university students. Uses WeChat Cloud Development with AI integration (Tongyi Qianwen/Qwen).
