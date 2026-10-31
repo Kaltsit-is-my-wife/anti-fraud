@@ -3,6 +3,68 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-10-30 - 首页 Banner 接入 CMS `banners` 集合
+
+### 问题场景
+
+首页轮播图一直是 [pages/index/index.js](./pages/index/index.js) 中写死的 `HOME_BANNERS`（4 条只有文字和渐变的本地数据），`loadBanners()` 只是复制这份本地数组，不会请求云端。
+
+同时 `CMS使用文档.md` 已经设计了 `banners` 集合（`title`、`desc`、`icon`、`image`、`bgColor`、`link`、`sort`、`status`），但仓库里既没有 `getBanners` 云函数，首页也没有任何查询该集合的代码。结果是运营在 CMS 里新增或停用轮播图，首页毫无变化。
+
+### 修改方案
+
+- 新增 [cloudfunctions/getBanners](./cloudfunctions/getBanners/index.js)：
+  - 查询 `banners` 集合，只返回 `status === true` 的记录；
+  - 按 `sort` 升序，`sort` 相同时按 `updatedAt`/`createdAt` 倒序；
+  - 只下发 `title`、`desc`、`icon`、`image`、`bgColor`、`link`、`sort`，不透出管理字段；
+  - 集合未创建（`-502005`）按空集合返回 `success: true` + `emptyReason: 'collection_not_exist'`，其他数据库异常返回 `success: false` + `errCode: 'BANNERS_QUERY_FAILED'`，不使用成功形状的静默兜底。
+- 重写首页 `loadBanners()`，改为调用 `getBanners`：
+  - 复用 [utils/cloud.js](./utils/cloud.js) 的 `resolveCloudFileUrls()` 转换 `cloud://` 图片，HTTPS 地址直接使用；
+  - 继续使用 `index:banners:v2` 本地缓存，TTL 10 分钟不变；
+  - 云端成功但返回空列表时进入空态并清除旧缓存，不再把旧缓存当作最新结果；
+  - 云函数失败且没有可用内容时才回落到 `HOME_BANNERS`，并在轮播下方显示“云端轮播暂不可用”；
+  - `cloud://` 解析失败时清空图片，由 `bgColor`/默认渐变兜底。
+- `link` 增加白名单校验（`REGISTERED_PAGES`，与 `app.json` 的 38 个页面一致）：未注册路径和站外地址直接丢弃，点击不跳转也不报错；tabBar 页面改用 `wx.switchTab`，避免 `navigateTo` 打开 tab 页失败。
+- [pages/index/index.wxml](./pages/index/index.wxml)、[pages/index/index.wxss](./pages/index/index.wxss) 增加“暂无轮播内容”空态和降级提示样式。
+- 未改动首页文章加载、文章缓存和本地文章示例逻辑。
+
+### 验证结果
+
+- `node --check cloudfunctions/getBanners/index.js` 通过。
+- `node --check pages/index/index.js` 通过。
+- 用临时桩环境（`wx-server-sdk` 与 `wx` 均为本地桩，未提交）覆盖以下场景，全部通过：
+  - `status=false` 与缺失 `status` 的记录被过滤，`sort` 升序与同 `sort` 的时间倒序正确；
+  - 空集合返回 `emptyReason: 'collection_not_exist'`，数据库异常返回 `success: false`；
+  - 云端成功时链接白名单、`cloud://` 转临时地址、HTTPS 原样保留、无图片用默认渐变；
+  - 云端返回空列表时清除 `index:banners:v2` 并进入空态；
+  - 云函数失败时无缓存回落 4 条本地渐变 Banner，有缓存则保留缓存不覆盖；
+  - 图片解析失败清空 `image`、点击无链接/未注册链接不跳转、tabBar 链接走 `switchTab`。
+- 脚本校验 `REGISTERED_PAGES` 与 `app.json` 的 `pages`、`TAB_BAR_PAGES` 与 `tabBar.list` 完全一致。
+- `git diff --check` 通过。
+- **尚未完成**：未在微信开发者工具/真机连接真实云环境验收（需先部署 `getBanners` 并准备 `banners` 数据）。
+
+### 部署与环境注意事项
+
+- 必须把 `getBanners` 上传并部署到与小程序相同的云环境，否则首页会一直走本地降级（控制台日志 `loadBanners 失败`）。
+- `banners` 集合按 CMS 文档创建；`status` 必须是布尔值 `true`，写成字符串 `"true"` 不会显示。
+- `image` 填 `cloud://` 文件 ID 或 HTTPS 地址均可；使用云存储时需确保资源在同一云环境。
+- 新增、编辑、启停 Banner 后，验收前需清除 `index:banners:v2` 缓存或等待 10 分钟 TTL。
+- 后续在 `app.json` 新增页面时，需要同步 `pages/index/index.js` 的 `REGISTERED_PAGES`，否则 Banner 无法跳转到新页面。
+
+### 文档同步（补正）
+
+Banner 接入完成后，根目录 `CLAUDE.md` 仍有多处描述与代码不一致，本次一并补正：
+
+- 云函数业务域补充 `getBanners`；
+- `CMS使用文档` 条目去掉“设计中的 `banners`”表述；
+- 修正 `member-d-support-and-acceptance.md` 的实际路径，并明确 `docs/team-collaboration/` 只忽略验收清单、分工文档仍需入库；
+- “当前已知架构缺口”中删除“缺少 `getBanners`”，改为记录仍缺少 Banner 管理页、`saveBanner` 和媒体上传能力；
+- 首页行为约定补充第 8 条：下拉刷新只刷新文章，不重新请求 Banner。
+
+同时修正 [docs/manual/test-cases/functional/TC-01-home.md](./docs/manual/test-cases/functional/TC-01-home.md) 的 TC-01-003：原预期“链接无效则显示提示”与新实现不符，现实现为未注册链接被丢弃、不跳转不弹提示，仅输出控制台日志。
+
+本次只改文档，不涉及代码行为，因此未单独新增功能条目；语法检查无需重跑。
+
 ## 2026-10-29 - 话题封面上传与预览修复
 
 ### 已完成
@@ -116,7 +178,7 @@ status = 2：已发布
 - 首页没有调用 `getBanners`，仓库也没有该云函数。
 - WXML 已支持图片、背景色和跳转字段，但实际动态数据链路尚未接通。
 
-### 后续规划
+### 后续规划（已于 2026-10-30 落地，见本文首条记录）
 
 如进入实现阶段，需要新增并验证：
 
@@ -126,6 +188,8 @@ status = 2：已发布
 - 解析 `cloud://` 图片地址；
 - 首页缓存、空数据和云端失败兜底；
 - Banner 跳转路径校验。
+
+以上各项已在 2026-10-30 的 `getBanners` 接入中实现，本节保留为当时的调研结论记录；当前实现事实以本文首条记录和 [CLAUDE.md](./CLAUDE.md) 为准。
 
 ## 视频内容调研结论
 

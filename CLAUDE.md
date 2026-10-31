@@ -88,6 +88,7 @@ wx.cloud.init({
 - 用户：`login`、`getUserInfo`、`bindStudent`、`unbindStudent`、`getSchools`、`clearUserData`
 - 行为与奖励：`userSignIn`、`trackAction`、`getTitles`、`getUserTitles`、`equipTitle`、`redeemTitle`
 - 文章：`getArticles`、`getArticleDetail`、`searchArticles`、`updateArticleCategories`、`updateArticleTags`
+- 首页展示：`getBanners`（只读启用的轮播图）
 - AI：`aiChat`
 - 答题：`initQuizQuestions`、`getQuizQuestions`、`submitQuizAttempt`、`getQuizLeaderboard`
 - 社区与社交：`getTopics`、`getTopicDetail`、`getTopicComments`、`submitTopicComment`、`createPost`、`getPosts`、`getPostDetail`、`createComment`、`getComments`、`followUser`、`getNotifications`、`markNotificationRead`、`getUnreadCount`、`getPublicProfile`、`updateProfileDisplay`、`searchUsers`
@@ -121,7 +122,7 @@ const res = await wx.cloud.callFunction({
 ### 公共或内容数据
 
 - `articles`：反诈资讯/文章
-- `banners`：CMS 设计中的首页轮播图集合，当前前端尚未接通
+- `banners`：首页轮播图集合，由 CMS 维护，用户侧经 `getBanners` 只读启用记录
 - `videos`：视频内容
 - `topics`：官方社区话题
 - `posts`、`comments`、`follows`、`notifications`：社区互动
@@ -206,22 +207,32 @@ CMS 文档约定 `status=1` 为草稿、`status=2` 为已发布，并写明只�
 
 因此，“文章上传流程没有打通”的准确表述是不成立的：文章和媒体的 CMS 管理链路已经存在，尚需管理者掌握标准操作；但用户侧云函数尚未严格执行草稿不可见规则，发布状态过滤仍是独立的待修复项。
 
-### 首页 Banner：当前不是 CMS 动态读取
+### 首页 Banner：CMS 动态读取 + 本地降级
 
-首页 [pages/index/index.js](./pages/index/index.js) 中的 `HOME_BANNERS` 是 4 条本地固定数据，当前只有标题、描述和渐变背景，没有真实图片或跳转链接。`loadBanners()` 只复制 `defaultBanners`，不会调用云函数。
-
-虽然 [pages/index/index.wxml](./pages/index/index.wxml) 已支持 `item.image`，`utils/cloud.js` 也能把 `cloud://` 转成临时 URL，但仓库中目前没有 `getBanners` 云函数，也没有首页查询 `banners` 集合的代码。因此：
+首页 Banner 已接入 CMS，`HOME_BANNERS` 只作为云函数不可用时的降级数据，不再是对外展示的正式来源。
 
 ```text
-当前实际：HOME_BANNERS → 本地缓存 → 首页
-文档设计：CMS banners 集合 → getBanners（当前不存在）→ 首页
+正常链路：CMS banners 集合 → getBanners（status:true，按 sort 升序）
+        → pages/index/index.js 的 loadBanners()
+        → resolveCloudFileUrls() 解析 cloud://
+        → 首页 swiper，并写入本地缓存 index:banners:v2（TTL 10 分钟）
+失败兜底：pages/index/index.js 的 HOME_BANNERS（4 条本地渐变）+ 降级提示
 ```
 
-CMS 文档中的 `banners` 字段设计可作为后续接入协议：
+`getBanners`（[cloudfunctions/getBanners](./cloudfunctions/getBanners/index.js)）的契约：
+
+| 场景 | 返回 |
+|---|---|
+| 正常/空列表 | `{ success: true, data: { list, total, emptyReason } }` |
+| 集合未创建（`-502005`） | `{ success: true, data: { list: [], total: 0, emptyReason: 'collection_not_exist' } }` |
+| 无启用记录 | `success: true`，`emptyReason: 'no_enabled_banner'` |
+| 其他数据库异常 | `{ success: false, errCode: 'BANNERS_QUERY_FAILED', errMsg: '轮播图加载失败' }` |
+
+CMS 文档中的 `banners` 字段即下发的展示字段：
 
 | 字段 | 说明 |
 |---|---|
-| `title` | 主标题 |
+| `title` | 主标题，为空的记录会被首页丢弃 |
 | `desc` | 描述 |
 | `icon` | 可选图标或 Emoji |
 | `image` | 图片 URL 或 `cloud://` 文件 ID |
@@ -230,34 +241,28 @@ CMS 文档中的 `banners` 字段设计可作为后续接入协议：
 | `sort` | 数字越小越靠前 |
 | `status` | `true` 才显示 |
 
-当前替换 Banner 的最快方式是修改 `HOME_BANNERS` 并使用 `/images/...` 本地图片；长期方案是新增 `getBanners`，查询 `status: true` 的记录、按 `sort` 排序、用 `resolveCloudFileUrls()` 解析图片并继续使用已有缓存。接入 CMS 前不要误以为仅创建 `banners` 集合就会生效。
+首页行为约定：
 
-#### Banner CMS 接入规划（尚未实现）
+1. 只有 `status === true` 的记录可见，草稿/禁用 Banner 不会下发。
+2. `sort` 升序；`sort` 相同时按 `updatedAt`/`createdAt` 倒序。
+3. 云端成功但返回空列表时，首页进入“暂无轮播内容”空态，并清除 `index:banners:v2`，不会继续展示旧缓存。
+4. 云函数失败时，若已有缓存或已在展示云端 Banner 则保留现状；只有完全没有内容时才切换到 `HOME_BANNERS`，并在轮播下方显示“云端轮播暂不可用”提示。
+5. `cloud://` 解析失败会清空图片，由 `bgColor`/默认渐变兜底，不会出现破图。
+6. `link` 必须命中 [pages/index/index.js](./pages/index/index.js) 中 `REGISTERED_PAGES` 白名单（与 `app.json` 的 `pages` 一一对应）；tabBar 页面走 `wx.switchTab`，其余走 `wx.navigateTo`；未注册路径和站外地址会被丢弃，点击不跳转也不报错。
+7. 新增页面后必须同步 `REGISTERED_PAGES` 与 `app.json`。
+8. 下拉刷新只刷新文章首屏，不重新请求 Banner；改完 `banners` 数据需重新进入首页或等待缓存过期。
 
-后续接入 Banner 动态管理时，按以下边界实现，不把 CMS 设计误认为当前能力：
-
-1. 在 `cloudfunctions/getBanners` 新增用户侧只读云函数。
-2. 查询 `banners` 集合，仅返回 `status: true` 的记录。
-3. 按 `sort` 升序排列；排序相同时按更新时间或创建时间倒序。
-4. 返回 `title`、`desc`、`icon`、`image`、`bgColor`、`link`、`sort` 等展示字段。
-5. 首页 `pages/index/index.js` 的 `loadBanners()` 改为调用 `getBanners`，不再只依赖 `HOME_BANNERS`。
-6. 对 `image` 中的 `cloud://` 文件 ID 调用 `resolveCloudFileUrls()`；HTTPS 地址直接使用。
-7. 保留本地渐变 Banner 作为接口失败时的明确降级方案，但不能覆盖成功返回的空列表；空列表应有可识别的空态或运营提示。
-8. 继续使用 `index:banners:v2` 本地缓存，建议 TTL 为 10 分钟；新增、编辑、启停 Banner 后，验收时清理缓存或等待 TTL。
-9. `link` 只允许跳转到已注册的小程序页面路径，并测试无链接、无图片、图片失效三种情况。
-10. 接入完成后，至少验证：草稿/禁用 Banner 不可见、排序正确、图片可显示、点击跳转正确、云函数失败时首页仍可用。
-
-Banner 规划所需的代码和部署项：
+Banner 相关代码与部署项：
 
 ```text
-新增：cloudfunctions/getBanners/index.js
-修改：pages/index/index.js
+新增：cloudfunctions/getBanners
+修改：pages/index/index.js、pages/index/index.wxml、pages/index/index.wxss
 复用：utils/cloud.js、utils/cache.js
-部署：getBanners 云函数
+部署：getBanners 云函数（必须与小程序同一云环境）
 数据：banners 集合及 CMS 字段
 ```
 
-当前没有 Banner 管理页面、`saveBanner` 云函数或媒体上传函数；在上述能力补齐前，运营人员不能仅通过 CMS 修改就让首页生效。
+当前仍没有 Banner 管理页面、`saveBanner` 云函数或 Banner 媒体上传函数；运营直接通过 CMS 维护 `banners`，修改后可能需要清理 `index:banners:v2` 缓存或等待 10 分钟 TTL。
 
 ### 视频：已有标准发布链路
 
@@ -414,13 +419,13 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - `ARCHITECTURE.md`：历史/独立架构说明，若与代码或本文件冲突，以本文件为准。
 - `AGENTS.md`：历史的通用代理说明，新增规则应先写入本文件。
 - `docs/README.md`：文档目录导航和分类规则。
-- `CMS使用文档.md`、`CMS使用文档-简洁版.md`：CMS 操作手册，尤其是 `articles` 和设计中的 `banners` 字段说明。
+- `CMS使用文档.md`、`CMS使用文档-简洁版.md`：CMS 操作手册，尤其是 `articles` 与 `banners` 的字段说明。
 - `docs/guides/developer-handoff.md`：较详细的交接与回归清单；修改关键流程后应同步检查。
 - `docs/planning/`：二期计划、需求、任务、验收、数据模型和预算；不代表全部功能都已实现。
 - `docs/operations/`：云函数部署、快速部署、数据维护和运维说明。
 - `docs/guides/`：开发者交接、AI、题库、话题等可执行专项指南。
 - `docs/research/`：性能调查和问题分析材料。
-- `member-a-article-cms.md`、`member-b-banner.md`、`member-c-video.md`、`member-d-support-and-acceptance.md`：当前多人协作分工文档，属于正式协作约定，应纳入 Git 跟踪。
+- 根目录 `member-a-article-cms.md`、`member-b-banner.md`、`member-c-video.md` 与 `docs/team-collaboration/member-d-support-and-acceptance.md`：当前多人协作分工文档，属于正式协作约定，应纳入 Git 跟踪。
 - `docs/team-collaboration/acceptance-checklist.md`：本地验收工作表，包含环境和账号记录，已被 `.gitignore` 忽略，不纳入 Git。
 - `docs/archive/`：历史归档，不作为当前实现依据。
 
@@ -436,13 +441,13 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 | `docs/research/` | 性能调查、问题分析、技术调研 | 记录分析过程、证据和候选方案 |
 | `docs/archive/` | 已结束版本或历史方案 | 只用于追溯，不作为当前实现依据 |
 | 根目录 `member-*.md` | 多人协作分工和责任边界 | 正式协作约定，应纳入 Git |
-| `docs/team-collaboration/` | 本地验收记录和临时协作资料 | 仅本地使用；当前只忽略验收清单 |
+| `docs/team-collaboration/` | 本地验收记录和协作资料 | 默认仅本地使用；验收清单被忽略，`member-d-support-and-acceptance.md` 等分工文档需入库 |
 
 `docs/README.md` 是分类入口。移动文件后必须同步更新其中的链接，以及仓库内引用该文件的相对路径；新增正式文档也要在导航中登记。根目录 `CLAUDE.md` 只记录当前实现事实和长期约束，不复制整篇操作手册。
 
 ## 当前已知架构缺口
 
-- Banner CMS 方案已有文档和页面字段设计，但缺少 `getBanners` 云函数及首页动态读取链路。
+- Banner 已支持 CMS 读取（`getBanners` + 首页 `loadBanners`），但仍没有小程序内 Banner 管理页、`saveBanner` 云函数和 Banner 媒体上传能力，运营只能通过 CMS 维护数据。
 - 文章管理继续依赖 CMS；首页和详情仍保留本地示例兜底，正式发布前需确认不会掩盖云端配置错误。
 - 视频管理和读取链路已存在，但没有统一媒体上传能力，且保留空资源内置视频。
 - 部分历史云函数可能仍存在旧版写入 `_id`、本地降级或重复业务逻辑，修改时先检查调用链和数据影响。
