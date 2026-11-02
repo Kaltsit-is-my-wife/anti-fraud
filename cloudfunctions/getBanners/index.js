@@ -79,6 +79,9 @@ exports.main = async () => {
   try {
     const result = await db.collection(COLLECTION_NAME)
       .where({ status: true })
+      .orderBy('sort', 'asc')
+      .orderBy('updatedAt', 'desc')
+      .orderBy('createdAt', 'desc')
       .limit(MAX_BANNERS)
       .get()
 

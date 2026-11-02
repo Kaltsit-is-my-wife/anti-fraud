@@ -3,6 +3,21 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-02 - 修复 Banner 查询先限量后排序的问题
+
+### 问题场景
+
+`getBanners` 在数据库查询阶段先 `limit(100)` 再在内存排序。启用 Banner 超过 100 条时，排序优先级更高的新记录可能因为未进入前 100 条而无法展示。
+
+### 修改方案
+
+- 调整 [cloudfunctions/getBanners/index.js](./cloudfunctions/getBanners/index.js) 查询顺序：先在数据库按 `sort` 升序、`updatedAt` 倒序、`createdAt` 倒序排序，再执行 `limit(100)`。
+- 保留原有本地 `compareBanner` 排序与字段清洗逻辑，避免返回结构变化。
+
+### 验证结果
+
+- 已执行 `node --check cloudfunctions/getBanners/index.js`，语法检查通过。
+
 ## 2026-11-02 - 汇总 Banner 合并临时文档
 
 ### 问题场景
