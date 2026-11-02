@@ -3,8 +3,19 @@
     <view class="panel-title">{{editingId ? '编辑视频' : '新建视频'}}</view>
     <input class="input" placeholder="视频标题" value="{{form.title}}" bindinput="onInput" data-key="title" />
     <textarea class="textarea" placeholder="视频简介" value="{{form.summary}}" bindinput="onInput" data-key="summary" />
-    <input class="input" placeholder="封面图 URL / cloud:// 文件ID" value="{{form.coverImage}}" bindinput="onInput" data-key="coverImage" />
-    <input class="input" placeholder="视频地址 URL / cloud:// 文件ID" value="{{form.videoUrl}}" bindinput="onInput" data-key="videoUrl" />
+    <view class="upload-row">
+      <input class="input upload-input" placeholder="封面图 URL / cloud:// 文件ID" value="{{form.coverImage}}" bindinput="onInput" data-key="coverImage" />
+      <button class="btn secondary upload-btn" bindtap="chooseCover" disabled="{{uploadingCover}}">{{uploadingCover ? '上传中...' : '选择封面'}}</button>
+    </view>
+    <image wx:if="{{coverImagePreview}}" class="cover-preview" src="{{coverImagePreview}}" mode="aspectFill" />
+    <view class="upload-row">
+      <input class="input upload-input" placeholder="视频地址 URL / cloud:// 文件ID" value="{{form.videoUrl}}" bindinput="onInput" data-key="videoUrl" />
+      <button class="btn secondary upload-btn" bindtap="chooseVideo" disabled="{{uploadingVideo}}">{{uploadingVideo ? '上传中...' : '选择视频'}}</button>
+    </view>
+    <view wx:if="{{uploadingVideo}}" class="upload-progress">
+      <view class="upload-progress-track"><view class="upload-progress-bar" style="width: {{uploadProgress}}%;"></view></view>
+      <view class="upload-progress-text">视频上传中：{{uploadProgress}}%</view>
+    </view>
     <input class="input" placeholder="视频时长（秒）" value="{{form.duration}}" bindinput="onInput" data-key="duration" />
     <input class="input" placeholder="分类" value="{{form.category}}" bindinput="onInput" data-key="category" />
     <picker mode="selector" range="{{statusOptions}}" value="{{statusOptions.indexOf(form.status)}}" bindchange="onStatusChange">
