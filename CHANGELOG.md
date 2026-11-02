@@ -3,6 +3,53 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-02 - 修复首页 Banner 在 tabBar 切回后不刷新、失败不重试
+
+### 问题场景
+
+首页的 `loadBanners()` 只在 `onLoad()` 中触发。首页属于 tabBar 页面，用户切走再切回时仅执行 `onShow()`，因此：
+
+- `index:banners:v2` 缓存超过 10 分钟 TTL 后，本次会话内仍会持续展示旧 Banner；CMS 中已修改或停用的内容不会更新。
+- 首次请求失败进入 `HOME_BANNERS` 降级（或保留旧内容）后，没有任何重试入口，只能等待页面实例重建。
+
+### 修改方案
+
+- [pages/index/index.js](./pages/index/index.js) 新增 `maybeRefreshBanners()`，并在 `onLoad()` 和 `onShow()` 中调用：
+  - 缓存过期或不存在时请求 `getBanners`；TTL 内不请求。
+  - 上次请求失败时，下次 `onShow` 直接重试，不受 TTL 限制。
+  - 云端成功返回空列表时按 TTL 节流，避免每次切回首页都请求。
+- `loadBanners()` 增加 `_bannerLoading` 同步置位和 `finally` 复位，保证 `onLoad` 与紧随其后的 `onShow` 共用同一次请求，不重复调用云函数。
+- 请求失败时记录 `_bannerLoadFailed`，成功后清除；空列表成功时记录 `_bannerEmptyAt`。
+- 同步更新 [CLAUDE.md](./CLAUDE.md) 中 Banner 刷新时机和验收说明。
+
+### 验证结果
+
+- `node --check pages/index/index.js` 通过。
+- 使用临时 Node 桩（未提交）模拟页面生命周期，以下场景全部通过：
+  - `onLoad` + 紧随的 `onShow` 只调用一次 `getBanners`；
+  - 缓存 TTL 内切回不请求，超过 10 分钟后 `onShow` 触发刷新；
+  - 首次请求失败进入 `fallback`，下次 `onShow` 重试并恢复 `cloud` 状态；
+  - 云端返回空列表后 TTL 内不重复请求，过期后重新请求。
+- **尚未完成**：未在微信开发者工具/真机连接真实云环境验证 tabBar 切换和真实 CMS 数据更新。
+
+## 2026-11-02 - 补全 CLAUDE.md 的命令、页面、云函数与集合清单
+
+### 问题场景
+
+`CLAUDE.md` 已覆盖 Banner、视频和文章发布链路，但缺少可直接执行的验证命令，导致后续开发者容易误以为仓库存在根目录 `npm test`/`npm run build`。同时前端页面清单遗漏 `account`、`bind-student`、`learning-records`、`points-history`、`redeem-info`、`video`、`video-detail`；云函数清单遗漏学习记录、积分流水、题库管理、话题删除、反馈提交等函数；数据库清单遗漏 `sign_records`、`user_achievements`、`user_backpack`、`feedback_records`、`titles`、`achievements`、`scam_reports` 和学校字典集合。
+
+### 修改方案
+
+- 在 [CLAUDE.md](./CLAUDE.md) 新增“常用命令与验证方式”，说明仓库没有根目录 npm 工程、lint 或自动化测试，并给出 `node --check`、批量语法检查、云函数依赖安装和 Cloudbase CLI 部署命令。
+- 补全页面、云函数和数据库集合清单，并标注 `pages/logs/` 未在 `app.json` 注册。
+- 新增 `utils/` 公共工具职责说明，记录积分商城功能开关 `pointsMallEnabled: false` 的当前状态。
+- 补充登录缓存（5 分钟）、学生绑定提醒（12 小时）和 `aiChat` 只读取 `process.env` 的环境变量说明。
+
+### 验证结果
+
+- 逐项对照 `app.json`、`cloudfunctions/` 目录、各云函数 `package.json`、`utils/` 源码和 `grep` 到的集合名核对清单。
+- 本次仅修改文档，未改变运行时代码，无需执行 JavaScript 语法检查。
+
 ## 2026-11-02 - 修复 Banner 查询先限量后排序的问题
 
 ### 问题场景

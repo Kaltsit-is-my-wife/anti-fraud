@@ -281,12 +281,10 @@ Page({
   },
 
   onLoad() {
-    const hasCachedBanners = this.restoreCachedBanners()
     const hasCachedArticles = this.restoreCachedArticles()
+    this.restoreCachedBanners()
 
-    if (!hasCachedBanners || shouldRefresh(INDEX_BANNER_CACHE_KEY, INDEX_BANNER_CACHE_TTL_MS)) {
-      this.loadBanners()
-    }
+    this.maybeRefreshBanners()
 
     if (!hasCachedArticles || shouldRefresh(INDEX_ARTICLE_CACHE_KEY, INDEX_ARTICLE_CACHE_TTL_MS)) {
       this.loadArticlesFromCloud(true, { silent: hasCachedArticles })
@@ -296,6 +294,36 @@ Page({
   onShow() {
     if (this.data.articles.length > 0) {
       this.updateArticlesList(this.data.articles)
+    }
+
+    // tabBar 页面切回时只触发 onShow，需要在这里补做 Banner 过期检查和失败重试
+    this.maybeRefreshBanners()
+  },
+
+  /**
+   * 判断当前是否需要请求 Banner：
+   * - 正在请求时直接跳过，避免 onLoad 与紧随其后的 onShow 重复发起
+   * - 上次请求失败时，下次 onShow 直接重试，不受缓存 TTL 限制
+   * - 云端成功返回空列表时按 TTL 节流，避免每次切回首页都请求
+   * - 其余情况仅在本地缓存过期或不存在时刷新
+   */
+  maybeRefreshBanners() {
+    if (this._bannerLoading) return
+
+    if (this._bannerLoadFailed) {
+      this.loadBanners()
+      return
+    }
+
+    if (this.data.bannerMode === 'empty') {
+      const lastEmptyAt = this._bannerEmptyAt || 0
+      if (Date.now() - lastEmptyAt < INDEX_BANNER_CACHE_TTL_MS) return
+      this.loadBanners()
+      return
+    }
+
+    if (shouldRefresh(INDEX_BANNER_CACHE_KEY, INDEX_BANNER_CACHE_TTL_MS)) {
+      this.loadBanners()
     }
   },
 
@@ -518,6 +546,10 @@ Page({
    * Banner 以 CMS banners 集合为准，失败时才回到本地渐变数据
    */
   async loadBanners() {
+    if (this._bannerLoading) return
+    // 在第一个 await 前置位，保证 onLoad 后紧随的 onShow 不会重复发起请求
+    this._bannerLoading = true
+
     try {
       const res = await wx.cloud.callFunction({
         name: 'getBanners',
@@ -536,19 +568,28 @@ Page({
       if (!banners.length) {
         this.setData({ banners: [], bannerMode: 'empty' })
         removeCacheData(INDEX_BANNER_CACHE_KEY)
+        this._bannerLoadFailed = false
+        this._bannerEmptyAt = Date.now()
         console.info('[index] 云端暂无启用 Banner:', data.emptyReason || 'empty')
         return
       }
 
       this.setData({ banners, bannerMode: 'cloud' })
       writeCacheData(INDEX_BANNER_CACHE_KEY, banners)
+      this._bannerLoadFailed = false
+      this._bannerEmptyAt = 0
     } catch (err) {
       console.warn('[index] loadBanners 失败，使用本地降级:', err)
+
+      // 记录失败状态，下次 onShow 会重试
+      this._bannerLoadFailed = true
 
       // 已有缓存或已渲染的云端 Banner 仍可继续展示，不覆盖成渐变占位
       if (this.data.banners.length > 0) return
 
       this.applyLocalBanners()
+    } finally {
+      this._bannerLoading = false
     }
   },
 

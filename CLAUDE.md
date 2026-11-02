@@ -1,3 +1,9 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
 # 反诈卫士项目记忆文档
 
 本文件是本项目面向 AI 编码助手和后续开发者的**唯一优先参考记忆文档**。
@@ -70,32 +76,66 @@ wx.cloud.init({
 
 `project.config.json` 中的 AppID 和开发者工具当前绑定的云环境必须与目标环境一致。修改或新增云函数后，必须在微信开发者工具中选择“上传并部署：云端安装依赖”。
 
+## 常用命令与验证方式
+
+仓库**没有根目录 npm 工程，也没有 lint、单元测试或自动化构建脚本**。不要假设 `npm test`、`npm run build` 可用；验证以语法检查、开发者工具编译和真机/体验版回归为准。
+
+```bash
+# 单文件 JavaScript 语法检查（改动的每个 .js 都至少跑一次）
+node --check pages/index/index.js
+node --check cloudfunctions/getBanners/index.js
+
+# 批量检查当前改动涉及的 JS 文件（Git Bash）
+git diff --name-only -- '*.js' | xargs -r -n1 node --check
+
+# 云函数依赖（仅本地调试或排查依赖时需要；部署用云端安装依赖）
+cd cloudfunctions/aiChat && npm install
+
+# 可选的命令行部署方式（需先安装并登录 Cloudbase CLI）
+npm install -g @cloudbase/cli
+cloudbase login
+cloudbase functions:deploy getBanners
+```
+
+每个 `cloudfunctions/<name>/` 都有独立 `package.json`，依赖主要为 `wx-server-sdk`（多数为 `~2.6.3`，少数为 `latest`）。前端由微信开发者工具编译，不存在可用的 CLI 构建命令。发布前至少完成：语法检查 → 开发者工具编译并查看控制台 → 部署改动过的云函数 → 普通用户/管理员/审核员账号回归。
+
 ## 架构分层
 
 ### 前端页面
 
 - 内容：`pages/index`、`pages/article-detail`、`pages/search`
-- 学习：`pages/quiz`、`pages/quiz-home`、`pages/quiz-leaderboard`、`pages/learning`
+- 视频：`pages/video`、`pages/video-detail`
+- 学习：`pages/quiz`、`pages/quiz-home`、`pages/quiz-leaderboard`、`pages/learning`、`pages/learning-records`
 - 社区：`pages/community`、`pages/topic-detail`、`pages/community-post-*`、`pages/messages`、`pages/profile`
-- 用户：`pages/user`、`pages/my`、`pages/sign-in`、`pages/achievements`、`pages/title-management`、`pages/points`、`pages/backpack`
+- 用户：`pages/user`、`pages/my`、`pages/account`、`pages/bind-student`、`pages/sign-in`、`pages/achievements`、`pages/title-management`、`pages/points`、`pages/points-history`、`pages/backpack`、`pages/redeem-info`
 - AI 与辅助：`pages/chat`、`pages/scam-report`、`pages/settings`、`pages/about`、`pages/feedback`
 - 管理端：`pages/admin-center`、`pages/topic-management`、`pages/review-center`、`pages/video-management`、`pages/question-bank-management`、`pages/question-editor`
 
-通常每个页面包含 `.js`、`.wxml`、`.wxss`、`.json`。修改页面结构时，同时检查事件名、数据字段和导航路径。
+通常每个页面包含 `.js`、`.wxml`、`.wxss`、`.json`。修改页面结构时，同时检查事件名、数据字段和导航路径。`pages/logs/` 目录存在但**未在 `app.json` 注册**，属于历史遗留，不要把它当作可跳转页面。
+
+### 公共工具（`utils/`）
+
+- `cloud.js`：`resolveCloudFileUrls()` 把 `cloud://` 文件 ID 批量换成临时 URL（结果缓存 30 分钟）；`getCloudFunctionErrorMessage()` 把未部署等错误转成可读提示。
+- `cache.js`：基于 `wx.setStorageSync` 的 TTL 缓存，键统一加 `perf_cache:` 前缀，提供 `readCacheData/writeCacheData/removeCacheData/shouldRefresh`。
+- `permission.js`：前端权限快照（`isAdmin`、`roles` 中的 `operator`/`reviewer`），只用于隐藏入口和页面跳转，**不是安全边界**；管理云函数仍须自行校验。
+- `feature.js`：功能开关。当前 `pointsMallEnabled: false`，`pages/user`、`pages/my`、`pages/points` 会隐藏或拦截积分商城入口并显示 `POINTS_MALL_NOTICE`；商城云函数仍保留。
+- `defaultVideos.js`：视频列表为空时合并展示的内置演示视频，详见视频章节。
+- `util.js`：通用格式化/工具函数。
 
 ### 云函数业务域
 
-- 用户：`login`、`getUserInfo`、`bindStudent`、`unbindStudent`、`getSchools`、`clearUserData`
+- 用户：`login`、`getUserInfo`、`bindStudent`、`unbindStudent`、`getSchools`、`clearUserData`、`getLearningRecords`、`getPointsRecords`
 - 行为与奖励：`userSignIn`、`trackAction`、`getTitles`、`getUserTitles`、`equipTitle`、`redeemTitle`
 - 文章：`getArticles`、`getArticleDetail`、`searchArticles`、`updateArticleCategories`、`updateArticleTags`
 - 首页展示：`getBanners`（只读启用的轮播图）
 - AI：`aiChat`
-- 答题：`initQuizQuestions`、`getQuizQuestions`、`submitQuizAttempt`、`getQuizLeaderboard`
+- 答题与题库：`initQuizQuestions`、`getQuizQuestions`、`getQuizQuestionList`、`submitQuizAttempt`、`getQuizLeaderboard`、`getQuestionBanks`、`getAdminQuestionBankList`、`initQuestionBanks`、`saveQuestionBank`、`deleteQuestionBank`、`saveQuizQuestion`、`deleteQuizQuestion`、`updateQuestionBankRelation`
 - 社区与社交：`getTopics`、`getTopicDetail`、`getTopicComments`、`submitTopicComment`、`createPost`、`getPosts`、`getPostDetail`、`createComment`、`getComments`、`followUser`、`getNotifications`、`markNotificationRead`、`getUnreadCount`、`getPublicProfile`、`updateProfileDisplay`、`searchUsers`
 - 视频：`getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`
-- 管理与审核：`getAdminTopicList`、`saveTopic`、`getReviewTasks`、`reviewContent`、题库/题目管理函数
-- 商城：`getProducts`、`initProducts`、`redeemProduct`、`getExchangeRecords`、`getUserBackpack`、`useBackpackItem`
-- 风险反馈：`createScamReport`
+- 管理与审核：`getAdminTopicList`、`saveTopic`、`initTopics`、`deleteTopic`、`getReviewTasks`、`reviewContent`
+- 商城：`getProducts`、`initProducts`、`redeemProduct`、`getExchangeRecords`、`getUserBackpack`、`useBackpackItem`（前端入口受 `utils/feature.js` 的 `pointsMallEnabled` 控制，当前关闭）
+- 风险与反馈：`createScamReport`、`submitFeedback`
+- 一次性维护/迁移：`checkArticleCategories`、`fixArticleCategories`、`convertArticleCategories`、`fixAllCategory`、`fixUserData`、`migrateUserUID`；这些不是日常业务链路，运行前必须备份并确认目标环境。
 
 前端调用约定：
 
@@ -118,6 +158,10 @@ const res = await wx.cloud.callFunction({
 - `exchange_records`：兑换记录
 - `quiz_attempts`：答题记录
 - `bind_logs`：绑定记录
+- `sign_records`：签到记录
+- `user_achievements`：用户已解锁成就
+- `user_backpack`：用户背包物品
+- `feedback_records`：用户反馈内容，含联系方式，仅供审核/管理读取
 
 ### 公共或内容数据
 
@@ -129,7 +173,10 @@ const res = await wx.cloud.callFunction({
 - `public_profiles`：可公开展示的资料
 - `quiz_questions`、`question_banks`：题库和题目
 - `products`：积分商城商品
-- `review_tasks`、`review_keyword_rules`：审核相关数据
+- `titles`、`achievements`：称号与成就定义
+- `scam_reports`：用户诈骗风险反馈，含审核状态
+- `review_tasks`、`review_keyword_rules`：审核任务与关键词规则
+- `schools`、`majors`、`colleges`：学生绑定用的学校/专业/学院字典
 
 `users` 不应直接向公众展示；公开资料写入 `public_profiles`。内容展示和管理操作优先走云函数，不要让前端直接依赖数据库内部对象结构。
 
@@ -246,18 +293,19 @@ CMS 文档中的 `banners` 字段即下发的展示字段：
 1. 只有 `status === true` 的记录可见，草稿/禁用 Banner 不会下发。
 2. `sort` 升序；`sort` 相同时按 `updatedAt`/`createdAt` 倒序。
 3. 云端成功但返回空列表时，首页进入“暂无轮播内容”空态，并清除 `index:banners:v2`，不会继续展示旧缓存。
-4. 云函数失败时，若已有缓存或已在展示云端 Banner 则保留现状；只有完全没有内容时才切换到 `HOME_BANNERS`，并在轮播下方显示“云端轮播暂不可用”提示。
+4. 云函数失败时，若已有缓存或已在展示云端 Banner 则保留现状；只有完全没有内容时才切换到 `HOME_BANNERS`，并在轮播下方显示“云端轮播暂不可用”提示。失败状态会被记录，下次 `onShow` 自动重试。
 5. `cloud://` 解析失败会清空图片，由 `bgColor`/默认渐变兜底，不会出现破图。
 6. `link` 必须命中 [pages/index/index.js](./pages/index/index.js) 中 `REGISTERED_PAGES` 白名单（与 `app.json` 的 `pages` 一一对应）；tabBar 页面走 `wx.switchTab`，其余走 `wx.navigateTo`；未注册路径和站外地址会被丢弃，点击不跳转也不报错。
 7. 新增页面后必须同步 `REGISTERED_PAGES` 与 `app.json`。
-8. 下拉刷新只刷新文章首屏，不重新请求 Banner；改完 `banners` 数据需重新进入首页或等待缓存过期。
+8. `onLoad` 和每次 `onShow` 都会调用 `maybeRefreshBanners()`：缓存超过 10 分钟 TTL 时刷新，上次请求失败时直接重试；`onLoad` 与紧随其后的 `onShow` 由 `_bannerLoading` 去重，只发一次请求。云端成功返回空列表后按 TTL 节流，避免每次切回都请求。
+9. 下拉刷新只刷新文章首屏，不重新请求 Banner；改完 `banners` 数据后，切回首页会按 TTL 自动刷新，也可清除缓存立即验证。
 
 Banner 发布与验收补充：
 
 1. `getBanners` 必须上传并部署到与小程序相同的云环境；未部署时首页回落到 `HOME_BANNERS`，控制台会记录 `loadBanners 失败`。
 2. `banners` 集合中的 `status` 必须是布尔值 `true`，`sort` 必须是数字；字符串 `"true"` 不会展示。
 3. Banner 使用云存储图片时，`image` 的 `cloud://` 文件 ID 与小程序、云函数必须属于同一云环境。
-4. CMS 数据变更后，验收前应清除 `index:banners:v2` 缓存或等待 10 分钟 TTL；首页下拉刷新不会重新请求 Banner。
+4. CMS 数据变更后，验收前应清除 `index:banners:v2` 缓存或等待 10 分钟 TTL 后切回首页触发 `onShow` 刷新；首页下拉刷新不会重新请求 Banner。
 5. 测试数据只能用于验收，正式发布前必须替换为真实运营内容，并分别验证启用、禁用、排序、图片解析、空列表、网络失败和内部链接跳转。
 
 Banner 相关代码与部署项：
@@ -369,6 +417,10 @@ createdAt/updatedAt   云函数维护
 `app.js:onLaunch` → `login` → `users` → `public_profiles` → 本地缓存。
 未绑定学生信息时，按时间间隔提示进入 `bind-student`。
 
+- `ensureLogin()` 缓存登录结果 **5 分钟**，并用 `loginPromise` 合并并发调用；需要最新用户信息时传 `{ force: true }`。
+- 登录态（`userInfo`、`openid`）写入 `wx.setStorageSync`，启动时由 `restoreLocalSession()` 先恢复，再由云端刷新。
+- 未绑定学生信息的提醒最多每 **12 小时**一次，记录在 `last_bind_remind_at`。
+
 ### 文章
 
 `pages/index` → `getArticles` → `articles`；
@@ -390,7 +442,7 @@ createdAt/updatedAt   云函数维护
 ### AI
 
 `pages/chat` → `aiChat` → Qwen → 本地对话缓存和 `trackAction`。
-API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当前默认 `qwen-vl-plus`。修改环境变量后要重新部署 `aiChat`。
+API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当前默认 `qwen-vl-plus`。代码读取的是 `process.env`，`cloudfunctions/aiChat/config.json` 的 `envVariables` 只是部署配置，仓库中的 Key 必须留空。修改环境变量后要重新部署 `aiChat`；该函数还有 `index_ocr.js` 历史实现，当前入口以 `package.json` 的 `main`/`index.js` 为准。
 
 ## 云函数、数据库和部署规则
 
