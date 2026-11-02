@@ -57,3 +57,10 @@ node --check cloudfunctions/getBanners/index.js
 node --check pages/index/index.js
 ```
 
+### 部署与真实环境验收
+
+- 在微信开发者工具中对 `getBanners` 执行“上传并部署：云端安装依赖”，并确认部署环境与小程序一致。
+- 在同一云环境的 `banners` 集合准备测试数据，至少覆盖启用、禁用、`cloud://` 图片和 HTTPS 图片；`status` 必须是布尔值 `true`，`sort` 必须是数字。
+- 修改 CMS 数据后，清除 `index:banners:v2` 缓存或等待 10 分钟；下拉刷新只刷新文章，不会重新请求 Banner。
+- 验收启用/禁用、排序、图片解析、无图片背景、空列表、云函数失败降级和内部链接跳转。
+- 测试数据在正式发布前必须替换为真实运营内容；本地桩测试不能替代微信开发者工具或真机云环境验收。

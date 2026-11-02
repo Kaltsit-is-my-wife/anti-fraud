@@ -3,6 +3,25 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-02 - 汇总 Banner 合并临时文档
+
+### 问题场景
+
+Banner 分支保留了一份合并期说明，其中包含部署环境、CMS 测试数据、缓存刷新和合并后校验要求。该文件属于一次性过程材料，若直接删除会丢失部分仍有价值的运维约束；同时手册中的 Banner 调用关系仍写成直接查询数据库，与当前实现不一致。
+
+### 修改方案
+
+- 将 Banner 云函数部署环境、测试数据边界、缓存刷新和真实环境验收要求汇总到 [CLAUDE.md](./CLAUDE.md)。
+- 将 Banner 成员的部署与验收步骤补充到 [member-b-banner.md](./member-b-banner.md)。
+- 将 [docs/manual/MANUAL_SPECIFICATION.md](./docs/manual/MANUAL_SPECIFICATION.md) 的首页依赖关系修正为调用 `getBanners` 云函数。
+- 保留正式文档作为长期依据，合并期说明不再承担长期维护职责。
+
+### 验证结果
+
+- 已逐项对照 `Changelog-b.md`，保留其长期有效的部署、缓存和验收信息。
+- 本次仅修改文档和文档中的调用关系说明，未改变运行时代码；无需重新执行 JavaScript 语法检查。
+- 已确认 [docs/guides/developer-handoff.md](./docs/guides/developer-handoff.md)、[docs/guides/project-handoff.md](./docs/guides/project-handoff.md) 和四份 `member-*.md` 属于正式交接/协作资料，不纳入临时文档删除范围。
+
 ## 2026-10-30 - 首页 Banner 接入 CMS `banners` 集合
 
 ### 问题场景

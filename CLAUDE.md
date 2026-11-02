@@ -252,6 +252,14 @@ CMS 文档中的 `banners` 字段即下发的展示字段：
 7. 新增页面后必须同步 `REGISTERED_PAGES` 与 `app.json`。
 8. 下拉刷新只刷新文章首屏，不重新请求 Banner；改完 `banners` 数据需重新进入首页或等待缓存过期。
 
+Banner 发布与验收补充：
+
+1. `getBanners` 必须上传并部署到与小程序相同的云环境；未部署时首页回落到 `HOME_BANNERS`，控制台会记录 `loadBanners 失败`。
+2. `banners` 集合中的 `status` 必须是布尔值 `true`，`sort` 必须是数字；字符串 `"true"` 不会展示。
+3. Banner 使用云存储图片时，`image` 的 `cloud://` 文件 ID 与小程序、云函数必须属于同一云环境。
+4. CMS 数据变更后，验收前应清除 `index:banners:v2` 缓存或等待 10 分钟 TTL；首页下拉刷新不会重新请求 Banner。
+5. 测试数据只能用于验收，正式发布前必须替换为真实运营内容，并分别验证启用、禁用、排序、图片解析、空列表、网络失败和内部链接跳转。
+
 Banner 相关代码与部署项：
 
 ```text
@@ -392,6 +400,7 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 4. 高风险函数包括：`clearUserData`、`fixUserData`、`migrateUserUID`、`fixArticleCategories`、`convertArticleCategories`、`fixAllCategory`、`initAchievements`、`initProducts`、`initTitles`、`initQuizQuestions`、`importQuizQuestions`。
 5. 发布前清理开发者工具缓存并重新编译；前端发布后仍需单独部署对应云函数。
 6. 检查函数名、入参、返回字段、集合是否存在、状态字段、分页参数和必要索引。
+7. 云函数与 CMS 数据的真实环境验收必须记录部署环境、测试数据范围和仍未完成的人工验证，不能把本地桩测试写成已完成的线上验收。
 
 前端发布流程：
 

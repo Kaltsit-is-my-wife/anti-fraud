@@ -128,7 +128,7 @@ A: 答案1
 
 ```
 pages/index/index.js
-├── loadBanners() → db.collection('banners')
+├── loadBanners() → wx.cloud.callFunction('getBanners')
 └── loadArticlesFromCloud() → db.collection('articles')
 
 pages/quiz/quiz.js
