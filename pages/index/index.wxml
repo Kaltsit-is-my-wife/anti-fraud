@@ -25,7 +25,7 @@
   <view class="header-placeholder"></view>
 
   <!-- 轮播图 -->
-  <view class="banner-slider">
+  <view class="banner-slider" wx:if="{{banners.length > 0}}">
     <swiper
       class="slider-container"
       indicator-dots
@@ -52,6 +52,20 @@
         </view>
       </swiper-item>
     </swiper>
+
+    <!-- 云函数失败时明确提示使用了本地降级轮播 -->
+    <view wx:if="{{bannerMode === 'fallback'}}" class="banner-hint">
+      云端轮播暂不可用，当前展示默认轮播内容
+    </view>
+  </view>
+
+  <!-- 云端成功但没有启用中的轮播 -->
+  <view class="banner-slider" wx:elif="{{bannerMode === 'empty'}}">
+    <view class="banner-empty">
+      <view class="banner-empty-icon">🖼️</view>
+      <view class="banner-empty-title">暂无轮播内容</view>
+      <view class="banner-empty-text">运营暂未配置首页轮播，下方资讯可正常浏览。</view>
+    </view>
   </view>
 
   <view class="entry-grid">

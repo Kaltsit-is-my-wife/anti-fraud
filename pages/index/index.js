@@ -1,11 +1,64 @@
 // pages/index/index.js
 const { resolveCloudFileUrls } = require('../../utils/cloud')
-const { readCacheData, writeCacheData, shouldRefresh } = require('../../utils/cache')
+const { readCacheData, writeCacheData, removeCacheData, shouldRefresh } = require('../../utils/cache')
 
 const INDEX_BANNER_CACHE_KEY = 'index:banners:v2'
 const INDEX_ARTICLE_CACHE_KEY = 'index:articles:first-page'
 const INDEX_BANNER_CACHE_TTL_MS = 10 * 60 * 1000
 const INDEX_ARTICLE_CACHE_TTL_MS = 3 * 60 * 1000
+
+const DEFAULT_BANNER_BG = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+
+// Banner 跳转白名单，必须与 app.json 的 pages 保持一致
+const REGISTERED_PAGES = [
+  '/pages/index/index',
+  '/pages/community/community',
+  '/pages/topic-detail/topic-detail',
+  '/pages/video/video',
+  '/pages/video-detail/video-detail',
+  '/pages/chat/chat',
+  '/pages/user/user',
+  '/pages/sign-in/sign-in',
+  '/pages/my/my',
+  '/pages/article-detail/article-detail',
+  '/pages/search/search',
+  '/pages/profile/profile',
+  '/pages/messages/messages',
+  '/pages/quiz-home/quiz-home',
+  '/pages/quiz/quiz',
+  '/pages/quiz-leaderboard/quiz-leaderboard',
+  '/pages/community-post-create/community-post-create',
+  '/pages/community-post-detail/community-post-detail',
+  '/pages/scam-report/scam-report',
+  '/pages/redeem-info/redeem-info',
+  '/pages/bind-student/bind-student',
+  '/pages/achievements/achievements',
+  '/pages/title-management/title-management',
+  '/pages/points/points',
+  '/pages/points-history/points-history',
+  '/pages/learning/learning',
+  '/pages/learning-records/learning-records',
+  '/pages/backpack/backpack',
+  '/pages/settings/settings',
+  '/pages/account/account',
+  '/pages/feedback/feedback',
+  '/pages/admin-center/admin-center',
+  '/pages/topic-management/topic-management',
+  '/pages/video-management/video-management',
+  '/pages/question-bank-management/question-bank-management',
+  '/pages/question-editor/question-editor',
+  '/pages/review-center/review-center',
+  '/pages/about/about'
+]
+
+// tabBar 页面只能用 wx.switchTab 打开
+const TAB_BAR_PAGES = [
+  '/pages/index/index',
+  '/pages/community/community',
+  '/pages/quiz-home/quiz-home',
+  '/pages/chat/chat',
+  '/pages/user/user'
+]
 
 const HOME_BANNERS = [
   {
@@ -77,10 +130,50 @@ function normalizeArticle(article) {
   }
 }
 
+/**
+ * 只允许跳转到已注册的小程序页面，未注册或站外地址一律丢弃
+ */
+function normalizeBannerLink(rawLink) {
+  if (typeof rawLink !== 'string') return ''
+
+  const link = rawLink.trim()
+  if (!link) return ''
+
+  const queryIndex = link.indexOf('?')
+  const rawPath = queryIndex >= 0 ? link.slice(0, queryIndex) : link
+  const query = queryIndex >= 0 ? link.slice(queryIndex) : ''
+  const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
+
+  if (!REGISTERED_PAGES.includes(path)) {
+    console.warn('[index] 忽略未注册的 Banner 跳转路径:', rawLink)
+    return ''
+  }
+
+  return `${path}${query}`
+}
+
+/**
+ * 把云端返回的 Banner 整理成页面可直接渲染的结构
+ */
+function normalizeBanner(banner, index) {
+  const text = value => (typeof value === 'string' ? value.trim() : '')
+
+  return {
+    id: banner._id || banner.id || `banner-${index}`,
+    title: text(banner.title),
+    desc: text(banner.desc),
+    icon: text(banner.icon),
+    image: text(banner.image),
+    bgColor: text(banner.bgColor) || DEFAULT_BANNER_BG,
+    link: normalizeBannerLink(banner.link)
+  }
+}
+
 Page({
   data: {
     banners: [],
-    defaultBanners: HOME_BANNERS,
+    // cloud：云端结果；cache：本地缓存；fallback：本地渐变降级；empty：云端成功但无启用 Banner
+    bannerMode: 'idle',
     categories: [
       '全部', '刷单返利', '虚假投资理财', '虚假购物服务', '冒充电商客服',
       '虚假贷款', '虚假征信', '冒充领导熟人', '冒充公检法', '网络婚恋交友', '网游虚假交易'
@@ -188,12 +281,10 @@ Page({
   },
 
   onLoad() {
-    const hasCachedBanners = this.restoreCachedBanners()
     const hasCachedArticles = this.restoreCachedArticles()
+    this.restoreCachedBanners()
 
-    if (!hasCachedBanners || shouldRefresh(INDEX_BANNER_CACHE_KEY, INDEX_BANNER_CACHE_TTL_MS)) {
-      this.loadBanners()
-    }
+    this.maybeRefreshBanners()
 
     if (!hasCachedArticles || shouldRefresh(INDEX_ARTICLE_CACHE_KEY, INDEX_ARTICLE_CACHE_TTL_MS)) {
       this.loadArticlesFromCloud(true, { silent: hasCachedArticles })
@@ -204,6 +295,36 @@ Page({
     if (this.data.articles.length > 0) {
       this.updateArticlesList(this.data.articles)
     }
+
+    // tabBar 页面切回时只触发 onShow，需要在这里补做 Banner 过期检查和失败重试
+    this.maybeRefreshBanners()
+  },
+
+  /**
+   * 判断当前是否需要请求 Banner：
+   * - 正在请求时直接跳过，避免 onLoad 与紧随其后的 onShow 重复发起
+   * - 上次请求失败时，下次 onShow 直接重试，不受缓存 TTL 限制
+   * - 云端成功返回空列表时按 TTL 节流，避免每次切回首页都请求
+   * - 其余情况仅在本地缓存过期或不存在时刷新
+   */
+  maybeRefreshBanners() {
+    if (this._bannerLoading) return
+
+    if (this._bannerLoadFailed) {
+      this.loadBanners()
+      return
+    }
+
+    if (this.data.bannerMode === 'empty') {
+      const lastEmptyAt = this._bannerEmptyAt || 0
+      if (Date.now() - lastEmptyAt < INDEX_BANNER_CACHE_TTL_MS) return
+      this.loadBanners()
+      return
+    }
+
+    if (shouldRefresh(INDEX_BANNER_CACHE_KEY, INDEX_BANNER_CACHE_TTL_MS)) {
+      this.loadBanners()
+    }
   },
 
   restoreCachedBanners() {
@@ -211,7 +332,7 @@ Page({
     const banners = cached?.data
     if (!Array.isArray(banners) || banners.length === 0) return false
 
-    this.setData({ banners })
+    this.setData({ banners, bannerMode: 'cache' })
     return true
   },
 
@@ -421,29 +542,103 @@ Page({
     wx.switchTab({ url: '/pages/quiz-home/quiz-home' })
   },
 
+  /**
+   * Banner 以 CMS banners 集合为准，失败时才回到本地渐变数据
+   */
   async loadBanners() {
-    try {
-      const banners = (this.data.defaultBanners || HOME_BANNERS).map(item => ({ ...item }))
-      const fileMap = await resolveCloudFileUrls(banners.map(banner => banner.image))
+    if (this._bannerLoading) return
+    // 在第一个 await 前置位，保证 onLoad 后紧随的 onShow 不会重复发起请求
+    this._bannerLoading = true
 
-      banners.forEach(banner => {
-        if (banner.image && fileMap[banner.image]) {
-          banner.image = fileMap[banner.image]
-        }
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'getBanners',
+        data: {}
       })
 
-      this.setData({ banners })
-      writeCacheData(INDEX_BANNER_CACHE_KEY, banners)
-    } catch (err) {
-      if (!this.data.banners.length) {
-        this.setData({ banners: HOME_BANNERS })
+      const result = res && res.result
+      if (!result || result.success !== true) {
+        throw new Error(result?.errMsg || 'getBanners 调用失败')
       }
+
+      const data = result.data || {}
+      const banners = await this.prepareBanners(data.list)
+
+      // 云端成功但返回空列表：以云端为准，不能继续展示旧缓存
+      if (!banners.length) {
+        this.setData({ banners: [], bannerMode: 'empty' })
+        removeCacheData(INDEX_BANNER_CACHE_KEY)
+        this._bannerLoadFailed = false
+        this._bannerEmptyAt = Date.now()
+        console.info('[index] 云端暂无启用 Banner:', data.emptyReason || 'empty')
+        return
+      }
+
+      this.setData({ banners, bannerMode: 'cloud' })
+      writeCacheData(INDEX_BANNER_CACHE_KEY, banners)
+      this._bannerLoadFailed = false
+      this._bannerEmptyAt = 0
+    } catch (err) {
+      console.warn('[index] loadBanners 失败，使用本地降级:', err)
+
+      // 记录失败状态，下次 onShow 会重试
+      this._bannerLoadFailed = true
+
+      // 已有缓存或已渲染的云端 Banner 仍可继续展示，不覆盖成渐变占位
+      if (this.data.banners.length > 0) return
+
+      this.applyLocalBanners()
+    } finally {
+      this._bannerLoading = false
     }
   },
 
+  async prepareBanners(rawList) {
+    const banners = (Array.isArray(rawList) ? rawList : [])
+      .map(normalizeBanner)
+      .filter(banner => !!banner.title)
+
+    const fileMap = await resolveCloudFileUrls(banners.map(banner => banner.image))
+
+    banners.forEach(banner => {
+      // 只处理 cloud:// 文件 ID；HTTPS 地址直接使用
+      if (banner.image && banner.image.startsWith('cloud://')) {
+        // 解析失败时清空图片，让 bgColor/渐变兜住展示
+        banner.image = fileMap[banner.image] || ''
+      }
+    })
+
+    return banners
+  },
+
+  applyLocalBanners() {
+    const banners = HOME_BANNERS.map(banner => ({
+      ...banner,
+      link: normalizeBannerLink(banner.link)
+    }))
+
+    this.setData({ banners, bannerMode: 'fallback' })
+  },
+
   onBannerTap(e) {
-    const link = e.currentTarget.dataset.link
+    const link = normalizeBannerLink(e.currentTarget.dataset.link)
+    // 无链接或链接未注册：点击不做任何跳转，也不报错
     if (!link) return
+
+    const path = link.split('?')[0]
+
+    if (TAB_BAR_PAGES.includes(path)) {
+      wx.switchTab({
+        url: path,
+        fail: () => {
+          wx.showToast({
+            title: '页面不存在',
+            icon: 'none'
+          })
+        }
+      })
+      return
+    }
 
     wx.navigateTo({
       url: link,

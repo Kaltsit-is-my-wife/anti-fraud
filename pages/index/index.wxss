@@ -95,6 +95,46 @@
   margin: 0 40rpx 30rpx 40rpx;
 }
 
+/* 本地降级轮播提示 */
+.banner-hint {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #b45309;
+  text-align: center;
+}
+
+/* 云端无启用轮播时的空态 */
+.banner-empty {
+  height: 400rpx;
+  border: 1rpx dashed #bae6fd;
+  border-radius: 32rpx;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 40rpx;
+}
+
+.banner-empty-icon {
+  font-size: 56rpx;
+  margin-bottom: 12rpx;
+}
+
+.banner-empty-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8rpx;
+}
+
+.banner-empty-text {
+  font-size: 24rpx;
+  color: #64748b;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .entry-grid {
   display: flex;
   gap: 18rpx;

@@ -6,6 +6,7 @@
 - `bindStudent/` - 学生信息绑定云函数
 - `getArticleDetail/` - 获取文章详情云函数
 - `getArticles/` - 获取文章列表云函数
+- `getBanners/` - 获取首页轮播图云函数（只读启用记录，按 sort 升序）
 - `getSchools/` - 获取学校信息云函数
 - `login/` - 用户登录云函数
 - `userSignIn/` - 用户签到云函数
