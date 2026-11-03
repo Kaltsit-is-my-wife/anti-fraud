@@ -1,4 +1,6 @@
 // pages/article-detail/article-detail.js
+const { resolveTag, resolveTagType } = require('../../utils/article-tags')
+
 Page({
   data: {
     article: {
@@ -27,7 +29,6 @@ Page({
   onLoad(options) {
     const id = options.id || 1
     this.loadArticle(id)
-    this.loadRelatedArticles()
     this.loadComments(id)
   },
 
@@ -47,8 +48,8 @@ Page({
         const viewCount = articleData.views ?? articleData.viewCount ?? 0
         const article = {
           id: articleData._id || id,
-          tag: articleData.tag || '知识科普',
-          tagType: articleData.tagType || 'info',
+          tag: resolveTag(articleData.tag),
+          tagType: resolveTagType(articleData.tagType),
           title: articleData.title,
           time: this.formatTime(articleData.timestamp),
           views: this.formatViews(viewCount),
@@ -80,26 +81,42 @@ Page({
         
         return
       }
+
+      if (cloudResult.result && cloudResult.result.success === false) {
+        // 云函数明确告知文章不可见（不存在/草稿/已下线），不再走数据库或本地兜底
+        wx.hideLoading()
+        wx.showToast({
+          title: '文章不存在或已下线',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
     } catch (err) {
+      // 云函数调用异常（网络/云环境不可用），继续尝试兜底
     }
 
     try {
-      // 先尝试从云数据库加载
+      // 先尝试从云数据库加载（仅已发布文章，草稿/下架文章不展示）
       const db = wx.cloud.database()
-      const result = await db.collection('articles').doc(id).get()
-      
-      if (result.data) {
+      const res = await db.collection('articles')
+        .where({ _id: id, status: db.command.in([2, '2']) })
+        .limit(1)
+        .get()
+      const doc = res.data && res.data[0]
+
+      if (doc) {
         const article = {
-          id: result.data._id,
-          tag: result.data.tag || '知识科普',
-          tagType: result.data.tagType || 'info',
-          title: result.data.title,
-          time: this.formatTime(result.data.timestamp),
-          views: this.formatViews(result.data.views || result.data.viewCount || 0),
-          likes: result.data.likes || 0,
-          content: result.data.content || '',
-          coverImage: result.data.coverImage || '',
-          author: result.data.author || '反诈小助手'
+          id: doc._id,
+          tag: resolveTag(doc.tag),
+          tagType: resolveTagType(doc.tagType),
+          title: doc.title,
+          time: this.formatTime(doc.timestamp),
+          views: this.formatViews(doc.views || doc.viewCount || 0),
+          likes: doc.likes || 0,
+          content: doc.content || '',
+          coverImage: doc.coverImage || '',
+          author: doc.author || '反诈小助手'
         }
         
         this.setData({ article, isDemoData: false })
@@ -315,24 +332,8 @@ syncActionData(actionData, countKey) {
     }
   },
 
-  // 加载相关文章
-  loadRelatedArticles() {
-    const related = [
-      {
-        id: 3,
-        title: '校园贷、培训贷...大学生必知的5种贷款陷阱',
-        time: '昨天 18:30',
-        views: '15.2k'
-      },
-      {
-        id: 4,
-        title: '大学生求职防骗指南：识破"高薪兼职"套路',
-        time: '今天 10:15',
-        views: '6.5k'
-      }
-    ]
-    this.setData({ relatedArticles: related })
-  },
+  // 相关推荐仅来源于 getArticleDetail 云函数返回的 relatedArticles（已过滤 status=2 已发布文章）
+  // 删除原 loadRelatedArticles 本地写死演示数据，避免草稿/失效文章以死链形式出现在相关推荐
 
   // v3：加载评论
   async loadComments(articleId) {

@@ -20,6 +20,9 @@ cloud.init({
 const db = cloud.database()
 const _ = db.command
 
+// CMS 约定：status = 1 草稿、status = 2 已发布
+const PUBLISHED_STATUS = 2
+
 async function ensureCollection(collectionName) {
   try {
     await db.collection(collectionName).limit(1).get()
@@ -59,24 +62,30 @@ exports.main = async (event, context) => {
     await ensureCollection('read_records')
     await ensureCollection('points_records')
     
-    // 获取文章详情
-    const result = await db.collection('articles')
-      .doc(articleId)
+    // 获取文章详情（仅允许已发布文章，草稿/下架文章对用户不可见）
+    const articleRes = await db.collection('articles')
+      .where({
+        _id: articleId,
+        status: _.in(PUBLISHED_STATUS_VALUES)
+      })
+      .limit(1)
       .get()
-    
-    if (!result.data) {
+
+    const article = articleRes.data && articleRes.data[0]
+    if (!article) {
+      // 文章不存在、草稿、下架统一返回结构与提示
       return {
         success: false,
-        errMsg: '文章不存在'
+        errMsg: '文章不存在或未发布'
       }
     }
-    
-    const currentViews = result.data.views ?? result.data.viewCount ?? 0
+
+    const currentViews = article.views ?? article.viewCount ?? 0
     const viewUpdate = {}
-    if (Object.prototype.hasOwnProperty.call(result.data, 'views')) {
+    if (Object.prototype.hasOwnProperty.call(article, 'views')) {
       viewUpdate.views = _.inc(1)
     }
-    if (Object.prototype.hasOwnProperty.call(result.data, 'viewCount')) {
+    if (Object.prototype.hasOwnProperty.call(article, 'viewCount')) {
       viewUpdate.viewCount = _.inc(1)
     }
     if (Object.keys(viewUpdate).length === 0) {
@@ -117,8 +126,8 @@ exports.main = async (event, context) => {
               _openid: openid,
               userId,
               articleId,
-              articleTitle: result.data.title,
-              articleCategory: result.data.category,
+              articleTitle: article.title,
+              articleCategory: article.category,
               isFirstRead,
               readAt: new Date()
             }
@@ -167,11 +176,12 @@ exports.main = async (event, context) => {
       }
     }
     
-    // 获取相关文章
+    // 获取相关文章（仅推荐已发布文章，避免草稿出现在相关推荐）
     const relatedResult = await db.collection('articles')
       .where({
-        category: result.data.category,
-        _id: _.neq(articleId)
+        category: article.category,
+        _id: _.neq(articleId),
+        status: PUBLISHED_STATUS
       })
       .limit(3)
       .get()
@@ -180,7 +190,8 @@ exports.main = async (event, context) => {
       success: true,
       data: {
         article: {
-          ...result.data,
+          ...article,
+          status: (article.status === undefined || article.status === null) ? article.status : Number(article.status),
           views: currentViews + 1
         },
         relatedArticles: relatedResult.data,

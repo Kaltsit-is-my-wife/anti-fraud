@@ -9,6 +9,8 @@
  * 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
  */
 
+const { resolveTag, resolveTagType } = require('../../utils/article-tags')
+
 Page({
   data: {
     keyword: '',
@@ -50,7 +52,14 @@ Page({
       if (this.data.tab === 'articles') {
         const res = await wx.cloud.callFunction({ name: 'searchArticles', data: { keyword, limit: 30 } })
         if (res.result && res.result.success) {
-          this.setData({ articles: res.result.data.articles || [] })
+          const rawArticles = res.result.data.articles || []
+          this.setData({
+            articles: rawArticles.map(a => ({
+              ...a,
+              tag: resolveTag(a.tag),
+              tagType: resolveTagType(a.tagType)
+            }))
+          })
         }
       } else {
         const res = await wx.cloud.callFunction({ name: 'searchUsers', data: { keyword, limit: 30 } })

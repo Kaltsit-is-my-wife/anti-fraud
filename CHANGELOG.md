@@ -3,6 +3,34 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-03 - 文章发布状态与标签映射改动落地到实际路径
+
+### 问题场景
+
+此前两次 `Add files via upload` 提交把文章发布状态修复和标签映射工具放在 `changed/` 目录及根目录裸文件中，小程序实际读取的路径没有被修改：
+
+- `cloudfunctions/getArticles`、`getArticleDetail`、`searchArticles` 仍未过滤 `status = 2`，草稿仍可能出现在列表、详情和搜索结果中。
+- `cloudfunctions/getTopicDetail`、`getVideoDetail` 的相关文章查询仍未过滤草稿。
+- `pages/index`、`pages/search`、`pages/article-detail` 仍未使用 `utils/article-tags`，CMS 枚举编号会原样显示。
+- 根目录的 `index.js`、`article-detail.js`、`search.js`、`article-tags.js` 不在小程序编译路径中，不会被加载。
+
+### 修改方案
+
+- 将 `changed/` 中的 9 个文件落地到真实路径：
+  - `cloudfunctions/getArticleDetail/index.js`、`getArticles/index.js`、`getTopicDetail/index.js`、`getVideoDetail/index.js`、`searchArticles/index.js`
+  - `pages/article-detail/article-detail.js`、`pages/index/index.js`、`pages/search/search.js`
+  - `utils/article-tags.js`
+- 删除 `changed/` 暂存目录和根目录 4 个错误位置的副本。
+- 根 `CHANGELOG.md` 保留 `2026-10-31` 的原始变更说明，本次仅补充落地记录。
+
+### 验证结果
+
+- 对 9 个落地文件执行 `node --check`，全部通过。
+- 已核对 `getArticles`、`getArticleDetail`、`searchArticles` 均包含 `PUBLISHED_STATUS = 2` 过滤。
+- 已核对 `getTopicDetail`、`getVideoDetail` 的相关文章查询过滤 `status` 为 `2`/`'2'`。
+- 已核对三个页面正确引用 `utils/article-tags`。
+- **尚未完成**：未部署 5 个云函数，也未在微信开发者工具/真实云环境验收草稿不可见、草稿 ID 无法打开详情、草稿不出现在相关推荐。
+
 ## 2026-10-31 - 文章用户侧发布状态边界修复
 
 ### 问题场景
