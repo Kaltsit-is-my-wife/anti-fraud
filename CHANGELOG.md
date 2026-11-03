@@ -3,6 +3,37 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-10-31 - 文章用户侧发布状态边界修复
+
+### 问题场景
+
+CMS 文档约定文章 `status = 1` 草稿、`status = 2` 已发布，但用户侧读取链路此前未统一过滤发布状态：
+
+- `getArticles` 返回的文章列表包含草稿，草稿会出现在首页。
+- `getArticleDetail` 仅按文章 ID 读取，已知草稿/下架 ID 也能打开用户详情。
+- `searchArticles` 搜索结果包含草稿。
+- 文章详情、话题详情、视频详情中的相关文章查询未过滤草稿，草稿可能出现在相关推荐。
+- 文章不存在、草稿、下架三种场景的返回结构和用户提示不一致。
+
+### 修改方案
+
+- 三个用户侧云函数统一使用 `PUBLISHED_STATUS = 2` 常量，约定 `status = 1` 草稿、`status = 2` 已发布：
+  - `cloudfunctions/getArticles/index.js`：查询条件固定 `status = 2`，列表与总数统计均只统计已发布文章；失败返回统一为 `{ success: false, errMsg }`，不再返回成功形状的 `data`。
+  - `cloudfunctions/getArticleDetail/index.js`：文章读取改为按 `{ _id, status = 2 }` 查询，文章不存在、草稿、下架统一返回 `{ success: false, errMsg: '文章不存在或未发布' }`。
+  - `cloudfunctions/searchArticles/index.js`：搜索条件使用 `_.and([{ status: 2 }, 关键词或条件])`，搜索结果只包含已发布文章。
+- 相关推荐过滤：`getArticleDetail` 的相关文章查询增加 `status = 2`；`getTopicDetail`、`getVideoDetail` 中按 ID 拉取相关文章时同步过滤 `status = 2`，避免草稿出现在相关推荐。
+- 详情页用户提示：`pages/article-detail/article-detail.js` 在云函数明确返回失败（文章不存在或未发布）时提示“文章不存在或已下线”，不再落入数据库直读或本地演示兜底；云函数异常（网络/云环境不可用）时保留兜底，且数据库直读兜底仅加载 `status = 2` 的已发布文章。
+- 保持 CMS 管理方式不变，未新增小程序文章管理页。
+
+### 验证结果
+
+- `node --check cloudfunctions/getArticles/index.js` 通过。
+- `node --check cloudfunctions/getArticleDetail/index.js` 通过。
+- `node --check cloudfunctions/searchArticles/index.js` 通过。
+- `node --check cloudfunctions/getTopicDetail/index.js`、`node --check cloudfunctions/getVideoDetail/index.js` 通过。
+- `node --check pages/article-detail/article-detail.js` 通过。
+- 仍需在微信开发者工具中对 `getArticles`、`getArticleDetail`、`searchArticles` 三个云函数执行“上传并部署：云端安装依赖”，并在真实云环境完成草稿不可见、已知草稿 ID 无法打开详情、草稿不出现在相关推荐的验收。
+
 ## 2026-10-29 - 话题封面上传与预览修复
 
 ### 已完成
