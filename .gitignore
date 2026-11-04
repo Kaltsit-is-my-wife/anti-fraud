@@ -43,6 +43,9 @@ config/secret.js
 .miniprogram-ci/
 miniprogram_npm/
 
+# 本地验收测试媒体
+test/
+
 # 本地多人协作验收记录（不纳入 Git）
 docs/team-collaboration/acceptance-checklist.md
 

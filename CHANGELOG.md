@@ -3,6 +3,30 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-03 - 视频管理页新增本地视频/封面上传
+
+### 问题场景
+
+视频发布此前要求先把视频和封面手动上传到云存储，再把 cloud:// 文件 ID 粘贴到 pages/video-management 保存。管理员必须切换到微信开发者工具或云开发控制台完成上传，操作门槛高且容易选错云环境。member-c-video.md 第二阶段要求管理页自动上传，并保持 draft 发布语义。
+
+### 修改方案
+
+- 只改 pages/video-management（.js/.wxml/.wxss），不改 videos 数据模型，不改 saveVideo/getVideos 等云函数。
+- 视频：wx.chooseMedia({ mediaType: ['video'] }) 选择（不做时长限制），校验大小不超过 1GB（MAX_VIDEO_SIZE）；wx.cloud.uploadFile 以 success/fail 回调形式调用并返回 UploadTask，通过 task.onProgressUpdate 显示进度（纯 Promise 形式返回的对象没有该方法），成功后自动回填 form.videoUrl，并用选择器返回的时长自动填写 form.duration。
+- 封面：wx.chooseMedia({ mediaType: ['image'] }) 选择，校验不超过 20MB（MAX_COVER_SIZE）；上传到 video-covers/ 前缀路径，成功后回填 form.coverImage，用 resolveCloudFileUrls 解析出临时 URL 显示预览图。coverImagePreview 是页面顶层字段，不进入保存 payload。
+- 五种状态均有处理：上传中（按钮禁用、视频显示进度条、封面显示 loading）、成功（toast 并回填）、用户取消（静默返回）、失败（console.error + toast）、权限不足（-503002 或 storage permission denied 时 wx.showModal 提示到云开发控制台开启存储上传权限，与话题管理页一致）。
+- 上传成功只改表单内容，不自动发布；保存仍按表单 status（默认 draft）走 saveVideo，上传期间点击保存会被拦截并提示。
+- 编辑回显：editVideo 对 cloud:// 封面调用 resolveCloudFileUrls 解析预览图。
+- 不删除旧文件：换新视频或封面后，旧资源仍保留在云存储中。
+
+### 验证结果
+
+- node --check pages/video-management/video-management.js 通过。
+- 开发者工具实测发现：纯 Promise 形式的 wx.cloud.uploadFile 返回对象没有 onProgressUpdate 方法，上传视频时报 TypeError，已改为 success/fail 回调形式获取 UploadTask，进度监听恢复正常。
+- 开发者工具实测视频上传成功，进度显示正常。
+- 尚未完成：待真机/体验版回归（选择、取消、超限、权限不足、保存后保持 draft、封面预览、旧资源保留、云端与小程序同一环境）。
+- 云环境：cloud1-d8gvez9rg8eb96b20，上传文件所在环境必须与小程序当前环境一致。
+
 ## 2026-11-02 - 修复首页 Banner 在 tabBar 切回后不刷新、失败不重试
 
 ### 问题场景
