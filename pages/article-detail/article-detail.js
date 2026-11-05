@@ -84,6 +84,7 @@ Page({
 
       if (cloudResult.result && cloudResult.result.success === false) {
         // 云函数明确告知文章不可见（不存在/草稿/已下线），不再走数据库或本地兜底
+        console.error('[article-detail] getArticleDetail failed:', cloudResult.result)
         wx.hideLoading()
         wx.showToast({
           title: '文章不存在或已下线',
@@ -94,6 +95,7 @@ Page({
       }
     } catch (err) {
       // 云函数调用异常（网络/云环境不可用），继续尝试兜底
+      console.error('[article-detail] getArticleDetail call failed:', err)
     }
 
     try {

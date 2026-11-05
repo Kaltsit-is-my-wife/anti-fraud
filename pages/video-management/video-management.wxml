@@ -38,6 +38,17 @@
       <view class="list-title">{{item.title || '未命名视频'}}</view>
       <view class="list-meta">状态：{{item.status || 'draft'}} ｜ 分类：{{item.category || '未分类'}} ｜ 时长：{{item.duration || 0}}秒</view>
       <view wx:if="{{item.summary}}" class="list-desc">{{item.summary}}</view>
+      <view class="list-actions">
+        <text wx:if="{{item.status === 'published'}}" class="list-lock">已发布视频不可删除，请先下线</text>
+        <button
+          wx:if="{{item.status !== 'published'}}"
+          class="btn small danger"
+          catchtap="askDeleteVideo"
+          data-id="{{item._id}}"
+          data-title="{{item.title || '未命名视频'}}"
+          data-status="{{item.status || 'draft'}}"
+        >删除记录</button>
+      </view>
     </view>
   </view>
 </view>

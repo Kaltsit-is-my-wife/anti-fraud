@@ -99,6 +99,19 @@ cloudbase functions:deploy getBanners
 
 每个 `cloudfunctions/<name>/` 都有独立 `package.json`，依赖主要为 `wx-server-sdk`（多数为 `~2.6.3`，少数为 `latest`）。前端由微信开发者工具编译，不存在可用的 CLI 构建命令。发布前至少完成：语法检查 → 开发者工具编译并查看控制台 → 部署改动过的云函数 → 普通用户/管理员/审核员账号回归。
 
+## 调试日志规范
+
+根目录 `logs/` 用于临时诊断记录，不是生产日志目录；`pages/logs/` 是未在 `app.json` 注册的历史页面，与 `logs/` 无关。完整格式和脱敏要求见 [logs/README.md](./logs/README.md)。
+
+- 文件命名：`logs/YYYY-MM-DD-<topic>.md`，一次问题一个文件。
+- Console 日志统一为一行 JSON：`[module] {"ts":"...","level":"INFO","stage":"模块:动作",...}`。
+- 级别：`INFO` 正常阶段、`WARN` 可疑/取消/超限/心跳、`ERROR` 明确失败。
+- 记录文件至少包含：日期、分支/提交、环境、复现步骤、预期/实际、关键日志、结论与下一步。
+- 不记录 `openid`、手机号、学号、姓名、密钥、token；示例数据使用占位值。
+- 小程序运行时不能直接写仓库文件；排查时把 Console 输出复制到 `logs/` 记录文件。
+- 客户端直传云存储（如 `wx.cloud.uploadFile`）不会产生云函数日志，需要在客户端 Console 排查。
+- 问题解决后删除临时日志；有长期价值的结论整理到 `docs/research/`。
+
 ## 架构分层
 
 ### 前端页面
@@ -131,7 +144,7 @@ cloudbase functions:deploy getBanners
 - AI：`aiChat`
 - 答题与题库：`initQuizQuestions`、`getQuizQuestions`、`getQuizQuestionList`、`submitQuizAttempt`、`getQuizLeaderboard`、`getQuestionBanks`、`getAdminQuestionBankList`、`initQuestionBanks`、`saveQuestionBank`、`deleteQuestionBank`、`saveQuizQuestion`、`deleteQuizQuestion`、`updateQuestionBankRelation`
 - 社区与社交：`getTopics`、`getTopicDetail`、`getTopicComments`、`submitTopicComment`、`createPost`、`getPosts`、`getPostDetail`、`createComment`、`getComments`、`followUser`、`getNotifications`、`markNotificationRead`、`getUnreadCount`、`getPublicProfile`、`updateProfileDisplay`、`searchUsers`
-- 视频：`getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`
+- 视频：`getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`、`deleteVideo`
 - 管理与审核：`getAdminTopicList`、`saveTopic`、`initTopics`、`deleteTopic`、`getReviewTasks`、`reviewContent`
 - 商城：`getProducts`、`initProducts`、`redeemProduct`、`getExchangeRecords`、`getUserBackpack`、`useBackpackItem`（前端入口受 `utils/feature.js` 的 `pointsMallEnabled` 控制，当前关闭）
 - 风险与反馈：`createScamReport`、`submitFeedback`
@@ -346,6 +359,7 @@ operator 管理员
 6. 保存时 `saveVideo` 会校验标题和视频地址；发布时写入 `publishedAt`。
 7. 用户侧 `getVideos` 只查询 `status: 'published'`，按 `sort` 升序、发布时间倒序截取最多 50 条。
 8. 用户点击后由 `getVideoDetail` 再次要求 `status: 'published'`，并解析关联文章、已发布话题。
+9. 草稿/已下线视频可在管理页删除记录：`deleteVideo` 校验 `isAdmin`/`operator`，只删除 `videos` 文档，不删除云存储文件；已发布视频必须先改为 `offline`。
 
 视频字段：
 
@@ -367,8 +381,10 @@ createdAt/updatedAt   云函数维护
 注意事项：
 
 - 当前没有统一的媒体上传云函数；视频和封面需要先上传到云存储，再把地址填入管理页，或使用可访问的 HTTPS 地址。
+- 视频管理页已支持本地视频/封面上传：`wx.chooseMedia` 选择文件，`wx.cloud.uploadFile` 直传云存储并回填表单，上传成功不改变 `draft` 状态。微信开发者工具对 `wx.chooseMedia` 的视频选择支持不完整，可能返回空 `tempFiles`（带 `failedCount`）；本地上传请用真机验证，开发者工具中可手动填写视频地址。
 - `utils/defaultVideos.js` 中保留了一个 `coverImage`、`videoUrl` 为空的内置演示视频。云端列表为空时用户侧会合并显示它，详情页会显示“暂无可播放视频地址”。正式发布前应给它补真实资源，或移除该内置兜底。
-- `getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo` 必须部署到同一个目标云环境；普通用户不能调用管理函数。
+- `getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`、`deleteVideo` 必须部署到同一个目标云环境；普通用户不能调用管理函数。
+- `deleteVideo` 仅删除 `videos` 数据库记录，不删除 `videoUrl` / `coverImage` 指向的云存储文件；已发布视频返回“已发布视频不能删除，请先下线”。
 - 发布回归必须验证：列表可见、封面可见、视频可播放、草稿/下线不可见、关联文章/话题可跳转。
 
 #### 视频发布讨论记录与后续规划（当前暂不改动）
