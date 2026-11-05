@@ -1,6 +1,7 @@
 // pages/index/index.js
 const { resolveCloudFileUrls } = require('../../utils/cloud')
 const { readCacheData, writeCacheData, removeCacheData, shouldRefresh } = require('../../utils/cache')
+const { resolveTag, resolveTagType } = require('../../utils/article-tags')
 
 const INDEX_BANNER_CACHE_KEY = 'index:banners:v2'
 const INDEX_ARTICLE_CACHE_KEY = 'index:articles:first-page'
@@ -116,9 +117,10 @@ function normalizeArticle(article) {
 
   return {
     id: article._id || article.id,
+    status: article.status,
     title: article.title || '',
-    tag: article.tag || '知识科普',
-    tagType: article.tagType || 'info',
+    tag: resolveTag(article.tag),
+    tagType: resolveTagType(article.tagType),
     category: article.category || '全部',
     content: article.content || '',
     coverImage: article.coverImage || '',
@@ -345,13 +347,20 @@ Page({
       return false
     }
 
+    // 仅恢复已发布文章（status=2）；兼容历史缓存中可能存在的字符串类型（'2'），
+    // 旧格式缓存无 status 字段时视为失效，强制走云函数刷新，避免草稿（status=1）透出到主页列表
+    const published = payload.articles.filter(article => Number(article.status) === 2)
+    if (published.length === 0) {
+      return false
+    }
+
     this.setData({
-      articles: payload.articles,
-      totalCount: payload.totalCount || payload.articles.length,
+      articles: published,
+      totalCount: payload.totalCount || published.length,
       hasMore: payload.hasMore !== false,
       currentPage: payload.currentPage || 2
     })
-    this.updateArticlesList(payload.articles)
+    this.updateArticlesList(published)
     return true
   },
 
@@ -390,13 +399,19 @@ Page({
       }
 
       const { list = [], total = 0, hasMore = false } = res.result.data || {}
-      const normalized = list.map(normalizeArticle)
+      // 二次防御：云函数返回后再次强制过滤，确保仅渲染 status=2 已发布文章。
+      // 兼容数字 2 与字符串 '2'（CMS 枚举可能以字符串落库），缺失 status 的文章一律剔除。
+      // 即使云端 getArticles 尚未部署新版（旧版可能返回草稿），草稿也不会进入主页列表。
+      const publishedList = list.filter(article => Number(article.status) === 2)
+      const normalized = publishedList.map(normalizeArticle)
+      // 若云函数返回了非已发布文章（说明云端版本未过滤），总数按过滤后结果修正，避免分页/加载更多误判
+      const effectiveTotal = publishedList.length === list.length ? total : publishedList.length
       const newArticles = isRefresh ? normalized : this.data.articles.concat(normalized)
       const nextPage = requestPage + 1
 
       this.setData({
         articles: newArticles,
-        totalCount: total,
+        totalCount: effectiveTotal,
         hasMore,
         currentPage: nextPage,
         isLoading: false,
@@ -406,7 +421,7 @@ Page({
       if (isRefresh && this.data.selectedCategory === '全部') {
         writeCacheData(INDEX_ARTICLE_CACHE_KEY, {
           articles: newArticles,
-          totalCount: total,
+          totalCount: effectiveTotal,
           hasMore,
           currentPage: nextPage
         })

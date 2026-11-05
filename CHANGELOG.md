@@ -27,6 +27,34 @@
 - 尚未完成：待真机/体验版回归（选择、取消、超限、权限不足、保存后保持 draft、封面预览、旧资源保留、云端与小程序同一环境）。
 - 云环境：cloud1-d8gvez9rg8eb96b20，上传文件所在环境必须与小程序当前环境一致。
 
+## 2026-11-03 - 文章发布状态与标签映射改动落地到实际路径
+
+### 问题场景
+
+此前两次 `Add files via upload` 提交把文章发布状态修复和标签映射工具放在 `changed/` 目录及根目录裸文件中，小程序实际读取的路径没有被修改：
+
+- `cloudfunctions/getArticles`、`getArticleDetail`、`searchArticles` 仍未过滤 `status = 2`，草稿仍可能出现在列表、详情和搜索结果中。
+- `cloudfunctions/getTopicDetail`、`getVideoDetail` 的相关文章查询仍未过滤草稿。
+- `pages/index`、`pages/search`、`pages/article-detail` 仍未使用 `utils/article-tags`，CMS 枚举编号会原样显示。
+- 根目录的 `index.js`、`article-detail.js`、`search.js`、`article-tags.js` 不在小程序编译路径中，不会被加载。
+
+### 修改方案
+
+- 将 `changed/` 中的 9 个文件落地到真实路径：
+  - `cloudfunctions/getArticleDetail/index.js`、`getArticles/index.js`、`getTopicDetail/index.js`、`getVideoDetail/index.js`、`searchArticles/index.js`
+  - `pages/article-detail/article-detail.js`、`pages/index/index.js`、`pages/search/search.js`
+  - `utils/article-tags.js`
+- 删除 `changed/` 暂存目录和根目录 4 个错误位置的副本。
+- 根 `CHANGELOG.md` 保留 `2026-10-31` 的原始变更说明，本次仅补充落地记录。
+
+### 验证结果
+
+- 对 9 个落地文件执行 `node --check`，全部通过。
+- 已核对 `getArticles`、`getArticleDetail`、`searchArticles` 均包含 `PUBLISHED_STATUS = 2` 过滤。
+- 已核对 `getTopicDetail`、`getVideoDetail` 的相关文章查询过滤 `status` 为 `2`/`'2'`。
+- 已核对三个页面正确引用 `utils/article-tags`。
+- **尚未完成**：未部署 5 个云函数，也未在微信开发者工具/真实云环境验收草稿不可见、草稿 ID 无法打开详情、草稿不出现在相关推荐。
+
 ## 2026-11-02 - 修复首页 Banner 在 tabBar 切回后不刷新、失败不重试
 
 ### 问题场景
@@ -149,6 +177,37 @@ Banner 分支保留了一份合并期说明，其中包含部署环境、CMS 测
 
 - 第一阶段验收已全部通过，可进入第二阶段（管理页自动上传 feature/video-media-upload）。
 - 正式运营前处理内置「精选短片」占位卡与 getVideos 分页问题（见「已知问题」）。
+
+## 2026-10-31 - 文章用户侧发布状态边界修复
+
+### 问题场景
+
+CMS 文档约定文章 `status = 1` 草稿、`status = 2` 已发布，但用户侧读取链路此前未统一过滤发布状态：
+
+- `getArticles` 返回的文章列表包含草稿，草稿会出现在首页。
+- `getArticleDetail` 仅按文章 ID 读取，已知草稿/下架 ID 也能打开用户详情。
+- `searchArticles` 搜索结果包含草稿。
+- 文章详情、话题详情、视频详情中的相关文章查询未过滤草稿，草稿可能出现在相关推荐。
+- 文章不存在、草稿、下架三种场景的返回结构和用户提示不一致。
+
+### 修改方案
+
+- 三个用户侧云函数统一使用 `PUBLISHED_STATUS = 2` 常量，约定 `status = 1` 草稿、`status = 2` 已发布：
+  - `cloudfunctions/getArticles/index.js`：查询条件固定 `status = 2`，列表与总数统计均只统计已发布文章；失败返回统一为 `{ success: false, errMsg }`，不再返回成功形状的 `data`。
+  - `cloudfunctions/getArticleDetail/index.js`：文章读取改为按 `{ _id, status = 2 }` 查询，文章不存在、草稿、下架统一返回 `{ success: false, errMsg: '文章不存在或未发布' }`。
+  - `cloudfunctions/searchArticles/index.js`：搜索条件使用 `_.and([{ status: 2 }, 关键词或条件])`，搜索结果只包含已发布文章。
+- 相关推荐过滤：`getArticleDetail` 的相关文章查询增加 `status = 2`；`getTopicDetail`、`getVideoDetail` 中按 ID 拉取相关文章时同步过滤 `status = 2`，避免草稿出现在相关推荐。
+- 详情页用户提示：`pages/article-detail/article-detail.js` 在云函数明确返回失败（文章不存在或未发布）时提示“文章不存在或已下线”，不再落入数据库直读或本地演示兜底；云函数异常（网络/云环境不可用）时保留兜底，且数据库直读兜底仅加载 `status = 2` 的已发布文章。
+- 保持 CMS 管理方式不变，未新增小程序文章管理页。
+
+### 验证结果
+
+- `node --check cloudfunctions/getArticles/index.js` 通过。
+- `node --check cloudfunctions/getArticleDetail/index.js` 通过。
+- `node --check cloudfunctions/searchArticles/index.js` 通过。
+- `node --check cloudfunctions/getTopicDetail/index.js`、`node --check cloudfunctions/getVideoDetail/index.js` 通过。
+- `node --check pages/article-detail/article-detail.js` 通过。
+- 仍需在微信开发者工具中对 `getArticles`、`getArticleDetail`、`searchArticles` 三个云函数执行“上传并部署：云端安装依赖”，并在真实云环境完成草稿不可见、已知草稿 ID 无法打开详情、草稿不出现在相关推荐的验收。
 
 ## 2026-10-30 - 首页 Banner 接入 CMS `banners` 集合
 

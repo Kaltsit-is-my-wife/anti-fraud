@@ -103,7 +103,7 @@ exports.main = async (event) => {
     ]
 
     const [relatedArticles, relatedVideos] = await Promise.all([
-      listByIds('articles', [...new Set(relatedArticleIds)]),
+      listByIds('articles', [...new Set(relatedArticleIds)], { status: _.in([2, '2']) }),
       listByIds('videos', [...new Set(relatedVideoIds)], { status: 'published' })
     ])
 

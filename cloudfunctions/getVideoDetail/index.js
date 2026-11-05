@@ -53,7 +53,7 @@ exports.main = async (event) => {
     const relatedTopicIds = Array.isArray(video.relatedTopicIds) ? video.relatedTopicIds.map(String) : []
 
     const [relatedArticles, relatedTopics] = await Promise.all([
-      listByIds('articles', relatedArticleIds),
+      listByIds('articles', relatedArticleIds, { status: _.in([2, '2']) }),
       listByIds('topics', relatedTopicIds, { status: 'published' })
     ])
 

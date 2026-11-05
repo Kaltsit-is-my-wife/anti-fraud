@@ -17,6 +17,9 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
+// CMS 约定：status = 1 草稿、status = 2 已发布
+const PUBLISHED_STATUS = 2
+
 function sanitizeKeyword(s) {
   if (typeof s !== 'string') return ''
   return s.trim().slice(0, 30)
@@ -36,11 +39,14 @@ exports.main = async (event) => {
 
     const reg = db.RegExp({ regexp: keyword, options: 'i' })
 
-    const where = _.or([
-      { title: reg },
-      { tag: reg },
-      { summary: reg },
-      { content: reg }
+    const where = _.and([
+      { status: _.in([PUBLISHED_STATUS, String(PUBLISHED_STATUS)]) },
+      _.or([
+        { title: reg },
+        { tag: reg },
+        { summary: reg },
+        { content: reg }
+      ])
     ])
 
     const res = await db.collection('articles')

@@ -20,6 +20,12 @@ cloud.init({
 const db = cloud.database()
 const _ = db.command
 
+// CMS 约定：status = 1 草稿、status = 2 已发布
+const PUBLISHED_STATUS = 2
+// 兼容存储类型：微信云开发 CMS 控制台枚举可能以字符串（'2'）落库，旧数据可能为数字（2）。
+// 查询与返回统一兼容两种类型，避免已发布文章（字符串 '2'）被数字 2 匹配不到而全部消失
+const PUBLISHED_STATUS_VALUES = [PUBLISHED_STATUS, String(PUBLISHED_STATUS)]
+
 exports.main = async (event, context) => {
   try {
     const {
@@ -37,6 +43,10 @@ exports.main = async (event, context) => {
 
     // 构建查询条件
     let query = {}
+
+    // 只返回已发布文章，草稿（status=1）与下架文章对用户不可见
+    // 兼容数字 2 与字符串 '2' 两种存储类型
+    query.status = _.in(PUBLISHED_STATUS_VALUES)
 
     // 分类筛选 - 去除前后空格，确保精确匹配
     const trimmedCategory = category ? category.trim() : '全部'
@@ -68,8 +78,9 @@ exports.main = async (event, context) => {
     if (countResult.total === 0 && trimmedCategory !== '全部') {
       console.log('⚠️ 该分类下没有文章，开始调试...')
       
-      // 查询所有文章的分类字段
+      // 查询所有已发布文章的分类字段（调试兜底同样只统计已发布文章）
       const allArticles = await db.collection('articles')
+        .where({ status: PUBLISHED_STATUS })
         .field({ category: true, title: true })
         .limit(100)
         .get()
@@ -106,6 +117,14 @@ exports.main = async (event, context) => {
 
     console.log(`查询结果：返回 ${result.data.length} 篇文章`)
 
+    // 兼容转换：把 status 统一规范化为数字（字符串 '2' -> 2），
+    // 确保返回给客户端的每篇文章 status 字段值可靠，客户端过滤逻辑（=== 2）可正常生效
+    result.data.forEach(article => {
+      if (article.status !== undefined && article.status !== null) {
+        article.status = Number(article.status)
+      }
+    })
+
     if (result.data.length > 0) {
       console.log('返回文章示例：')
       result.data.slice(0, 3).forEach((article, index) => {
@@ -136,12 +155,7 @@ exports.main = async (event, context) => {
     
     return {
       success: false,
-      errMsg: err.message,
-      data: {
-        list: [],
-        total: 0,
-        hasMore: false
-      }
+      errMsg: err.message
     }
   }
 }
