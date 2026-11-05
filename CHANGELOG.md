@@ -3,6 +3,36 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-05 - 修复 getArticleDetail 未定义常量导致文章详情全部失败
+
+### 问题场景
+
+真机点击文章后，无论文章是否存在、是否为已发布状态，都提示“文章不存在或已下线”。云函数日志显示：
+
+```text
+ReferenceError: PUBLISHED_STATUS_VALUES is not defined
+    at exports.main (/var/user/index.js:69:22)
+```
+
+`getArticleDetail` 只定义了 `PUBLISHED_STATUS`，但查询条件使用了未定义的 `PUBLISHED_STATUS_VALUES`。异常被外层 `catch` 捕获后返回 `{ success: false, errMsg: 'PUBLISHED_STATUS_VALUES is not defined' }`，客户端没有展示 `errMsg`，统一显示为“文章不存在或已下线”，因此看起来像数据问题。
+
+### 修改方案
+
+- [cloudfunctions/getArticleDetail/index.js](./cloudfunctions/getArticleDetail/index.js) 补充：
+  ```js
+  const PUBLISHED_STATUS_VALUES = [PUBLISHED_STATUS, String(PUBLISHED_STATUS)]
+  ```
+  与 `getArticles` 保持一致，兼容数字 `2` 与字符串 `'2'`。
+- [pages/article-detail/article-detail.js](./pages/article-detail/article-detail.js) 在云函数明确失败和调用异常时输出 `console.error`，避免真实错误被统一提示掩盖。
+- 不改动查询字段、返回结构和发布状态规则。
+
+### 验证结果
+
+- `node --check cloudfunctions/getArticleDetail/index.js` 通过。
+- `node --check pages/article-detail/article-detail.js` 通过。
+- 已确认 `PUBLISHED_STATUS_VALUES` 在 `getArticleDetail` 中已定义，其他文章云函数没有同类未定义引用。
+- **尚未完成**：未重新部署 `getArticleDetail`，也未在真机复测。需在微信开发者工具中对该函数执行“上传并部署：云端安装依赖”后重新点击文章验证。
+
 ## 2026-11-03 - 视频管理页新增本地视频/封面上传
 
 ### 问题场景

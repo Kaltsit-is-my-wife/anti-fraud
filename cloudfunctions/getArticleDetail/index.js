@@ -22,6 +22,8 @@ const _ = db.command
 
 // CMS 约定：status = 1 草稿、status = 2 已发布
 const PUBLISHED_STATUS = 2
+// 兼容存储类型：CMS 枚举可能以字符串（'2'）落库，旧数据可能为数字（2）
+const PUBLISHED_STATUS_VALUES = [PUBLISHED_STATUS, String(PUBLISHED_STATUS)]
 
 async function ensureCollection(collectionName) {
   try {
