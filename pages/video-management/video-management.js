@@ -185,6 +185,60 @@ Page({
     })
   },
 
+  askDeleteVideo(e) {
+    const id = e.currentTarget.dataset.id
+    const title = e.currentTarget.dataset.title || '该视频'
+    const status = e.currentTarget.dataset.status || 'draft'
+
+    if (!id) return
+    if (status === 'published') {
+      wx.showToast({ title: '已发布视频不能删除，请先下线', icon: 'none' })
+      return
+    }
+
+    wx.showModal({
+      title: '删除视频记录',
+      content: `确定删除「${title}」吗？仅删除数据库记录，云存储中的视频和封面文件会保留。`,
+      confirmText: '删除',
+      confirmColor: '#dc2626',
+      success: (res) => {
+        if (res.confirm) this.deleteVideoRecord(id)
+      }
+    })
+  },
+
+  async deleteVideoRecord(id) {
+    wx.showLoading({ title: '删除中...' })
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'deleteVideo',
+        data: { id }
+      })
+      wx.hideLoading()
+
+      if (res.result && res.result.success) {
+        wx.showToast({ title: '删除成功', icon: 'success' })
+        if (this.data.editingId === id) {
+          this.resetForm()
+        }
+        this.loadVideos()
+        return
+      }
+
+      wx.showToast({
+        title: res.result?.errMsg || '删除失败',
+        icon: 'none'
+      })
+    } catch (err) {
+      wx.hideLoading()
+      console.error('deleteVideo failed:', err)
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'deleteVideo', '删除失败'),
+        icon: 'none'
+      })
+    }
+  },
+
   resetForm() {
     this.setData({
       editingId: '',

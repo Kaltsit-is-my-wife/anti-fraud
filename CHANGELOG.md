@@ -3,6 +3,35 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-05 - 视频管理新增非已发布视频记录删除
+
+### 问题场景
+
+视频管理页只能创建、编辑、发布和下线，没有删除入口；草稿和已下线视频无法清理，`videos` 集合会持续堆积。已发布视频不应从用户端被直接移除，云存储中的视频/封面文件也不应由管理端在用户端删除。
+
+### 修改方案
+
+- 新增 [cloudfunctions/deleteVideo](./cloudfunctions/deleteVideo/index.js)：
+  - 校验 `isAdmin === true` 或 `roles` 包含 `operator`；普通用户、审核员返回“无管理权限”。
+  - 只删除 `videos` 集合中的文档；`status === 'published'` 返回“已发布视频不能删除，请先下线”。
+  - 不调用 `cloud.deleteFile`，`videoUrl` / `coverImage` 指向的云存储文件继续保留。
+- [pages/video-management](./pages/video-management/video-management.js)：
+  - 列表增加“删除记录”按钮，仅非 `published` 视频显示；已发布视频显示“已发布视频不可删除，请先下线”。
+  - 使用 `catchtap` 阻止删除按钮触发列表卡的编辑事件。
+  - 删除前弹出确认框，明确“仅删除数据库记录，云存储文件保留”。
+  - 删除成功后刷新列表；如果删除的是当前编辑项，同时重置表单。
+- 同步 [CLAUDE.md](./CLAUDE.md) 的云函数清单、视频发布步骤和部署注意事项。
+
+### 验证结果
+
+- `node --check cloudfunctions/deleteVideo/index.js` 通过。
+- `node --check pages/video-management/video-management.js` 通过。
+- **尚未完成**：未部署 `deleteVideo`，未真机验证。需部署后验收：
+  - 普通用户/审核员调用返回“无管理权限”
+  - `operator` 可以删除 `draft` / `offline` 记录
+  - `published` 视频被拒绝删除，提示先下线
+  - 删除后管理列表不再显示，云存储文件仍保留
+
 ## 2026-11-05 - 增加视频上传诊断日志与临时日志规范
 
 ### 问题场景

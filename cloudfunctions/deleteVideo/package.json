@@ -1,0 +1,9 @@
+{
+  "name": "deleteVideo",
+  "version": "1.0.0",
+  "description": "管理端删除非已发布视频记录（不删除云存储文件）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
