@@ -3,6 +3,31 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-05 - 增加视频上传诊断日志与临时日志规范
+
+### 问题场景
+
+视频管理页上传视频时没有进度、没有成功或失败回调，页面停留在上传状态。视频使用 `wx.cloud.uploadFile` 直传云存储，不经过云函数，因此云函数日志没有记录，无法判断问题发生在选择文件、创建上传任务、上传进度还是回调阶段。
+
+### 修改方案
+
+- [pages/video-management/video-management.js](./pages/video-management/video-management.js) 增加统一 `[video-upload]` 前缀的 JSON 诊断日志，覆盖：
+  - 选择视频/封面的开始、结果、取消、超限、失败
+  - 上传任务创建、进度、10 秒心跳、成功/失败回调、同步异常
+  - `saveVideo` 保存开始、成功、失败
+- 新增 [logs/README.md](./logs/README.md)，规定临时日志目录、命名、Console 格式、记录文件模板和脱敏要求。
+- 新增 [logs/2026-11-05-video-upload.md](./logs/2026-11-05-video-upload.md)，记录本次视频上传排查的观测点和待填日志。
+- [CLAUDE.md](./CLAUDE.md) 增加“调试日志规范”，说明 `logs/` 与 `pages/logs/` 的区别、日志格式和生命周期。
+- 增加开发者工具平台判断：当 `wx.chooseMedia` 返回空 `tempFiles` 时，DevTools 提示改用真机或手动填写视频地址；真机仍保留通用失败提示。
+- 诊断完成后恢复视频按钮的 `disabled="{{uploadingVideo}}"`。
+
+### 验证结果
+
+- `node --check pages/video-management/video-management.js` 通过。
+- 真机调试：选择视频、上传、进度显示均正常。
+- 开发者工具（PC）：`wx.chooseMedia` 返回 `tempFilesLength: 0`，结果中包含 `failedCount`，`uploadVideo` 未被调用。视频文件存在且大小合适，确认是开发者工具对 `wx.chooseMedia` 视频选择支持不完整，不是业务代码、视频文件或云存储问题。
+- 处理方式：开发者工具改用「视频地址」手动填写，或使用真机调试；页面已增加 DevTools 专用提示。
+
 ## 2026-11-05 - 修复 getArticleDetail 未定义常量导致文章详情全部失败
 
 ### 问题场景
@@ -31,7 +56,8 @@ ReferenceError: PUBLISHED_STATUS_VALUES is not defined
 - `node --check cloudfunctions/getArticleDetail/index.js` 通过。
 - `node --check pages/article-detail/article-detail.js` 通过。
 - 已确认 `PUBLISHED_STATUS_VALUES` 在 `getArticleDetail` 中已定义，其他文章云函数没有同类未定义引用。
-- **尚未完成**：未重新部署 `getArticleDetail`，也未在真机复测。需在微信开发者工具中对该函数执行“上传并部署：云端安装依赖”后重新点击文章验证。
+- 已在微信开发者工具中重新部署 `getArticleDetail`，真机复测文章详情可正常打开，原“文章不存在或已下线”问题消失。
+- **仍待验收**：文章草稿/已发布边界（首页、搜索、已知草稿 ID、相关推荐），以及其余 4 个文章云函数（`getArticles`、`searchArticles`、`getTopicDetail`、`getVideoDetail`）的部署版本和真实环境效果。
 
 ## 2026-11-03 - 视频管理页新增本地视频/封面上传
 

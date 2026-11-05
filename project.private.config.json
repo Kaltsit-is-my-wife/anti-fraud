@@ -20,5 +20,17 @@
     "ignoreDevUnusedFiles": true
   },
   "libVersion": "3.17.5",
-  "condition": {}
+  "condition": {
+    "miniprogram": {
+      "list": [
+        {
+          "name": "pages/video-management/video-management",
+          "pathName": "pages/article-detail/article-detail",
+          "query": "",
+          "scene": null,
+          "launchMode": "default"
+        }
+      ]
+    }
+  }
 }
