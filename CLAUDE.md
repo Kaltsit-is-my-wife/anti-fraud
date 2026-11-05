@@ -502,7 +502,8 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - `docs/operations/`：云函数部署、快速部署、数据维护和运维说明。
 - `docs/guides/`：开发者交接、AI、题库、话题等可执行专项指南。
 - `docs/research/`：性能调查和问题分析材料。
-- 根目录 `member-a-article-cms.md`、`member-b-banner.md`、`member-c-video.md` 与 `docs/team-collaboration/member-d-support-and-acceptance.md`：当前多人协作分工文档，属于正式协作约定，应纳入 Git 跟踪。
+- `docs/team-collaboration/member-{a,b,c,d}-*.md`：当前 3+1 分工，按角色分别维护（A 内容与社区、B 权限与审核、C 学习内容与视频、D 审查与验收），属于正式协作约定，应纳入 Git 跟踪。
+- `docs/team-collaboration/archive/member-*.md`：历史分工说明归档，仅用于追溯，不作为当前依据。
 - `docs/team-collaboration/acceptance-checklist.md`：本地验收工作表，包含环境和账号记录，已被 `.gitignore` 忽略，不纳入 Git。
 - `docs/archive/`：历史归档，不作为当前实现依据。
 
@@ -517,8 +518,9 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 | `docs/guides/` | 开发交接、模块操作、专项功能指南、导入样例 | 能按步骤执行的当前工作说明 |
 | `docs/research/` | 性能调查、问题分析、技术调研 | 记录分析过程、证据和候选方案 |
 | `docs/archive/` | 已结束版本或历史方案 | 只用于追溯，不作为当前实现依据 |
-| 根目录 `member-*.md` | 多人协作分工和责任边界 | 正式协作约定，应纳入 Git |
-| `docs/team-collaboration/` | 本地验收记录和协作资料 | 默认仅本地使用；验收清单被忽略，`member-d-support-and-acceptance.md` 等分工文档需入库 |
+| `docs/team-collaboration/member-*.md` | 当前多人协作分工和责任边界，按 A/B/C/D 分别维护 | 正式协作约定，应纳入 Git |
+| `docs/team-collaboration/archive/` | 已结束阶段的分工说明 | 仅用于追溯，不作为当前依据 |
+| `docs/team-collaboration/` | 当前分工、本地验收记录和协作资料 | 验收清单被忽略；当前分工和归档文档需入库 |
 
 `docs/README.md` 是分类入口。移动文件后必须同步更新其中的链接，以及仓库内引用该文件的相对路径；新增正式文档也要在导航中登记。根目录 `CLAUDE.md` 只记录当前实现事实和长期约束，不复制整篇操作手册。
 

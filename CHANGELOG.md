@@ -3,6 +3,35 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-05 - 归档历史分工文档并建立当前 3+1 分工
+
+### 问题场景
+
+根目录的三份 `member-*.md` 和 `docs/team-collaboration/member-d-support-and-acceptance.md` 属于上一阶段分工，已经和当前“二期管理端与运营链路收口”的任务边界不一致。继续把旧文档留在根目录，容易让后续开发者误以为文章、Banner、视频仍是当前主任务。
+
+### 修改方案
+
+- 将以下历史分工说明移动到 `docs/team-collaboration/archive/`：
+  - `member-a-article-cms.md`
+  - `member-b-banner.md`
+  - `member-c-video.md`
+  - `member-d-support-and-acceptance.md`
+- 新增 [docs/team-collaboration/archive/README.md](./docs/team-collaboration/archive/README.md)，说明归档用途。
+- 新增四份按角色拆分的当前分工文档：
+  - [member-a-content-community.md](./docs/team-collaboration/member-a-content-community.md)
+  - [member-b-permission-review.md](./docs/team-collaboration/member-b-permission-review.md)
+  - [member-c-learning-video.md](./docs/team-collaboration/member-c-learning-video.md)
+  - [member-d-review-acceptance.md](./docs/team-collaboration/member-d-review-acceptance.md)
+- 保留 `docs/team-collaboration/acceptance-checklist.md` 在原位置，它仍是当前使用的本地验收工作表，不归档、不纳入 Git。
+- 更新 [CLAUDE.md](./CLAUDE.md) 和 [docs/README.md](./docs/README.md) 中的协作文档引用。
+- 修正旧 CHANGELOG 中指向 `member-b-banner.md` 的链接路径。
+
+### 验证结果
+
+- 已确认根目录不再保留 `member-*.md`。
+- 已更新 `CLAUDE.md`、`docs/README.md` 和旧 CHANGELOG 链接。
+- 本次仅移动和新增文档，未修改运行时代码，无需执行 JavaScript 语法检查。
+
 ## 2026-11-05 - 视频管理新增非已发布视频记录删除
 
 ### 问题场景
@@ -211,7 +240,7 @@ Banner 分支保留了一份合并期说明，其中包含部署环境、CMS 测
 ### 修改方案
 
 - 将 Banner 云函数部署环境、测试数据边界、缓存刷新和真实环境验收要求汇总到 [CLAUDE.md](./CLAUDE.md)。
-- 将 Banner 成员的部署与验收步骤补充到 [member-b-banner.md](./member-b-banner.md)。
+- 将 Banner 成员的部署与验收步骤补充到 [member-b-banner.md](./docs/team-collaboration/archive/member-b-banner.md)。
 - 将 [docs/manual/MANUAL_SPECIFICATION.md](./docs/manual/MANUAL_SPECIFICATION.md) 的首页依赖关系修正为调用 `getBanners` 云函数。
 - 保留正式文档作为长期依据，合并期说明不再承担长期维护职责。
 

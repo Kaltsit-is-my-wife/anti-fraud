@@ -50,7 +50,16 @@
 
 ## 协作资料
 
-- 根目录 `member-a-article-cms.md`、`member-b-banner.md`、`member-c-video.md`、`member-d-support-and-acceptance.md` 是正式的多人协作分工文档，会纳入 Git 跟踪。
+当前 3+1 分工按角色分别维护，属于正式约定，纳入 Git 跟踪：
+
+- [成员 A：内容运营与社区治理](./team-collaboration/member-a-content-community.md)
+- [成员 B：权限、审核与平台能力](./team-collaboration/member-b-permission-review.md)
+- [成员 C：学习内容与视频收口](./team-collaboration/member-c-learning-video.md)
+- [成员 D：审查、验收与弱代码编辑](./team-collaboration/member-d-review-acceptance.md)
+
+其他协作资料：
+
+- [team-collaboration/archive/](./team-collaboration/archive/README.md)：历史分工说明归档，仅用于追溯，不作为当前依据。
 - `team-collaboration/acceptance-checklist.md` 是本地验收工作表，可能包含测试环境和账号信息，已加入 `.gitignore`，不会提交到仓库。
 
 ## 文档维护原则
