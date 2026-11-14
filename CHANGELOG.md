@@ -3,6 +3,76 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-14 - P0-01 新增代码规范整改（仅限本次改动的文件）
+
+### 问题场景
+
+- 对照根目录 `CLAUDE.md`「调试日志规范」核对提交 `fd0154a` 的新增代码，发现新增的 4 处报错仍是散文格式（`console.error('xxx failed:', err)`），不符合「Console 日志统一为一行 JSON」。
+- `cloudfunctions/submitTopicComment/index.js` 缺中文模块头注释，与「源文件通常保留中文模块头注释」不一致；本次已修改该文件的评论写入逻辑，需同步补上。
+- 新增的 `utils/logger.js` 未在 `CLAUDE.md` 公共工具章节登记，违反「功能变化时同步更新相关文档」。
+
+本次整改范围严格限定为 `fd0154a` 改动过的文件，未触碰其他成员的页面、云函数与文档。
+
+### 修改方案
+
+- 新增 [utils/logger.js](./utils/logger.js)：`createLogger(module)` 返回 `log(level, stage, detail)`，输出 `[module] {"ts","level","stage",...}` 单行 JSON，`level` 白名单为 `INFO`/`WARN`/`ERROR`，`detail` 不允许携带 openid 等敏感字段。
+- [pages/topic-management](./pages/topic-management/topic-management.js)：接入 `createLogger('topic-management')`，把 9 处 `console.error` 全部改为结构化日志（其中 4 处为本次新增、5 处为同一文件内的历史写法，统一格式避免一个文件两种日志风格）；`stage` 使用 `covers:resolve-failed`、`list:load-failed`、`edit:resolve-images-failed`、`upload:preview-resolve-failed`、`upload:failed`、`cover:choose-failed`、`content-image:choose-failed`、`save:failed`、`delete:failed`。同时清理新增代码块中的行尾空格与多余空行。
+- [cloudfunctions/saveTopic](./cloudfunctions/saveTopic/index.js)、[cloudfunctions/submitTopicComment](./cloudfunctions/submitTopicComment/index.js)：云函数目录独立部署无法跨目录 `require`，在本文件内定义同名 `log()`，异常分支分别输出 `save:failed`、`submit:failed`；`submitTopicComment` 补中文模块头注释（上游依赖、入参、输出）。
+- [CLAUDE.md](./CLAUDE.md)：公共工具章节登记 `utils/logger.js`；调试日志规范补充云函数侧的实现方式。
+
+### 验证结果
+
+- `node --check` 通过：`utils/logger.js`、`pages/topic-management/topic-management.js`、`cloudfunctions/saveTopic/index.js`、`cloudfunctions/submitTopicComment/index.js`。
+- `grep console.` 复核：上述 4 个文件中除 `log()` 内部按级别调用 `console.error/warn/log` 外，业务代码已无散文日志。
+- 云函数 `exports.main` 返回结构未变（`{ success, data?, errMsg? }`），调用方无需调整；`saveTopic` 的 `contentImages` 语义（空数组清空、缺省沿用）保持不变。
+- WXML/JSON 本轮未改动，无需重新校验。
+- **尚未完成（需人工验收）**：开发者工具编译与真机回归、`saveTopic`/`submitTopicComment` 重新部署、日志格式与三账号权限回归；验收步骤见 PR 描述与 [docs/guides/topic-publish-test.md](./docs/guides/topic-publish-test.md)。
+
+## 2026-11-08 - P0-01 话题发布主链路收口：正文配图、状态下标修复、Banner 图与图片目录合并
+
+### 问题场景
+
+- 话题正文只能写纯文本：`pages/topic-management` 只有封面图输入，`saveTopic` 也只会把 `contentText` 拆成 `text` 内容块，运营无法给话题补配图，与“话题要有文章、视频、配图等配套资源”的验收要求不一致。
+- 状态下拉显示错位：`topic-management.wxml` 用 `{{statusOptions.indexOf(form.status)}}` 作为 picker 的 `value`，WXML 表达式不支持方法调用，编辑已发布（`published`）或已下线（`offline`）话题时选择器会跳回第一项 `draft`，运营容易在保存时误改状态。
+- 首页轮播只有纯色渐变：`HOME_BANNERS` 只有 4 条渐变兜底，没有 Banner 图，无法直接看到图片效果。
+- 图片目录重复：根目录同时存在 `image/` 与 `images/`，`image/问题已找到-修复方案/` 下 11 张截图有 8 张是完全重复的文件，另有孤立的 `image.png`。
+
+### 修改方案
+
+- 话题正文配图（成员 A 范围）：
+  - [cloudfunctions/saveTopic](./cloudfunctions/saveTopic/index.js) 新增 `contentImages`（`[{ imageUrl, caption }]`，最多 9 张）入参，生成 `image` 内容块；内容块统一重排 `sort`，顺序为正文段落 → 配图 → `article_link` → `video_link` → 未知类型块。
+    - 传空数组表示清空配图；不传该字段（旧版调用方）时沿用库内已有配图，避免历史数据被静默删除。
+    - 未识别的历史内容块类型继续保留，不再因为重新保存而丢失。
+  - [pages/topic-management](./pages/topic-management/topic-management.js) 新增正文配图区：`addContentImage` 选择图片后上传到云存储 `topics/content/`，`onContentImageCaptionInput` 编辑图注，`removeContentImage` 逐张移除；列表项显示配图数量。
+  - 抽出 `uploadImageToCloud` / `showUploadError`，封面上传与配图上传共用云存储上传和 `-503002` 权限提示逻辑。
+  - [pages/topic-detail](./pages/topic-detail/topic-detail.wxml) 配图块在 `imageUrl` 为空时只渲染图注，不再出现破图。
+- 状态下标修复：新增 `data.statusIndex`，在 `editTopic` / `onStatusChange` / `resetForm` 中维护，WXML 改用 `value="{{statusIndex}}"`。
+- 评论写入兼容：`submitTopicComment` 事务内 `add` 的返回值同时兼容 `_id` 与 `id`，取不到 ID 时显式报错，避免不同 `wx-server-sdk` 版本下评论写入静默失败导致评价链路断开。
+- Banner 图：[images/banners/](./images/banners/) 新增 4 张 900×537 JPEG（10–12 KB）轮播背景图，`HOME_BANNERS` 增加 `image` 字段指向本地图，云端不可用时降级轮播直接出图；文案仍由页面 `slide-text` 叠加，图片本身不含文字。
+  - 正式首页仍以 `banners` 集合为准，上传与写入步骤见新增的 [docs/operations/banner-image-upload.md](./docs/operations/banner-image-upload.md)。
+- 图片目录合并：`image/问题已找到-修复方案/` 按 MD5 去重后保留 3 张 articles 列表截图，重命名为 `articles-list-01/02/03.png`，连同 `image.png`（重命名为 `chat-input-bar.png`）一起并入 `images/问题已找到-修复方案/`，删除根目录 `image/` 与 `image.png`。
+- 文档同步：`CLAUDE.md`（社区内容块、Banner 图片、images 目录）、`images/FOLDER.md`、`pages/topic-management/FOLDER.md`、`docs/guides/topic-publish-test.md`、`docs/README.md`。
+
+### 验证结果
+
+- `node --check` 通过：`cloudfunctions/saveTopic/index.js`、`cloudfunctions/submitTopicComment/index.js`、`pages/topic-management/topic-management.js`、`pages/index/index.js`、`pages/topic-detail/topic-detail.js`。
+- 本地离线模拟（内存数据库替换 `wx-server-sdk`，直接加载真实云函数，脚本不提交）验证主链路 42 项断言全部通过：
+  - 普通用户 `saveTopic` 返回“无管理权限”；管理端列表普通用户不可读。
+  - 草稿话题在 `getTopics` / `getTopicDetail` 均不可见；发布后列表可见、详情返回正文块与配图块。
+  - 关联文章只返回 `status=2` 已发布记录，草稿文章被过滤；关联视频只返回 `published`。
+  - 评论提交后 `comments.status = pending_review`，同时生成 `review_tasks`（`sourceId` 指向评论、状态 `pending_review`），评论回写 `reviewTaskId`；审核前讨论区为空。
+  - 5 秒内重复提交被合并；高危敏感词被拦截；回复记录 `parentId` / `replyToUid`。
+  - 审核通过后 `comments.status = approved` 且讨论区可见；驳回后不可见。
+  - 话题下线后列表与详情均不可见；旧版调用（不传 `contentImages`）保留库内已有配图。
+- 本地离线模拟验证页面逻辑 31 项断言全部通过：编辑已发布话题时 `statusIndex = 1`、正文多段拼接、配图与封面预览解析、图注写入对应下标、移除配图、保存入参（`contentImages` 只含 `imageUrl`/`caption`、不传 `coverImagePreview`）、空标题拦截、重置清空。
+- WXML 标签闭合与 `{{ }}` 配对检查通过；`app.json`、页面 `.json` JSON 解析通过。
+- **尚未完成（需人工验收）**：
+  - 微信开发者工具编译与真机回归，尤其是 `wx.chooseMedia` 选图上传、配图预览、长图 `mode="widthFix"` 展示。
+  - 部署 `saveTopic`、`submitTopicComment` 到目标云环境后，用 `operator` / `reviewer` / 普通用户三个账号回归。
+  - 在云开发控制台确认 `comments` 记录新建时 `status` 显示 `pending_review`。
+  - 4 张 Banner 图上传云存储并写入 `banners` 集合后，验证首页轮播实际效果与点击跳转。
+
+
 ## 2026-11-05 - 归档历史分工文档并建立当前 3+1 分工
 
 ### 问题场景

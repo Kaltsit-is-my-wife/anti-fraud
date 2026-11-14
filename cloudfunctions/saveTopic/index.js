@@ -1,8 +1,34 @@
+/**
+ * 保存话题云函数 - 二期社区模块（成员 A：话题发布主链路）
+ *
+ * 上游依赖：users（权限）、topics
+ * 入口：exports.main
+ * 主要功能：管理员/运营创建或编辑话题，支持草稿 / 发布 / 下线
+ * 入参：{ id, payload: { title, summary, contentText, contentImages, coverImage, status, sort, startAt, endAt, relatedArticleIds, relatedVideoIds } }
+ *   - contentText 按空行拆分为 text 内容块
+ *   - contentImages 为正文配图数组 [{ imageUrl, caption }]，最多 9 张；为空数组表示清空配图，缺省表示沿用库内已有配图
+ * 输出：{ success, data: { id } }
+ */
+
 const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
+
+const LOG_MODULE = '[saveTopic]'
+
+/**
+ * 统一日志：按 CLAUDE.md「调试日志规范」输出单行 JSON。
+ * 云函数目录独立部署，无法跨目录 require utils/logger.js，因此在本文件内实现同名 log()。
+ */
+function log(level, stage, detail = {}) {
+  const safeLevel = ['INFO', 'WARN', 'ERROR'].includes(level) ? level : 'INFO'
+  const line = `${LOG_MODULE} ${JSON.stringify({ ...detail, ts: new Date().toISOString(), level: safeLevel, stage })}`
+  if (safeLevel === 'ERROR') console.error(line)
+  else if (safeLevel === 'WARN') console.warn(line)
+  else console.log(line)
+}
 
 async function ensureCollection(name) {
   try {
@@ -50,9 +76,58 @@ function buildTextContentBlocks(contentText) {
   }))
 }
 
-function keepNonTextBlocks(blocks) {
+const MAX_CONTENT_IMAGES = 9
+const KNOWN_BLOCK_TYPES = ['text', 'paragraph', 'image', 'article_link', 'video_link']
+
+function normalizeImageBlocks(value) {
+  if (!Array.isArray(value)) return null
+  return value
+    .slice(0, MAX_CONTENT_IMAGES)
+    .map(item => ({
+      imageUrl: normalizeText(item?.imageUrl, 500),
+      caption: normalizeText(item?.caption, 100)
+    }))
+    .filter(item => item.imageUrl)
+}
+
+function buildImageContentBlocks(images) {
+  return images.map((image, index) => ({
+    id: `blk_image_${index + 1}`,
+    type: 'image',
+    imageUrl: image.imageUrl,
+    caption: image.caption,
+    sort: index + 1
+  }))
+}
+
+function pickBlocksByType(blocks, types) {
   if (!Array.isArray(blocks)) return []
-  return blocks.filter(block => block && !['text', 'paragraph'].includes(block.type))
+  return blocks.filter(block => block && types.includes(block.type))
+}
+
+function keepUnknownBlocks(blocks) {
+  if (!Array.isArray(blocks)) return []
+  return blocks.filter(block => block && !KNOWN_BLOCK_TYPES.includes(block.type))
+}
+
+function buildContentBlocks(contentText, imageBlocksInput, existingTopic) {
+  const existingBlocks = Array.isArray(existingTopic?.contentBlocks) ? existingTopic.contentBlocks : []
+  const textBlocks = buildTextContentBlocks(contentText)
+
+  // payload 未携带 contentImages（旧版调用方）时沿用库内已有配图；携带时以本次提交为准
+  const imageBlocks = imageBlocksInput === null
+    ? pickBlocksByType(existingBlocks, ['image'])
+    : buildImageContentBlocks(imageBlocksInput)
+
+  const articleLinkBlocks = pickBlocksByType(existingBlocks, ['article_link'])
+  const videoLinkBlocks = pickBlocksByType(existingBlocks, ['video_link'])
+  const unknownBlocks = keepUnknownBlocks(existingBlocks)
+
+  return [...textBlocks, ...imageBlocks, ...articleLinkBlocks, ...videoLinkBlocks, ...unknownBlocks]
+    .map((block, index) => ({
+      ...block,
+      sort: index + 1
+    }))
 }
 
 async function getExistingTopic(id) {
@@ -74,16 +149,12 @@ exports.main = async (event) => {
     const payload = event?.payload || {}
     const status = ['draft', 'published', 'offline'].includes(payload.status) ? payload.status : 'draft'
     const contentText = normalizeText(payload.contentText, 3000)
+    const contentImages = normalizeImageBlocks(payload.contentImages)
     const now = new Date()
     const existingTopic = await getExistingTopic(id)
     if (id && !existingTopic) return { success: false, errMsg: '话题不存在' }
 
-    const textBlocks = buildTextContentBlocks(contentText)
-    const preservedBlocks = keepNonTextBlocks(existingTopic?.contentBlocks)
-      .map((block, index) => ({
-        ...block,
-        sort: textBlocks.length + index + 1
-      }))
+    const contentBlocks = buildContentBlocks(contentText, contentImages, existingTopic)
 
     const data = {
       title: normalizeText(payload.title, 100),
@@ -95,7 +166,7 @@ exports.main = async (event) => {
       endAt: payload.endAt ? new Date(payload.endAt) : null,
       relatedArticleIds: normalizeArray(payload.relatedArticleIds),
       relatedVideoIds: normalizeArray(payload.relatedVideoIds),
-      contentBlocks: [...textBlocks, ...preservedBlocks],
+      contentBlocks,
       updatedAt: now
     }
 
@@ -117,7 +188,7 @@ exports.main = async (event) => {
     const res = await db.collection('topics').add({ data })
     return { success: true, data: { id: res._id } }
   } catch (err) {
-    console.error('saveTopic failed:', err)
+    log('ERROR', 'save:failed', { msg: err && err.message })
     return { success: false, errMsg: err.message }
   }
 }
