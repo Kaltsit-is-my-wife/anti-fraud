@@ -3,6 +3,23 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-16 - 新增成员 B 审核中心分支调研报告
+
+### 问题场景
+
+`member-b` 提交 `4f115ec` 把页面和云函数改动放在仓库根目录，且文章评论审核链路缺少 `createComment` / `getComments` / `reviewContent` 的核心实现，无法直接合并上线。
+
+### 修改方案
+
+- 新增 [docs/research/review-center-branch-review-2026-11-16.md](./docs/research/review-center-branch-review-2026-11-16.md)。
+- 在 [docs/README.md](./docs/README.md) 的调研分类中登记。
+- 报告记录：文件路径映射、文章评论审核链路缺失、旧版本补丁覆盖风险、测试手册与代码不一致、最小修复清单和验收标准。
+
+### 验证结果
+
+- 已对照分支根目录文件、真实页面路径和 `createComment`、`getComments`、`reviewContent` 代码逐项核对。
+- 本次仅新增调研文档，未修改运行时代码。
+
 ## 2026-11-16 - 整理 P0-01 验收记录并归档合并说明
 
 ### 问题场景
