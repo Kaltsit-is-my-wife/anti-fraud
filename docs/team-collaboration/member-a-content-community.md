@@ -63,9 +63,9 @@
 
 ## 参考文档
 
-- [二期管理端执行优先级](../planning/phase2_admin_execution_priority.md)
-- [二期 Backlog](../planning/phase2_backlog.md)
-- [二期任务拆分](../planning/phase2_task_split.md)
+- [二期管理端执行优先级](../archive/phase2-planning/phase2_admin_execution_priority.md)
+- [二期 Backlog](../archive/phase2-planning/phase2_backlog.md)
+- [二期任务拆分](../archive/phase2-planning/phase2_task_split.md)
 - [本地验收工作表](./acceptance-checklist.md)
 
 ## 组长寄语

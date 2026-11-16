@@ -111,7 +111,7 @@ A/B/C 的 PR 合并前必须经过你的审查。重点看：
 
 ## 参考文档
 
-- [二期验收清单](../planning/phase2_acceptance_checklist.md)
+- [二期验收清单](../archive/phase2-planning/phase2_acceptance_checklist.md)
 - [本地验收工作表](./acceptance-checklist.md)
-- [二期管理端执行优先级](../planning/phase2_admin_execution_priority.md)
+- [二期管理端执行优先级](../archive/phase2-planning/phase2_admin_execution_priority.md)
 - [开发者交接](../guides/developer-handoff.md)

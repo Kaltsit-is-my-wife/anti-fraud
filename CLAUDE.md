@@ -64,7 +64,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 页面目录：[pages/](./pages/)
 - 公共工具：[utils/](./utils/)
 - 云函数目录：[cloudfunctions/](./cloudfunctions/)
-- 图片和 TabBar 图标：[images/](./images/)
+- 图片和 TabBar 图标：[images/](./images/)（`images/banners/` 为首页轮播本地降级图；历史上根目录的 `image/`、`image.png` 已合并进本目录）
 
 项目使用微信云开发默认环境：
 
@@ -108,6 +108,7 @@ cloudbase functions:deploy getBanners
 - 级别：`INFO` 正常阶段、`WARN` 可疑/取消/超限/心跳、`ERROR` 明确失败。
 - 记录文件至少包含：日期、分支/提交、环境、复现步骤、预期/实际、关键日志、结论与下一步。
 - 不记录 `openid`、手机号、学号、姓名、密钥、token；示例数据使用占位值。
+- 云函数目录独立部署，不能跨目录 `require` 前端工具，需在本文件内定义同名 `log()`（`saveTopic`、`submitTopicComment` 已是此写法）。
 - 小程序运行时不能直接写仓库文件；排查时把 Console 输出复制到 `logs/` 记录文件。
 - 客户端直传云存储（如 `wx.cloud.uploadFile`）不会产生云函数日志，需要在客户端 Console 排查。
 - 问题解决后删除临时日志；有长期价值的结论整理到 `docs/research/`。
@@ -129,6 +130,7 @@ cloudbase functions:deploy getBanners
 ### 公共工具（`utils/`）
 
 - `cloud.js`：`resolveCloudFileUrls()` 把 `cloud://` 文件 ID 批量换成临时 URL（结果缓存 30 分钟）；`getCloudFunctionErrorMessage()` 把未部署等错误转成可读提示。
+- `logger.js`：`createLogger(module)` 返回 `log(level, stage, detail)`，输出 `[module] {"ts","level","stage",...}` 单行 JSON；`level` 取 `INFO`/`WARN`/`ERROR`，`stage` 用「模块:动作」，`detail` 禁止写 openid 等敏感字段。新增页面报错时用它，不要再写 `console.error('中文:', err)`。
 - `cache.js`：基于 `wx.setStorageSync` 的 TTL 缓存，键统一加 `perf_cache:` 前缀，提供 `readCacheData/writeCacheData/removeCacheData/shouldRefresh`。
 - `permission.js`：前端权限快照（`isAdmin`、`roles` 中的 `operator`/`reviewer`），只用于隐藏入口和页面跳转，**不是安全边界**；管理云函数仍须自行校验。
 - `feature.js`：功能开关。当前 `pointsMallEnabled: false`，`pages/user`、`pages/my`、`pages/points` 会隐藏或拦截积分商城入口并显示 `POINTS_MALL_NOTICE`；商城云函数仍保留。
@@ -276,7 +278,7 @@ CMS 文档约定 `status=1` 为草稿、`status=2` 为已发布，并写明只�
         → pages/index/index.js 的 loadBanners()
         → resolveCloudFileUrls() 解析 cloud://
         → 首页 swiper，并写入本地缓存 index:banners:v2（TTL 10 分钟）
-失败兜底：pages/index/index.js 的 HOME_BANNERS（4 条本地渐变）+ 降级提示
+失败兜底：pages/index/index.js 的 HOME_BANNERS（4 条，背景图在 images/banners/）+ 降级提示
 ```
 
 `getBanners`（[cloudfunctions/getBanners](./cloudfunctions/getBanners/index.js)）的契约：
@@ -332,6 +334,8 @@ Banner 相关代码与部署项：
 ```
 
 当前仍没有 Banner 管理页面、`saveBanner` 云函数或 Banner 媒体上传函数；运营直接通过 CMS 维护 `banners`，修改后可能需要清理 `index:banners:v2` 缓存或等待 10 分钟 TTL。
+
+仓库内已在 `images/banners/` 准备 4 张 900×537 的轮播背景图（无文字，文案由页面叠加），它们只用于 `HOME_BANNERS` 降级展示；要出现在正式首页，必须按 [docs/operations/banner-image-upload.md](./docs/operations/banner-image-upload.md) 上传到云存储并把 `cloud://` 文件 ID 写入 `banners` 集合的 `image` 字段。
 
 ### 视频：已有标准发布链路
 
@@ -447,6 +451,13 @@ createdAt/updatedAt   云函数维护
 `pages/community` → `getTopics` → `topics`；
 话题详情、评论和审核分别使用 `getTopicDetail`、`getTopicComments`、`submitTopicComment`、`reviewContent`。
 
+话题正文存放在 `topics.contentBlocks` 内容块数组中，当前支持 `text`、`image`、`article_link`、`video_link` 四类：
+
+- `pages/topic-management` 负责把表单转换为内容块：`contentText` 按空行拆成 `text` 块，`contentImages` 生成 `image` 块（最多 9 张，含 `imageUrl`、`caption`），保存时统一重排 `sort`。
+- 内容块顺序为：正文段落 → 配图 → `article_link` → `video_link` → 未知类型块；旧版调用方不传 `contentImages` 时沿用库内已有配图，传空数组表示清空。
+- 配图与封面都先经 `wx.cloud.uploadFile` 上传到 `topics/content/`、`topics/covers/`，再把 `cloud://` 文件 ID 写入内容块。
+- 用户侧 `pages/topic-detail` 用 `resolveCloudFileUrls` 解析 `cloud://` 后渲染，图片为空时只显示图注，不出现破图。
+
 ### 答题与积分
 
 `getQuizQuestions` → 用户答题 → `submitQuizAttempt` → `quiz_attempts`、`users`、`public_profiles`、`points_records`。
@@ -498,14 +509,14 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - `docs/README.md`：文档目录导航和分类规则。
 - `CMS使用文档.md`、`CMS使用文档-简洁版.md`：CMS 操作手册，尤其是 `articles` 与 `banners` 的字段说明。
 - `docs/guides/developer-handoff.md`：较详细的交接与回归清单；修改关键流程后应同步检查。
-- `docs/planning/`：二期计划、需求、任务、验收、数据模型和预算；不代表全部功能都已实现。
+- `docs/planning/`：当前阶段的待改进项 Backlog；历史二期计划、需求、任务、验收、数据模型和预算已归档到 `docs/archive/phase2-planning/`，不代表全部功能都已实现。
 - `docs/operations/`：云函数部署、快速部署、数据维护和运维说明。
 - `docs/guides/`：开发者交接、AI、题库、话题等可执行专项指南。
 - `docs/research/`：性能调查和问题分析材料。
 - `docs/team-collaboration/member-{a,b,c,d}-*.md`：当前 3+1 分工，按角色分别维护（A 内容与社区、B 权限与审核、C 学习内容与视频、D 审查与验收），属于正式协作约定，应纳入 Git 跟踪。
 - `docs/team-collaboration/archive/member-*.md`：历史分工说明归档，仅用于追溯，不作为当前依据。
 - `docs/team-collaboration/acceptance-checklist.md`：本地验收工作表，包含环境和账号记录，已被 `.gitignore` 忽略，不纳入 Git。
-- `docs/archive/`：历史归档，不作为当前实现依据。
+- `docs/archive/`：历史归档，不作为当前实现依据；其中 `docs/archive/phase2-planning/` 保存历史二期规划。
 
 ### 文档目录使用规则
 
@@ -513,7 +524,8 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 
 | 目录 | 放置内容 | 判断标准 |
 |---|---|---|
-| `docs/planning/` | 产品规划、需求、Backlog、任务拆分、阶段验收、预算 | 描述未来建设或阶段计划 |
+| `docs/planning/` | 当前待改进项 Backlog | 记录尚未完成的产品、体验、技术债、安全和运维改进项 |
+| `docs/archive/phase2-planning/` | 历史二期规划、需求、任务、验收、数据模型和预算 | 仅用于追溯，不作为当前依据 |
 | `docs/operations/` | 部署、云环境、数据维护、发布运维 | 需要执行部署或运维操作 |
 | `docs/guides/` | 开发交接、模块操作、专项功能指南、导入样例 | 能按步骤执行的当前工作说明 |
 | `docs/research/` | 性能调查、问题分析、技术调研 | 记录分析过程、证据和候选方案 |
