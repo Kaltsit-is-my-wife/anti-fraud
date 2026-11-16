@@ -509,14 +509,14 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - `docs/README.md`：文档目录导航和分类规则。
 - `CMS使用文档.md`、`CMS使用文档-简洁版.md`：CMS 操作手册，尤其是 `articles` 与 `banners` 的字段说明。
 - `docs/guides/developer-handoff.md`：较详细的交接与回归清单；修改关键流程后应同步检查。
-- `docs/planning/`：二期计划、需求、任务、验收、数据模型和预算；不代表全部功能都已实现。
+- `docs/planning/`：当前阶段的待改进项 Backlog；历史二期计划、需求、任务、验收、数据模型和预算已归档到 `docs/archive/phase2-planning/`，不代表全部功能都已实现。
 - `docs/operations/`：云函数部署、快速部署、数据维护和运维说明。
 - `docs/guides/`：开发者交接、AI、题库、话题等可执行专项指南。
 - `docs/research/`：性能调查和问题分析材料。
 - `docs/team-collaboration/member-{a,b,c,d}-*.md`：当前 3+1 分工，按角色分别维护（A 内容与社区、B 权限与审核、C 学习内容与视频、D 审查与验收），属于正式协作约定，应纳入 Git 跟踪。
 - `docs/team-collaboration/archive/member-*.md`：历史分工说明归档，仅用于追溯，不作为当前依据。
 - `docs/team-collaboration/acceptance-checklist.md`：本地验收工作表，包含环境和账号记录，已被 `.gitignore` 忽略，不纳入 Git。
-- `docs/archive/`：历史归档，不作为当前实现依据。
+- `docs/archive/`：历史归档，不作为当前实现依据；其中 `docs/archive/phase2-planning/` 保存历史二期规划。
 
 ### 文档目录使用规则
 
@@ -524,7 +524,8 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 
 | 目录 | 放置内容 | 判断标准 |
 |---|---|---|
-| `docs/planning/` | 产品规划、需求、Backlog、任务拆分、阶段验收、预算 | 描述未来建设或阶段计划 |
+| `docs/planning/` | 当前待改进项 Backlog | 记录尚未完成的产品、体验、技术债、安全和运维改进项 |
+| `docs/archive/phase2-planning/` | 历史二期规划、需求、任务、验收、数据模型和预算 | 仅用于追溯，不作为当前依据 |
 | `docs/operations/` | 部署、云环境、数据维护、发布运维 | 需要执行部署或运维操作 |
 | `docs/guides/` | 开发交接、模块操作、专项功能指南、导入样例 | 能按步骤执行的当前工作说明 |
 | `docs/research/` | 性能调查、问题分析、技术调研 | 记录分析过程、证据和候选方案 |

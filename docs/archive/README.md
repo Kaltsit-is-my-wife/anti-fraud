@@ -10,11 +10,31 @@
 使用原则：
 
 - 不作为当前版本开发主依据
-- 当前开发优先查看 `../README.md`、`../phase2_development_plan.md`、`../../README.md`、`../../ARCHITECTURE.md`
+- 当前开发优先查看 `../README.md`、`../planning/improvement-backlog.md`、`../../README.md`、`../../ARCHITECTURE.md`
 
 ---
 
 ## 目录结构
+
+### `phase2-planning/`
+
+包含二期阶段的计划、需求、Backlog、任务拆分、验收清单、数据模型和预算：
+
+- `phase2_development_plan.md`
+- `phase2_requirements.md`
+- `phase2_feature_description.md`
+- `phase2_backlog.md`
+- `phase2_task_split.md`
+- `phase2_acceptance_checklist.md`
+- `phase2_admin_execution_priority.md`
+- `phase2_page_task_list.md`
+- `phase2_cloud_function_task_list.md`
+- `phase2_data_model_design.md`
+- `phase2_budget.md`
+- `phase2_budget_calculation.md`
+- `phase2_cloud_service_estimate.md`
+- `phase2_video_resource_plan.md`
+
 
 ### `v1.1/`
 

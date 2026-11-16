@@ -3,6 +3,101 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-16 - 整理 P0-01 验收记录并归档合并说明
+
+### 问题场景
+
+P0-01 主链路已完成真机验收，但 `CHANGELOG.md` 中 2026-11-08 和 2026-11-14 两条记录仍标记“尚未完成（需人工验收）”；根目录 `Changelog-ysy.md` 是一次性合并说明，不适合长期留在仓库根目录。
+
+### 修改方案
+
+- 更新 `CHANGELOG.md` 中两条 P0-01 记录的验证结果：
+  - 已完成：`saveTopic` / `submitTopicComment` 部署、话题创建/配图/编辑/发布/下线、评论提交与审核通过/驳回/隐藏、旧话题兼容、图片目录、三账号页面权限显示。
+  - 未单独验收但不阻塞合并：直接调用管理云函数的越权测试、Banner 本地降级图、9 图上限真机验证。
+- 将 `Changelog-ysy.md` 移动到 [docs/team-collaboration/archive/Changelog-ysy.md](./docs/team-collaboration/archive/Changelog-ysy.md)，并在归档 README 中登记。
+- 清理本地 `.temp/` 临时文件。
+
+### 验证结果
+
+- 已核对 `saveTopic` / `submitTopicComment` 已部署，真机主链路通过。
+- 已确认归档路径和文档引用有效。
+- 本次仅修改文档、移动合并说明和清理临时文件，未修改运行时代码。
+
+## 2026-11-16 - 记录话题管理上传按钮布局待改进项
+
+### 问题场景
+
+话题管理页的「上传封面」和「添加配图」都是大号胶囊按钮，但分属封面图和正文配图两个不同区块，视觉上像同一组同级操作，层级不清晰，按钮宽度、对齐和间距也不统一。
+
+### 修改方案
+
+- 在 [docs/planning/improvement-backlog.md](./docs/planning/improvement-backlog.md) 新增 `IMP-007`，记录布局问题、期望结果、建议方案和验收标准。
+- 将现状截图保存到 [docs/assets/improvement-backlog/IMP-007-topic-upload-buttons.png](./docs/assets/improvement-backlog/IMP-007-topic-upload-buttons.png)，并在 Backlog 中引用。
+- 本次仅记录问题和截图，不修改 `topic-management` 页面代码。
+
+### 验证结果
+
+- 已核对当前 WXML：封面按钮在 `cover-tools`，配图按钮在 `content-image-section` 的 `section-head`，两者确实属于不同区块。
+- 本次仅新增文档和截图，未修改运行时代码，无需执行 JavaScript 语法检查。
+
+## 2026-11-16 - 补充审核、刷新与 UI 改版待改进项
+
+### 问题场景
+
+审核回复类任务缺少父评论上下文；多数列表页没有下拉刷新；页面 UI 缺少统一设计语言。这些问题不属于当前主链路阻塞，但会影响审核判断、内容更新效率和后续维护成本。
+
+### 修改方案
+
+- 在 [docs/planning/improvement-backlog.md](./docs/planning/improvement-backlog.md) 新增三条：
+  - `IMP-004`：审核中心回复类任务展示父评论原文、作者和状态。
+  - `IMP-005`：主要列表页补充下拉刷新，并避免与 `onShow` 重复请求。
+  - `IMP-006`：小程序 UI 统一设计与改版。
+- `IMP-006` 标记为 `HOLD`，并写明开工时机：至少等 P0（话题、审核、权限）和 P1（题库、题目、视频）完成并验收，同时完成文章、Banner、登录绑定、积分答题等主链路回归后，再开始设计审计和组件库。
+
+### 验证结果
+
+- 已核对 `getReviewTasks` 当前只补充 `parentId`，审核中心只展示父评论 ID。
+- 已核对当前只有 `pages/index`、`pages/learning-records` 实现 `onPullDownRefresh`，只有 `pages/backpack`、`pages/learning-records` 开启 `enablePullDownRefresh`。
+- 本次仅新增文档内容，未修改运行时代码，无需执行 JavaScript 语法检查。
+
+## 2026-11-16 - 记录话题与视频管理的待改进项
+
+### 问题场景
+
+话题管理和视频管理目前依赖手动输入 ID/日期，运营使用成本高、容易填错，且编辑时难以确认关联内容是否正确。
+
+### 修改方案
+
+- 在 [docs/planning/improvement-backlog.md](./docs/planning/improvement-backlog.md) 新增三条待改进项：
+  - `IMP-001`：话题开始/结束日期改为年-月-日轮盘选择。
+  - `IMP-002`：话题关联文章/视频改为可视化选择，不再手动输入 ID。
+  - `IMP-003`：视频关联文章/话题改为可视化选择，不再手动输入 ID。
+- 每条记录包含状态、优先级、类型、来源、负责人、问题、期望结果、建议方案和验收标准。
+
+### 验证结果
+
+- 已检查条目格式与 `improvement-backlog.md` 模板一致。
+- 本次仅新增文档内容，未修改运行时代码，无需执行 JavaScript 语法检查。
+
+## 2026-11-16 - 归档二期规划并建立待改进项 Backlog
+
+### 问题场景
+
+`docs/planning/` 同时存放历史二期规划和当前工作，新的待改进项没有明确入口，容易和已归档的二期计划混在一起。
+
+### 修改方案
+
+- 将 `docs/planning/` 下的二期规划文档整体移动到 `docs/archive/phase2-planning/`，包括计划、需求、Backlog、任务拆分、验收、管理端优先级、数据模型和预算等 14 份文档。
+- 新增 [docs/planning/improvement-backlog.md](./docs/planning/improvement-backlog.md)，作为当前阶段的待改进项入口，包含状态、优先级、类型、来源、负责人和验收标准模板。
+- 更新 [README.md](./README.md)、[ARCHITECTURE.md](./ARCHITECTURE.md)、[CLAUDE.md](./CLAUDE.md)、[docs/README.md](./docs/README.md)、[docs/archive/README.md](./docs/archive/README.md) 和四份 `docs/team-collaboration/member-*.md` 中的规划链接。
+- 归档文档内部的 `docs/planning/phase2_*` 文本引用同步改为 `docs/archive/phase2-planning/phase2_*`。
+
+### 验证结果
+
+- `docs/planning/` 当前只剩 `improvement-backlog.md`。
+- 已执行全局检索，没有残留 `docs/planning/phase2_*`、`../planning/phase2_*` 或 `./planning/phase2_*` 引用。
+- 本次仅移动和新增文档，未修改运行时代码，无需执行 JavaScript 语法检查。
+
 ## 2026-11-14 - P0-01 新增代码规范整改（仅限本次改动的文件）
 
 ### 问题场景
@@ -26,7 +121,8 @@
 - `grep console.` 复核：上述 4 个文件中除 `log()` 内部按级别调用 `console.error/warn/log` 外，业务代码已无散文日志。
 - 云函数 `exports.main` 返回结构未变（`{ success, data?, errMsg? }`），调用方无需调整；`saveTopic` 的 `contentImages` 语义（空数组清空、缺省沿用）保持不变。
 - WXML/JSON 本轮未改动，无需重新校验。
-- **尚未完成（需人工验收）**：开发者工具编译与真机回归、`saveTopic`/`submitTopicComment` 重新部署、日志格式与三账号权限回归；验收步骤见 PR 描述与 [docs/guides/topic-publish-test.md](./docs/guides/topic-publish-test.md)。
+- 已完成真机验收：`saveTopic` / `submitTopicComment` 已部署；话题创建、正文配图、编辑回显、发布/下线、评论提交与审核通过/驳回/隐藏均通过；`operator` / `reviewer` / 普通用户的页面入口权限显示正常。
+- 未单独验收（不作为合并阻塞项）：直接调用管理云函数的越权测试、Banner 本地降级图、9 图上限真机验证；验收步骤见 PR 描述与 [docs/guides/topic-publish-test.md](./docs/guides/topic-publish-test.md)。
 
 ## 2026-11-08 - P0-01 话题发布主链路收口：正文配图、状态下标修复、Banner 图与图片目录合并
 
@@ -66,11 +162,12 @@
   - 话题下线后列表与详情均不可见；旧版调用（不传 `contentImages`）保留库内已有配图。
 - 本地离线模拟验证页面逻辑 31 项断言全部通过：编辑已发布话题时 `statusIndex = 1`、正文多段拼接、配图与封面预览解析、图注写入对应下标、移除配图、保存入参（`contentImages` 只含 `imageUrl`/`caption`、不传 `coverImagePreview`）、空标题拦截、重置清空。
 - WXML 标签闭合与 `{{ }}` 配对检查通过；`app.json`、页面 `.json` JSON 解析通过。
-- **尚未完成（需人工验收）**：
-  - 微信开发者工具编译与真机回归，尤其是 `wx.chooseMedia` 选图上传、配图预览、长图 `mode="widthFix"` 展示。
-  - 部署 `saveTopic`、`submitTopicComment` 到目标云环境后，用 `operator` / `reviewer` / 普通用户三个账号回归。
-  - 在云开发控制台确认 `comments` 记录新建时 `status` 显示 `pending_review`。
-  - 4 张 Banner 图上传云存储并写入 `banners` 集合后，验证首页轮播实际效果与点击跳转。
+- 已完成真机回归：配图上传、预览、长图展示、编辑回显、发布/下线、评论进入 `pending_review`、审核通过/驳回/隐藏、旧话题兼容、图片目录。
+- 已完成部署：`saveTopic`、`submitTopicComment` 已部署到目标云环境。
+- 未单独验收（不作为合并阻塞项）：
+  - 9 图上限的真机验证（离线模拟已通过）。
+  - 4 张 Banner 本地降级图的真机展示，以及正式 `banners` 集合上传后的首页轮播效果。
+  - 直接调用管理云函数的越权测试（页面入口权限显示已通过）。
 
 
 ## 2026-11-05 - 归档历史分工文档并建立当前 3+1 分工
