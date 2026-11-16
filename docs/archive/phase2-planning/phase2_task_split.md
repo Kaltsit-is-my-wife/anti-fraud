@@ -6,9 +6,9 @@
 
 关联文档：
 
-- `docs/planning/phase2_requirements.md`
-- `docs/planning/phase2_backlog.md`
-- `docs/planning/phase2_acceptance_checklist.md`
+- `docs/archive/phase2-planning/phase2_requirements.md`
+- `docs/archive/phase2-planning/phase2_backlog.md`
+- `docs/archive/phase2-planning/phase2_acceptance_checklist.md`
 
 ---
 

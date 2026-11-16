@@ -5,22 +5,29 @@
 
 ## 当前有效文档
 
-- [二期开发计划](./planning/phase2_development_plan.md)：产品阶段规划和推进节奏
-- [二期需求](./planning/phase2_requirements.md)：需求、范围和验收口径
-- [二期功能描述](./planning/phase2_feature_description.md)：产品功能说明
-- [二期 Backlog](./planning/phase2_backlog.md)：页面、云函数、数据和管理端任务
-- [二期任务拆分](./planning/phase2_task_split.md)：任务包、角色和排期
-- [二期验收清单](./planning/phase2_acceptance_checklist.md)：阶段联调和上线检查
-- [二期页面任务清单](./planning/phase2_page_task_list.md)
-- [二期云函数任务清单](./planning/phase2_cloud_function_task_list.md)
-- [二期数据模型设计](./planning/phase2_data_model_design.md)
-- [二期预算与成本](./planning/phase2_budget.md)
-- [二期视频资源方案](./planning/phase2_video_resource_plan.md)
+- [待改进项 Backlog](./planning/improvement-backlog.md)：当前阶段的产品、体验、技术债、安全和运维改进项
+
+### 历史二期规划归档
+
+以下二期规划文档已归档到 `archive/phase2-planning/`，仅用于追溯，不作为当前开发依据：
+
+- [二期开发计划](./archive/phase2-planning/phase2_development_plan.md)
+- [二期需求](./archive/phase2-planning/phase2_requirements.md)
+- [二期功能描述](./archive/phase2-planning/phase2_feature_description.md)
+- [二期 Backlog](./archive/phase2-planning/phase2_backlog.md)
+- [二期任务拆分](./archive/phase2-planning/phase2_task_split.md)
+- [二期验收清单](./archive/phase2-planning/phase2_acceptance_checklist.md)
+- [二期页面任务清单](./archive/phase2-planning/phase2_page_task_list.md)
+- [二期云函数任务清单](./archive/phase2-planning/phase2_cloud_function_task_list.md)
+- [二期数据模型设计](./archive/phase2-planning/phase2_data_model_design.md)
+- [二期预算与成本](./archive/phase2-planning/phase2_budget.md)
+- [二期视频资源方案](./archive/phase2-planning/phase2_video_resource_plan.md)
 
 ## 部署与运维
 
 - [云函数部署说明](./operations/cloud_function_deployment.md)
 - [快速部署说明](./operations/QUICK_DEPLOY.md)
+- [首页 Banner 图片上传与上线](./operations/banner-image-upload.md)
 - [清空用户数据功能说明](./operations/clear_data_feature.md)
 - [用户数据架构](./operations/user_data_architecture.md)
 

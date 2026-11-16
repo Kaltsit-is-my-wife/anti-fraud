@@ -66,24 +66,28 @@ const HOME_BANNERS = [
     id: 1,
     title: '识别刷单返利骗局',
     desc: '先看套路，再看风险点，避免被高回报话术带偏。',
+    image: '/images/banners/banner-01-shuadan.jpg',
     bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   },
   {
     id: 2,
     title: '转账前先停一停',
     desc: '遇到催促、保密、核验截图这类要求，先确认真实身份。',
+    image: '/images/banners/banner-02-zhuanzhang.jpg',
     bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   },
   {
     id: 3,
     title: '识别冒充客服话术',
     desc: '退款、注销、征信修复这些高频套路，先核验平台官方渠道。',
+    image: '/images/banners/banner-03-kefu.jpg',
     bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   },
   {
     id: 4,
     title: '建立日常防骗意识',
     desc: '把反诈知识变成习惯，看到异常流程就能及时停下来。',
+    image: '/images/banners/banner-04-yishi.jpg',
     bgColor: 'linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%)',
   }
 ]
