@@ -4,6 +4,7 @@
  * 上游依赖：users, quiz_questions, quiz_attempts, public_profiles, points_records
  * 入口：exports.main
  * 主要功能：服务端判分；累计排行榜积分 quizPoints；按北京时间每日上限30发放商城积分；写入答题记录与积分流水
+ * 边界：用户侧要求题库已发布；选项 2-6 个（A-F），答案索引必须落在题目实际选项范围内
  * 输出：判分结果（含解析）与本次获得积分情况
  *
  * 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
@@ -89,6 +90,14 @@ async function getCurrentUser(openid) {
   return userResult.data[0]
 }
 
+async function getPublishedBank(bankId) {
+  const res = await db.collection('question_banks')
+    .where({ _id: bankId, status: 'published' })
+    .limit(1)
+    .get()
+  return res.data && res.data[0]
+}
+
 async function ensurePublicProfile(user) {
   await ensureCollection('public_profiles')
   const now = new Date()
@@ -133,6 +142,7 @@ exports.main = async (event, context) => {
   try {
     await Promise.all([
       ensureCollection('quiz_questions'),
+      ensureCollection('question_banks'),
       ensureCollection('quiz_attempts'),
       ensureCollection('points_records'),
       ensureCollection('users'),
@@ -150,9 +160,18 @@ exports.main = async (event, context) => {
       return { success: false, errMsg: '题目ID重复，请重试' }
     }
     for (const a of answers) {
-      if (a < 0 || a > 3) {
+      // 选项最多 6 个（A-F），索引范围 0-5；具体题目的选项数在加载后再次校验
+      if (a < 0 || a > 5) {
         return { success: false, errMsg: '答案格式不正确' }
       }
+    }
+
+    if (!bankId || ['default_bank', '__all__', '__unassigned__'].includes(bankId)) {
+      return { success: false, errMsg: '请从已发布题库开始答题' }
+    }
+    const bank = await getPublishedBank(bankId)
+    if (!bank) {
+      return { success: false, errMsg: '题库不存在或未发布' }
     }
 
     const user = await getCurrentUser(openid)
@@ -186,6 +205,15 @@ exports.main = async (event, context) => {
     }
 
     const qMap = new Map(qList.map(q => [q.questionId, q]))
+
+    // 校验每道题的选项范围：5/6 选项题允许 0-5，4 选项题仍然最多 0-3
+    for (let idx = 0; idx < questionIds.length; idx += 1) {
+      const question = qMap.get(questionIds[idx])
+      const optionCount = Array.isArray(question && question.options) ? question.options.length : 0
+      if (optionCount < 2 || answers[idx] >= optionCount) {
+        return { success: false, errMsg: '答案选项超出题目范围' }
+      }
+    }
 
     let correctCount = 0
     const results = questionIds.map((qid, idx) => {

@@ -21,6 +21,7 @@
 
 - [云函数部署说明](./operations/cloud_function_deployment.md)
 - [快速部署说明](./operations/QUICK_DEPLOY.md)
+- [云存储旧文件清理说明](./operations/storage_cleanup.md)
 - [清空用户数据功能说明](./operations/clear_data_feature.md)
 - [用户数据架构](./operations/user_data_architecture.md)
 
@@ -29,9 +30,12 @@
 - [用户手册与测试案例](./manual/README.md)
 - [AI 图片识别说明](./guides/ai_image_guide.md)
 - [开发者交接手册](./guides/developer-handoff.md)
+- [视频分页与存储清理简易测试（大白话版）](./guides/video-pagination-storage-cleanup-simple-test.md)
+- [视频分页与存储清理测试说明](./guides/video-pagination-storage-cleanup-test.md)
 - [项目交接手册](./guides/project-handoff.md)
 - [题库管理计划](./guides/question-bank-management-plan.md)
 - [题库操作指南](./guides/question-bank-operation-guide.md)
+- [题库 P0 修复简易测试（大白话版）](./guides/question-bank-p0-simple-test.md)
 - [题库重新部署清单](./guides/question-bank-redeploy-list.md)
 - [题库导入样例](./guides/question-bank-import-sample.json)
 - [话题与题库初始化](./guides/topic-and-question-bank-init.md)

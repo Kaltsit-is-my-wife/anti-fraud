@@ -1,6 +1,31 @@
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
+
+const BATCH_SIZE = 100
+const MAX_FETCH = 100000
+
+async function fetchAll(collectionName, where = null) {
+  const list = []
+  let offset = 0
+
+  while (offset < MAX_FETCH) {
+    let query = db.collection(collectionName)
+    if (where) query = query.where(where)
+    const res = await query
+      .orderBy('_id', 'asc')
+      .skip(offset)
+      .limit(BATCH_SIZE)
+      .get()
+    const batch = res.data || []
+    list.push(...batch)
+    if (batch.length < BATCH_SIZE) break
+    offset += batch.length
+  }
+
+  return list
+}
+
 exports.main = async () => {
   const now = new Date()
   const existing = await db.collection('question_banks').where({ name: '大学生反诈基础题库' }).limit(1).get()
@@ -11,9 +36,9 @@ exports.main = async () => {
     bankId = res._id
     inserted = true
   }
-  const questions = await db.collection('quiz_questions').where({ isActive: true }).get()
+  const questions = await fetchAll('quiz_questions', { isActive: true })
   let linked = 0
-  for (const question of questions.data || []) {
+  for (const question of questions) {
     const ids = Array.isArray(question.bankIds) ? question.bankIds : []
     if (ids.length === 0 || question.bankId === 'default_bank') {
       await db.collection('quiz_questions').doc(question._id).update({ data: { bankIds: [bankId], bankId, updatedAt: now } })

@@ -144,7 +144,7 @@ cloudbase functions:deploy getBanners
 - AI：`aiChat`
 - 答题与题库：`initQuizQuestions`、`getQuizQuestions`、`getQuizQuestionList`、`submitQuizAttempt`、`getQuizLeaderboard`、`getQuestionBanks`、`getAdminQuestionBankList`、`initQuestionBanks`、`saveQuestionBank`、`deleteQuestionBank`、`saveQuizQuestion`、`deleteQuizQuestion`、`updateQuestionBankRelation`
 - 社区与社交：`getTopics`、`getTopicDetail`、`getTopicComments`、`submitTopicComment`、`createPost`、`getPosts`、`getPostDetail`、`createComment`、`getComments`、`followUser`、`getNotifications`、`markNotificationRead`、`getUnreadCount`、`getPublicProfile`、`updateProfileDisplay`、`searchUsers`
-- 视频：`getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`、`deleteVideo`
+- 视频：`getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`、`deleteVideo`、`cleanupStorageFiles`
 - 管理与审核：`getAdminTopicList`、`saveTopic`、`initTopics`、`deleteTopic`、`getReviewTasks`、`reviewContent`
 - 商城：`getProducts`、`initProducts`、`redeemProduct`、`getExchangeRecords`、`getUserBackpack`、`useBackpackItem`（前端入口受 `utils/feature.js` 的 `pointsMallEnabled` 控制，当前关闭）
 - 风险与反馈：`createScamReport`、`submitFeedback`
@@ -189,6 +189,7 @@ const res = await wx.cloud.callFunction({
 - `titles`、`achievements`：称号与成就定义
 - `scam_reports`：用户诈骗风险反馈，含审核状态
 - `review_tasks`、`review_keyword_rules`：审核任务与关键词规则
+- `storage_cleanup_tasks`：视频/封面的旧云存储文件清理队列（运维数据）
 - `schools`、`majors`、`colleges`：学生绑定用的学校/专业/学院字典
 
 `users` 不应直接向公众展示；公开资料写入 `public_profiles`。内容展示和管理操作优先走云函数，不要让前端直接依赖数据库内部对象结构。
@@ -340,11 +341,11 @@ Banner 相关代码与部署项：
 ```text
 operator 管理员
   → pages/video-management
-  → getAdminVideoList（读取全部视频）
-  → saveVideo（新增/编辑 videos）
+  → getAdminVideoList（分页读取全部视频）
+  → saveVideo（新增/编辑 videos；替换的旧文件登记清理队列）
   → status=published
-  → getVideos（用户侧只读已发布视频）
-  → pages/video
+  → getVideos（分页读取已发布视频）
+  → pages/video（下拉刷新 / 触底加载）
   → getVideoDetail
   → pages/video-detail / <video>
 ```
@@ -357,9 +358,10 @@ operator 管理员
 4. `coverImage`、`videoUrl` 可填 HTTPS 地址或 `cloud://` 文件 ID。
 5. 状态先保存为 `draft`，确认资源可用后改为 `published`；`offline` 用于下架。
 6. 保存时 `saveVideo` 会校验标题和视频地址；发布时写入 `publishedAt`。
-7. 用户侧 `getVideos` 只查询 `status: 'published'`，按 `sort` 升序、发布时间倒序截取最多 50 条。
+7. 用户侧 `getVideos` 分页查询 `status: 'published'`，按 `sort` 升序、`publishedAt` 倒序、`_id` 升序稳定排序；默认每页 20 条，返回 `hasMore`。
 8. 用户点击后由 `getVideoDetail` 再次要求 `status: 'published'`，并解析关联文章、已发布话题。
-9. 草稿/已下线视频可在管理页删除记录：`deleteVideo` 校验 `isAdmin`/`operator`，只删除 `videos` 文档，不删除云存储文件；已发布视频必须先改为 `offline`。
+9. 草稿/已下线视频可在管理页删除记录：`deleteVideo` 校验 `isAdmin`/`operator`，只删除 `videos` 文档；删除前会把 `videoUrl`/`coverImage` 的 `cloud://` 文件登记到 `storage_cleanup_tasks`，由 `cleanupStorageFiles` 在宽限期后清理。已发布视频必须先改为 `offline`。
+10. 管理端 `getAdminVideoList` 同样分页，按 `sort` 升序、`updatedAt` 倒序、`_id` 升序；页面触底或点击“加载更多”继续加载。
 
 视频字段：
 
@@ -382,20 +384,22 @@ createdAt/updatedAt   云函数维护
 
 - 当前没有统一的媒体上传云函数；视频和封面需要先上传到云存储，再把地址填入管理页，或使用可访问的 HTTPS 地址。
 - 视频管理页已支持本地视频/封面上传：`wx.chooseMedia` 选择文件，`wx.cloud.uploadFile` 直传云存储并回填表单，上传成功不改变 `draft` 状态。微信开发者工具对 `wx.chooseMedia` 的视频选择支持不完整，可能返回空 `tempFiles`（带 `failedCount`）；本地上传请用真机验证，开发者工具中可手动填写视频地址。
-- `utils/defaultVideos.js` 中保留了一个 `coverImage`、`videoUrl` 为空的内置演示视频。云端列表为空时用户侧会合并显示它，详情页会显示“暂无可播放视频地址”。正式发布前应给它补真实资源，或移除该内置兜底。
-- `getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`、`deleteVideo` 必须部署到同一个目标云环境；普通用户不能调用管理函数。
-- `deleteVideo` 仅删除 `videos` 数据库记录，不删除 `videoUrl` / `coverImage` 指向的云存储文件；已发布视频返回“已发布视频不能删除，请先下线”。
-- 发布回归必须验证：列表可见、封面可见、视频可播放、草稿/下线不可见、关联文章/话题可跳转。
+- `utils/defaultVideos.js` 中保留了一个 `coverImage`、`videoUrl` 为空的内置演示视频。用户侧第一页会合并显示它（即使云端已有视频），详情页会显示“暂无可播放视频地址”。正式发布前应给它补真实资源，或移除该内置兜底。
+- `getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`、`deleteVideo`、`cleanupStorageFiles` 必须部署到同一个目标云环境；普通用户不能调用管理函数。
+- `deleteVideo` 仅删除 `videos` 数据库记录，不直接删除 `videoUrl` / `coverImage` 指向的云存储文件；已发布视频返回“已发布视频不能删除，请先下线”。
+- 旧文件清理：`saveVideo` 替换视频/封面、`deleteVideo` 删除记录时，旧 `cloud://` 文件进入 `storage_cleanup_tasks`（默认 7 天宽限期）。`cleanupStorageFiles` 默认 `dryRun: true`，会检查 `videos`、`articles`、`topics`、`question_banks`、`banners`、`users`、`public_profiles`、`posts`、`scam_reports` 的引用，确认无引用后才调用 `cloud.deleteFile`；`operator` 只能 dry-run，`isAdmin` 才能实际删除。定时触发器/云控制台默认也只做 dry-run，配置环境变量 `STORAGE_CLEANUP_AUTO_DELETE=true` 后才自动执行实际删除。小程序端不直接调用 `wx.cloud.deleteFile`。详见 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)。
+- 视频列表已分页：`getVideos` / `getAdminVideoList` 接受 `page`、`pageSize`，返回 `page`、`pageSize`、`hasMore`；用户页支持下拉刷新和触底加载，管理页支持触底/“加载更多”按钮。建议在云开发控制台为 `videos` 创建 `status + sort + publishedAt` 和 `sort + updatedAt` 组合索引。
+- 发布回归必须验证：列表可见、封面可见、视频可播放、草稿/下线不可见、关联文章/话题可跳转、分页无重复/遗漏、旧文件清理 dry-run 与实际删除符合预期。快速验收看 [简易测试（大白话版）](./docs/guides/video-pagination-storage-cleanup-simple-test.md)，完整步骤见 [详细测试说明](./docs/guides/video-pagination-storage-cleanup-test.md)。
 
-#### 视频发布讨论记录与后续规划（当前暂不改动）
+#### 视频上传现状与后续规划
 
-本次确认的现行发布方式保持不变：
+现行发布方式：
 
 ```text
 本地视频和封面文件
-  → 手动上传到当前目标云环境的云存储
-  → 获取 videoUrl / coverImage 的 cloud:// 文件 ID
-  → 在 pages/video-management 中填写资源地址
+  → 管理页选择本地文件（wx.chooseMedia）或手动填写地址
+  → wx.cloud.uploadFile 直传当前云环境云存储，回填 cloud:// File ID
+  → 在 pages/video-management 中确认资源地址
   → saveVideo 写入 videos 集合
   → 先用 draft 验证，再改为 published
   → getVideos / getVideoDetail 返回给用户端
@@ -403,18 +407,14 @@ createdAt/updatedAt   云函数维护
   → pages/video-detail 使用 <video> 播放
 ```
 
-当前视频管理页只提供资源地址输入框，不提供本地文件选择和上传按钮；当前仓库也没有 `uploadMedia`、`uploadVideo` 或统一媒体上传云函数。因此暂不调整视频板块，发布视频时必须先通过微信开发者工具或云开发控制台上传视频和封面，再将 `cloud://` File ID 粘贴到管理页。
+当前状态：
 
-后续如果需要降低运营门槛，可以在不改变 `videos` 数据模型和 `saveVideo` 发布状态规则的前提下，优先增加管理页上传能力：
+- 管理页已支持真机选择并上传视频/封面，上传成功只回填表单，不改变 `draft` 状态。
+- 微信开发者工具对 `wx.chooseMedia` 视频选择支持不完整，PC 端仍只能手动填写 `cloud://` / HTTPS 地址，或先到云开发控制台上传；电脑到云端的独立上传链路尚未实现。
+- 仓库仍没有 `uploadMedia`、`uploadVideo` 或统一媒体上传云函数，媒体上传由客户端直传云存储完成。
+- 上传成功不等于发布；仍需 `saveVideo` 保存并切换 `published`。
 
-1. 管理页使用 `wx.chooseMedia` 选择视频，使用图片选择能力选择封面。
-2. 前端使用 `wx.cloud.uploadFile` 分别上传视频和封面，取得两个 `fileID`。
-3. 将 `fileID` 自动写入 `videoUrl` 和 `coverImage`，再调用现有 `saveVideo`。
-4. 保留 `draft → published` 的审核/验证流程，不允许上传成功直接等同于正式发布。
-5. 上传失败、格式不支持、文件过大和云环境不一致时必须显式提示。
-6. 发布前继续验证普通用户列表可见、封面可见、视频可播放、草稿/下线不可见。
-
-该升级方案目前只是后续规划，不应在没有明确需求和资源限制评估前修改现有视频发布代码。
+后续如需降低 PC 运营门槛，可在不改变 `videos` 数据模型和 `saveVideo` 发布状态规则的前提下，评估 `wx.chooseVideo` DevTools 回退、PC 端上传页或 CMS 上传入口；上传失败、格式不支持、文件过大和云环境不一致时必须显式提示。发布前继续验证普通用户列表可见、封面可见、视频可播放、草稿/下线不可见。
 
 ## 权限与管理端
 
@@ -454,6 +454,10 @@ createdAt/updatedAt   云函数维护
 - `quizPoints` 是累计答对题数，用于排行榜。
 - 答题商城每日奖励上限为 30 分。
 - 每日日期按北京时间计算。
+- 用户侧抽题和交卷都必须传真实题库 ID，且 `question_banks.status === 'published'`；草稿/下线题库只能由管理员通过 `preview` 模式预览，`default_bank`、`__unassigned__`、`__all__` 不再作为用户侧入口。
+- 题目选项支持 2–6 个（A–F），`answerIndex` 范围 0–5；发布校验会阻止选项数异常、缺少解析或重复的启用题；`submitQuizAttempt` 会按每道题的实际选项数再次校验，超出范围返回错误。
+- 题库模块的全量读取（管理列表、统计、发布校验、抽题、查重、删除题库检查、初始化关联）使用分批拉取，避免云函数单次查询上限导致只处理前 100 条。
+- 题库 P0 修复的手工测试步骤见 [docs/guides/question-bank-p0-simple-test.md](./docs/guides/question-bank-p0-simple-test.md)。
 
 ### AI
 
@@ -465,7 +469,7 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 1. 修改前先建立可回滚基线，不直接删除历史函数、集合或数据。
 2. 只部署实际修改过的云函数，并确认目标云环境。
 3. 数据迁移和初始化函数运行前备份数据、记录操作者/参数/结果，优先使用试运行参数。
-4. 高风险函数包括：`clearUserData`、`fixUserData`、`migrateUserUID`、`fixArticleCategories`、`convertArticleCategories`、`fixAllCategory`、`initAchievements`、`initProducts`、`initTitles`、`initQuizQuestions`、`importQuizQuestions`。
+4. 高风险函数包括：`clearUserData`、`fixUserData`、`migrateUserUID`、`fixArticleCategories`、`convertArticleCategories`、`fixAllCategory`、`initAchievements`、`initProducts`、`initTitles`、`initQuizQuestions`、`importQuizQuestions`、`cleanupStorageFiles`。`cleanupStorageFiles` 必须先用 `dryRun: true` 检查，确认引用范围后再执行 `dryRun: false`。
 5. 发布前清理开发者工具缓存并重新编译；前端发布后仍需单独部署对应云函数。
 6. 检查函数名、入参、返回字段、集合是否存在、状态字段、分页参数和必要索引。
 7. 云函数与 CMS 数据的真实环境验收必须记录部署环境、测试数据范围和仍未完成的人工验证，不能把本地桩测试写成已完成的线上验收。
@@ -528,6 +532,8 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 
 - Banner 已支持 CMS 读取（`getBanners` + 首页 `loadBanners`），但仍没有小程序内 Banner 管理页、`saveBanner` 云函数和 Banner 媒体上传能力，运营只能通过 CMS 维护数据。
 - 文章管理继续依赖 CMS；首页和详情仍保留本地示例兜底，正式发布前需确认不会掩盖云端配置错误。
-- 视频管理和读取链路已存在，但没有统一媒体上传能力，且保留空资源内置视频。
+- 视频管理和读取链路已存在，列表分页和旧文件清理队列已补齐；但仍没有统一媒体上传能力，且保留空资源内置视频。上传成功但从未保存到 `videos` 的孤立文件不在清理队列覆盖范围内；上线前的历史孤立文件需要在云开发控制台做一次性盘点。
+- 视频分页依赖 `videos` 的组合索引；未创建索引时小数据量仍可用，数据增长后需要在云开发控制台补索引。
+- 题库模块已完成 5/6 选项、发布状态隔离和分批查询；但“停用题是否在管理端展示”的验收口径尚未统一，且至少 2 个题库的验收数据和真实环境验收记录仍未准备。题库全量读取目前是分批拉取后在内存中统计/过滤，题目规模非常大时还需要进一步做服务端分页。
 - 部分历史云函数可能仍存在旧版写入 `_id`、本地降级或重复业务逻辑，修改时先检查调用链和数据影响。
 - 二期方向包括图文文章、官方话题、内容审核、视频、题库管理；计划文档中的“规划新增”不能视为已部署能力。
