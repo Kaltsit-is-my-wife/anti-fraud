@@ -48,6 +48,7 @@
 
 - [性能问题调查](./research/performance-investigation-2026-04-11.md)
 - [性能解决方案](./research/performance-solution-plan-2026-04-11.md)
+- [成员 B 审核中心分支调研](./research/review-center-branch-review-2026-11-16.md)
 
 ## 历史归档
 
