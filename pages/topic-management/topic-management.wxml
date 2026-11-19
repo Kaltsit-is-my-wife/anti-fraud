@@ -14,7 +14,25 @@
     </view>
     <image wx:if="{{form.coverImage}}" class="cover-preview" src="{{form.coverImagePreview}}" mode="aspectFill"></image>
 
-    <picker mode="selector" range="{{statusOptions}}" value="{{statusOptions.indexOf(form.status)}}" bindchange="onStatusChange" disabled="{{submitting || coverUploading || deletingTopicId}}">
+    <!-- 正文配图：保存在 topic.contentBlocks 的 image 内容块中，按列表顺序展示在正文之后 -->
+    <view class="content-image-section">
+      <view class="section-head">
+        <text class="section-label">正文配图（{{contentImages.length}}/{{maxContentImages}}）</text>
+        <button class="mini-btn secondary" bindtap="addContentImage" disabled="{{submitting || coverUploading || contentImageUploading || deletingTopicId}}">
+          {{contentImageUploading ? '上传中...' : '添加配图'}}
+        </button>
+      </view>
+      <view wx:if="{{contentImages.length === 0}}" class="empty-hint">暂未添加配图，配图会按顺序展示在正文段落之后。</view>
+      <view wx:for="{{contentImages}}" wx:key="imageUrl" class="content-image-item">
+        <image class="content-image-preview" src="{{item.preview || item.imageUrl}}" mode="aspectFill"></image>
+        <view class="content-image-body">
+          <input class="input compact" placeholder="图注（可选）" value="{{item.caption}}" bindinput="onContentImageCaptionInput" data-index="{{index}}" disabled="{{submitting || deletingTopicId}}" />
+          <button class="mini-btn danger" bindtap="removeContentImage" data-index="{{index}}" disabled="{{submitting || contentImageUploading || deletingTopicId}}">移除</button>
+        </view>
+      </view>
+    </view>
+
+    <picker mode="selector" range="{{statusOptions}}" value="{{statusIndex}}" bindchange="onStatusChange" disabled="{{submitting || coverUploading || contentImageUploading || deletingTopicId}}">
       <view class="picker">状态：{{form.status}}</view>
     </picker>
     <input class="input" placeholder="排序值" value="{{form.sort}}" bindinput="onInput" data-key="sort" disabled="{{submitting || coverUploading || deletingTopicId}}" />
@@ -39,7 +57,7 @@
         <image wx:if="{{item.coverImage}}" class="list-cover" src="{{item.coverImagePreview}}" mode="aspectFill"></image>
         <view class="list-body">
           <view class="list-title">{{item.title || '未命名话题'}}</view>
-          <view class="list-meta">状态：{{item.status || 'draft'}} · 排序：{{item.sort || 0}}</view>
+          <view class="list-meta">状态：{{item.status || 'draft'}} · 排序：{{item.sort || 0}} · 配图：{{item.imageCount || 0}}</view>
           <view wx:if="{{item.summary}}" class="list-desc">{{item.summary}}</view>
         </view>
       </view>

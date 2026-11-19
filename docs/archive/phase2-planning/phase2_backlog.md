@@ -8,8 +8,8 @@
 
 关联文档：
 
-- `docs/planning/phase2_requirements.md`
-- `docs/planning/phase2_development_plan.md`
+- `docs/archive/phase2-planning/phase2_requirements.md`
+- `docs/archive/phase2-planning/phase2_development_plan.md`
 - `ARCHITECTURE.md`
 
 ---

@@ -29,7 +29,7 @@
         <view wx:if="{{item.type === 'text' || item.type === 'paragraph'}}" class="paragraph">{{item.text}}</view>
 
         <view wx:elif="{{item.type === 'image'}}" class="image-block">
-          <image class="detail-image" src="{{item.imageUrl}}" mode="widthFix"></image>
+          <image wx:if="{{item.imageUrl}}" class="detail-image" src="{{item.imageUrl}}" mode="widthFix"></image>
           <view wx:if="{{item.caption}}" class="image-caption">{{item.caption}}</view>
         </view>
 

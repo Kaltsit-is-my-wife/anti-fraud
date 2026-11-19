@@ -175,8 +175,9 @@ STORAGE_CLEANUP_AUTO_DELETE=true
 以下情况不会自动进入清理队列，需要人工在云开发控制台或后续扩展中处理：
 
 - 上传成功但从未保存到 `videos` 集合的文件（例如上传后放弃保存、保存校验失败）。
+- 话题正文配图 `topics.contentBlocks[].imageUrl`（当前只检查 `topics.coverImage`）。
 - 被文章富文本 `content` 内嵌引用的文件（当前只检查 `articles.coverImage`）。
-- 被其他新增内容类型引用、但未加入 `REFERENCE_FIELDS` 的文件。
+- 被 `products`、`notifications` 等其他内容类型引用、但未加入 `REFERENCE_FIELDS` 的文件。
 - 云存储中历史遗留、无法从数据库反查出文件 ID 的孤立文件。
 
 新增内容类型或文件字段时，必须同步修改：

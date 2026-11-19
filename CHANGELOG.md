@@ -114,6 +114,101 @@
 - 本次仅新增/更新文档，未修改运行时代码，无需执行 JavaScript 语法检查。
 - 文档中的云端和真机测试步骤尚未执行，需要在目标云环境按清单验收。
 
+## 2026-11-16 - 整理 P0-01 验收记录并归档合并说明
+
+### 问题场景
+
+P0-01 主链路已完成真机验收，但 `CHANGELOG.md` 中 2026-11-08 和 2026-11-14 两条记录仍标记“尚未完成（需人工验收）”；根目录 `Changelog-ysy.md` 是一次性合并说明，不适合长期留在仓库根目录。
+
+### 修改方案
+
+- 更新 `CHANGELOG.md` 中两条 P0-01 记录的验证结果：
+  - 已完成：`saveTopic` / `submitTopicComment` 部署、话题创建/配图/编辑/发布/下线、评论提交与审核通过/驳回/隐藏、旧话题兼容、图片目录、三账号页面权限显示。
+  - 未单独验收但不阻塞合并：直接调用管理云函数的越权测试、Banner 本地降级图、9 图上限真机验证。
+- 将 `Changelog-ysy.md` 移动到 [docs/team-collaboration/archive/Changelog-ysy.md](./docs/team-collaboration/archive/Changelog-ysy.md)，并在归档 README 中登记。
+- 清理本地 `.temp/` 临时文件。
+
+### 验证结果
+
+- 已核对 `saveTopic` / `submitTopicComment` 已部署，真机主链路通过。
+- 已确认归档路径和文档引用有效。
+- 本次仅修改文档、移动合并说明和清理临时文件，未修改运行时代码。
+
+## 2026-11-16 - 记录话题管理上传按钮布局待改进项
+
+### 问题场景
+
+话题管理页的「上传封面」和「添加配图」都是大号胶囊按钮，但分属封面图和正文配图两个不同区块，视觉上像同一组同级操作，层级不清晰，按钮宽度、对齐和间距也不统一。
+
+### 修改方案
+
+- 在 [docs/planning/improvement-backlog.md](./docs/planning/improvement-backlog.md) 新增 `IMP-007`，记录布局问题、期望结果、建议方案和验收标准。
+- 将现状截图保存到 [docs/assets/improvement-backlog/IMP-007-topic-upload-buttons.png](./docs/assets/improvement-backlog/IMP-007-topic-upload-buttons.png)，并在 Backlog 中引用。
+- 本次仅记录问题和截图，不修改 `topic-management` 页面代码。
+
+### 验证结果
+
+- 已核对当前 WXML：封面按钮在 `cover-tools`，配图按钮在 `content-image-section` 的 `section-head`，两者确实属于不同区块。
+- 本次仅新增文档和截图，未修改运行时代码，无需执行 JavaScript 语法检查。
+
+## 2026-11-16 - 补充审核、刷新与 UI 改版待改进项
+
+### 问题场景
+
+审核回复类任务缺少父评论上下文；多数列表页没有下拉刷新；页面 UI 缺少统一设计语言。这些问题不属于当前主链路阻塞，但会影响审核判断、内容更新效率和后续维护成本。
+
+### 修改方案
+
+- 在 [docs/planning/improvement-backlog.md](./docs/planning/improvement-backlog.md) 新增三条：
+  - `IMP-004`：审核中心回复类任务展示父评论原文、作者和状态。
+  - `IMP-005`：主要列表页补充下拉刷新，并避免与 `onShow` 重复请求。
+  - `IMP-006`：小程序 UI 统一设计与改版。
+- `IMP-006` 标记为 `HOLD`，并写明开工时机：至少等 P0（话题、审核、权限）和 P1（题库、题目、视频）完成并验收，同时完成文章、Banner、登录绑定、积分答题等主链路回归后，再开始设计审计和组件库。
+
+### 验证结果
+
+- 已核对 `getReviewTasks` 当前只补充 `parentId`，审核中心只展示父评论 ID。
+- 已核对当前只有 `pages/index`、`pages/learning-records` 实现 `onPullDownRefresh`，只有 `pages/backpack`、`pages/learning-records` 开启 `enablePullDownRefresh`。
+- 本次仅新增文档内容，未修改运行时代码，无需执行 JavaScript 语法检查。
+
+## 2026-11-16 - 记录话题与视频管理的待改进项
+
+### 问题场景
+
+话题管理和视频管理目前依赖手动输入 ID/日期，运营使用成本高、容易填错，且编辑时难以确认关联内容是否正确。
+
+### 修改方案
+
+- 在 [docs/planning/improvement-backlog.md](./docs/planning/improvement-backlog.md) 新增三条待改进项：
+  - `IMP-001`：话题开始/结束日期改为年-月-日轮盘选择。
+  - `IMP-002`：话题关联文章/视频改为可视化选择，不再手动输入 ID。
+  - `IMP-003`：视频关联文章/话题改为可视化选择，不再手动输入 ID。
+- 每条记录包含状态、优先级、类型、来源、负责人、问题、期望结果、建议方案和验收标准。
+
+### 验证结果
+
+- 已检查条目格式与 `improvement-backlog.md` 模板一致。
+- 本次仅新增文档内容，未修改运行时代码，无需执行 JavaScript 语法检查。
+
+## 2026-11-16 - 归档二期规划并建立待改进项 Backlog
+
+### 问题场景
+
+`docs/planning/` 同时存放历史二期规划和当前工作，新的待改进项没有明确入口，容易和已归档的二期计划混在一起。
+
+### 修改方案
+
+- 将 `docs/planning/` 下的二期规划文档整体移动到 `docs/archive/phase2-planning/`，包括计划、需求、Backlog、任务拆分、验收、管理端优先级、数据模型和预算等 14 份文档。
+- 新增 [docs/planning/improvement-backlog.md](./docs/planning/improvement-backlog.md)，作为当前阶段的待改进项入口，包含状态、优先级、类型、来源、负责人和验收标准模板。
+- 更新 [README.md](./README.md)、[ARCHITECTURE.md](./ARCHITECTURE.md)、[CLAUDE.md](./CLAUDE.md)、[docs/README.md](./docs/README.md)、[docs/archive/README.md](./docs/archive/README.md) 和四份 `docs/team-collaboration/member-*.md` 中的规划链接。
+- 归档文档内部的 `docs/planning/phase2_*` 文本引用同步改为 `docs/archive/phase2-planning/phase2_*`。
+
+### 验证结果
+
+- `docs/planning/` 当前只剩 `improvement-backlog.md`。
+- 已执行全局检索，没有残留 `docs/planning/phase2_*`、`../planning/phase2_*` 或 `./planning/phase2_*` 引用。
+- 本次仅移动和新增文档，未修改运行时代码，无需执行 JavaScript 语法检查。
+
 ## 2026-11-15 - 视频列表分页（用户端与管理端）
 
 ### 问题场景
@@ -178,6 +273,77 @@
   - 仍被其他视频/文章/话题/题库/Banner/头像引用的文件被标记 `skipped_referenced`，不会删除。
   - operator 执行实际删除返回“仅管理员可以执行实际删除”；普通用户返回“无管理权限”。
 - 部署要求：新增并部署 `cleanupStorageFiles`；重新部署 `saveVideo`、`deleteVideo`。首次执行前先在云开发控制台或管理页运行 dry-run。
+
+## 2026-11-14 - P0-01 新增代码规范整改（仅限本次改动的文件）
+
+### 问题场景
+
+- 对照根目录 `CLAUDE.md`「调试日志规范」核对提交 `fd0154a` 的新增代码，发现新增的 4 处报错仍是散文格式（`console.error('xxx failed:', err)`），不符合「Console 日志统一为一行 JSON」。
+- `cloudfunctions/submitTopicComment/index.js` 缺中文模块头注释，与「源文件通常保留中文模块头注释」不一致；本次已修改该文件的评论写入逻辑，需同步补上。
+- 新增的 `utils/logger.js` 未在 `CLAUDE.md` 公共工具章节登记，违反「功能变化时同步更新相关文档」。
+
+本次整改范围严格限定为 `fd0154a` 改动过的文件，未触碰其他成员的页面、云函数与文档。
+
+### 修改方案
+
+- 新增 [utils/logger.js](./utils/logger.js)：`createLogger(module)` 返回 `log(level, stage, detail)`，输出 `[module] {"ts","level","stage",...}` 单行 JSON，`level` 白名单为 `INFO`/`WARN`/`ERROR`，`detail` 不允许携带 openid 等敏感字段。
+- [pages/topic-management](./pages/topic-management/topic-management.js)：接入 `createLogger('topic-management')`，把 9 处 `console.error` 全部改为结构化日志（其中 4 处为本次新增、5 处为同一文件内的历史写法，统一格式避免一个文件两种日志风格）；`stage` 使用 `covers:resolve-failed`、`list:load-failed`、`edit:resolve-images-failed`、`upload:preview-resolve-failed`、`upload:failed`、`cover:choose-failed`、`content-image:choose-failed`、`save:failed`、`delete:failed`。同时清理新增代码块中的行尾空格与多余空行。
+- [cloudfunctions/saveTopic](./cloudfunctions/saveTopic/index.js)、[cloudfunctions/submitTopicComment](./cloudfunctions/submitTopicComment/index.js)：云函数目录独立部署无法跨目录 `require`，在本文件内定义同名 `log()`，异常分支分别输出 `save:failed`、`submit:failed`；`submitTopicComment` 补中文模块头注释（上游依赖、入参、输出）。
+- [CLAUDE.md](./CLAUDE.md)：公共工具章节登记 `utils/logger.js`；调试日志规范补充云函数侧的实现方式。
+
+### 验证结果
+
+- `node --check` 通过：`utils/logger.js`、`pages/topic-management/topic-management.js`、`cloudfunctions/saveTopic/index.js`、`cloudfunctions/submitTopicComment/index.js`。
+- `grep console.` 复核：上述 4 个文件中除 `log()` 内部按级别调用 `console.error/warn/log` 外，业务代码已无散文日志。
+- 云函数 `exports.main` 返回结构未变（`{ success, data?, errMsg? }`），调用方无需调整；`saveTopic` 的 `contentImages` 语义（空数组清空、缺省沿用）保持不变。
+- WXML/JSON 本轮未改动，无需重新校验。
+- 已完成真机验收：`saveTopic` / `submitTopicComment` 已部署；话题创建、正文配图、编辑回显、发布/下线、评论提交与审核通过/驳回/隐藏均通过；`operator` / `reviewer` / 普通用户的页面入口权限显示正常。
+- 未单独验收（不作为合并阻塞项）：直接调用管理云函数的越权测试、Banner 本地降级图、9 图上限真机验证；验收步骤见 PR 描述与 [docs/guides/topic-publish-test.md](./docs/guides/topic-publish-test.md)。
+
+## 2026-11-08 - P0-01 话题发布主链路收口：正文配图、状态下标修复、Banner 图与图片目录合并
+
+### 问题场景
+
+- 话题正文只能写纯文本：`pages/topic-management` 只有封面图输入，`saveTopic` 也只会把 `contentText` 拆成 `text` 内容块，运营无法给话题补配图，与“话题要有文章、视频、配图等配套资源”的验收要求不一致。
+- 状态下拉显示错位：`topic-management.wxml` 用 `{{statusOptions.indexOf(form.status)}}` 作为 picker 的 `value`，WXML 表达式不支持方法调用，编辑已发布（`published`）或已下线（`offline`）话题时选择器会跳回第一项 `draft`，运营容易在保存时误改状态。
+- 首页轮播只有纯色渐变：`HOME_BANNERS` 只有 4 条渐变兜底，没有 Banner 图，无法直接看到图片效果。
+- 图片目录重复：根目录同时存在 `image/` 与 `images/`，`image/问题已找到-修复方案/` 下 11 张截图有 8 张是完全重复的文件，另有孤立的 `image.png`。
+
+### 修改方案
+
+- 话题正文配图（成员 A 范围）：
+  - [cloudfunctions/saveTopic](./cloudfunctions/saveTopic/index.js) 新增 `contentImages`（`[{ imageUrl, caption }]`，最多 9 张）入参，生成 `image` 内容块；内容块统一重排 `sort`，顺序为正文段落 → 配图 → `article_link` → `video_link` → 未知类型块。
+    - 传空数组表示清空配图；不传该字段（旧版调用方）时沿用库内已有配图，避免历史数据被静默删除。
+    - 未识别的历史内容块类型继续保留，不再因为重新保存而丢失。
+  - [pages/topic-management](./pages/topic-management/topic-management.js) 新增正文配图区：`addContentImage` 选择图片后上传到云存储 `topics/content/`，`onContentImageCaptionInput` 编辑图注，`removeContentImage` 逐张移除；列表项显示配图数量。
+  - 抽出 `uploadImageToCloud` / `showUploadError`，封面上传与配图上传共用云存储上传和 `-503002` 权限提示逻辑。
+  - [pages/topic-detail](./pages/topic-detail/topic-detail.wxml) 配图块在 `imageUrl` 为空时只渲染图注，不再出现破图。
+- 状态下标修复：新增 `data.statusIndex`，在 `editTopic` / `onStatusChange` / `resetForm` 中维护，WXML 改用 `value="{{statusIndex}}"`。
+- 评论写入兼容：`submitTopicComment` 事务内 `add` 的返回值同时兼容 `_id` 与 `id`，取不到 ID 时显式报错，避免不同 `wx-server-sdk` 版本下评论写入静默失败导致评价链路断开。
+- Banner 图：[images/banners/](./images/banners/) 新增 4 张 900×537 JPEG（10–12 KB）轮播背景图，`HOME_BANNERS` 增加 `image` 字段指向本地图，云端不可用时降级轮播直接出图；文案仍由页面 `slide-text` 叠加，图片本身不含文字。
+  - 正式首页仍以 `banners` 集合为准，上传与写入步骤见新增的 [docs/operations/banner-image-upload.md](./docs/operations/banner-image-upload.md)。
+- 图片目录合并：`image/问题已找到-修复方案/` 按 MD5 去重后保留 3 张 articles 列表截图，重命名为 `articles-list-01/02/03.png`，连同 `image.png`（重命名为 `chat-input-bar.png`）一起并入 `images/问题已找到-修复方案/`，删除根目录 `image/` 与 `image.png`。
+- 文档同步：`CLAUDE.md`（社区内容块、Banner 图片、images 目录）、`images/FOLDER.md`、`pages/topic-management/FOLDER.md`、`docs/guides/topic-publish-test.md`、`docs/README.md`。
+
+### 验证结果
+
+- `node --check` 通过：`cloudfunctions/saveTopic/index.js`、`cloudfunctions/submitTopicComment/index.js`、`pages/topic-management/topic-management.js`、`pages/index/index.js`、`pages/topic-detail/topic-detail.js`。
+- 本地离线模拟（内存数据库替换 `wx-server-sdk`，直接加载真实云函数，脚本不提交）验证主链路 42 项断言全部通过：
+  - 普通用户 `saveTopic` 返回“无管理权限”；管理端列表普通用户不可读。
+  - 草稿话题在 `getTopics` / `getTopicDetail` 均不可见；发布后列表可见、详情返回正文块与配图块。
+  - 关联文章只返回 `status=2` 已发布记录，草稿文章被过滤；关联视频只返回 `published`。
+  - 评论提交后 `comments.status = pending_review`，同时生成 `review_tasks`（`sourceId` 指向评论、状态 `pending_review`），评论回写 `reviewTaskId`；审核前讨论区为空。
+  - 5 秒内重复提交被合并；高危敏感词被拦截；回复记录 `parentId` / `replyToUid`。
+  - 审核通过后 `comments.status = approved` 且讨论区可见；驳回后不可见。
+  - 话题下线后列表与详情均不可见；旧版调用（不传 `contentImages`）保留库内已有配图。
+- 本地离线模拟验证页面逻辑 31 项断言全部通过：编辑已发布话题时 `statusIndex = 1`、正文多段拼接、配图与封面预览解析、图注写入对应下标、移除配图、保存入参（`contentImages` 只含 `imageUrl`/`caption`、不传 `coverImagePreview`）、空标题拦截、重置清空。
+- WXML 标签闭合与 `{{ }}` 配对检查通过；`app.json`、页面 `.json` JSON 解析通过。
+- 已完成真机回归：配图上传、预览、长图展示、编辑回显、发布/下线、评论进入 `pending_review`、审核通过/驳回/隐藏、旧话题兼容、图片目录。
+- 已完成部署：`saveTopic`、`submitTopicComment` 已部署到目标云环境。
+- 未单独验收（不作为合并阻塞项）：
+  - 9 图上限的真机验证（离线模拟已通过）。
+  - 4 张 Banner 本地降级图的真机展示，以及正式 `banners` 集合上传后的首页轮播效果。
+  - 直接调用管理云函数的越权测试（页面入口权限显示已通过）。
 
 ## 2026-11-05 - 归档历史分工文档并建立当前 3+1 分工
 

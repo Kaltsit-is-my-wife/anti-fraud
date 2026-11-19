@@ -64,7 +64,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 页面目录：[pages/](./pages/)
 - 公共工具：[utils/](./utils/)
 - 云函数目录：[cloudfunctions/](./cloudfunctions/)
-- 图片和 TabBar 图标：[images/](./images/)
+- 图片和 TabBar 图标：[images/](./images/)（`images/banners/` 为首页轮播本地降级图；历史上根目录的 `image/`、`image.png` 已合并进本目录）
 
 项目使用微信云开发默认环境：
 
@@ -108,6 +108,7 @@ cloudbase functions:deploy getBanners
 - 级别：`INFO` 正常阶段、`WARN` 可疑/取消/超限/心跳、`ERROR` 明确失败。
 - 记录文件至少包含：日期、分支/提交、环境、复现步骤、预期/实际、关键日志、结论与下一步。
 - 不记录 `openid`、手机号、学号、姓名、密钥、token；示例数据使用占位值。
+- 云函数目录独立部署，不能跨目录 `require` 前端工具，需在本文件内定义同名 `log()`（`saveTopic`、`submitTopicComment` 已是此写法）。
 - 小程序运行时不能直接写仓库文件；排查时把 Console 输出复制到 `logs/` 记录文件。
 - 客户端直传云存储（如 `wx.cloud.uploadFile`）不会产生云函数日志，需要在客户端 Console 排查。
 - 问题解决后删除临时日志；有长期价值的结论整理到 `docs/research/`。
@@ -129,6 +130,7 @@ cloudbase functions:deploy getBanners
 ### 公共工具（`utils/`）
 
 - `cloud.js`：`resolveCloudFileUrls()` 把 `cloud://` 文件 ID 批量换成临时 URL（结果缓存 30 分钟）；`getCloudFunctionErrorMessage()` 把未部署等错误转成可读提示。
+- `logger.js`：`createLogger(module)` 返回 `log(level, stage, detail)`，输出 `[module] {"ts","level","stage",...}` 单行 JSON；`level` 取 `INFO`/`WARN`/`ERROR`，`stage` 用「模块:动作」，`detail` 禁止写 openid 等敏感字段。新增页面报错时用它，不要再写 `console.error('中文:', err)`。
 - `cache.js`：基于 `wx.setStorageSync` 的 TTL 缓存，键统一加 `perf_cache:` 前缀，提供 `readCacheData/writeCacheData/removeCacheData/shouldRefresh`。
 - `permission.js`：前端权限快照（`isAdmin`、`roles` 中的 `operator`/`reviewer`），只用于隐藏入口和页面跳转，**不是安全边界**；管理云函数仍须自行校验。
 - `feature.js`：功能开关。当前 `pointsMallEnabled: false`，`pages/user`、`pages/my`、`pages/points` 会隐藏或拦截积分商城入口并显示 `POINTS_MALL_NOTICE`；商城云函数仍保留。
@@ -232,15 +234,15 @@ CMS 文章媒体链路由 CMS 负责：封面图使用 `coverImage` 图片字段
 
 #### 文章发布状态的代码现状
 
-CMS 文档约定 `status=1` 为草稿、`status=2` 为已发布，并写明只有已发布文章对用户可见。但当前用户侧代码尚未执行这个约束：
+CMS 文档约定 `status=1` 为草稿、`status=2` 为已发布。当前用户侧云函数已执行该约束：
 
 | 用户入口 | 当前实现 | 是否过滤已发布状态 |
 |---|---|---|
-| 首页列表 | `getArticles` 查询 `articles` | 否 |
-| 文章详情 | `getArticleDetail` 按 `_id` 查询 `articles` | 否 |
-| 文章搜索 | `searchArticles` 查询 `articles` | 否 |
+| 首页列表 | `getArticles` 查询 `status` 为 `2`/`'2'` | 是 |
+| 文章详情 | `getArticleDetail` 按 `{ _id, status }` 查询 | 是 |
+| 文章搜索 | `searchArticles` 查询 `status` 为 `2`/`'2'` | 是 |
 
-因此，CMS 中将文章设置为草稿目前不能由云函数层可靠保证其对用户不可见；这属于待修复的代码缺口，不是当前产品管理方式的改变。后续修复时必须统一 CMS 实际使用的状态值，并同时覆盖列表、详情、搜索和相关推荐查询。
+文章详情、话题详情和视频详情中的相关文章查询也按 `status=2` 过滤。因此 CMS 草稿不会通过列表、详情、搜索和相关推荐透出。缺失 `status` 或状态值不是 `2`/`'2'` 的旧文章会被过滤，上线前需要核查并回填，避免已发布文章意外消失。
 
 文章发布前还要确认 CMS、文章 `articles` 集合、封面/正文媒体所在云环境与小程序一致。仓库没有文章专用 `uploadMedia` 云函数；媒体上传依赖 CMS 自带能力。`cloudfunctions/database.md` 中的旧文章字段模型仍存在，字段名与 CMS/当前代码的 `timestamp`、`views`、`status` 不完全一致，新增或迁移数据时以实际 CMS 模型和调用方为准。
 
@@ -266,7 +268,7 @@ CMS 文档约定 `status=1` 为草稿、`status=2` 为已发布，并写明只�
 4. 审核前保持草稿状态，审核通过后再切换为已发布。
 5. 发布后通过首页刷新、文章详情和搜索分别验收；首页文章首屏存在 3 分钟缓存。
 
-因此，“文章上传流程没有打通”的准确表述是不成立的：文章和媒体的 CMS 管理链路已经存在，尚需管理者掌握标准操作；但用户侧云函数尚未严格执行草稿不可见规则，发布状态过滤仍是独立的待修复项。
+因此，“文章上传流程没有打通”的准确表述是不成立的：文章和媒体的 CMS 管理链路已经存在，用户侧草稿不可见规则也已由云函数执行。上线前仍需核查文章 `status` 数据，避免缺失或异常状态导致已发布文章被过滤。
 
 ### 首页 Banner：CMS 动态读取 + 本地降级
 
@@ -277,7 +279,7 @@ CMS 文档约定 `status=1` 为草稿、`status=2` 为已发布，并写明只�
         → pages/index/index.js 的 loadBanners()
         → resolveCloudFileUrls() 解析 cloud://
         → 首页 swiper，并写入本地缓存 index:banners:v2（TTL 10 分钟）
-失败兜底：pages/index/index.js 的 HOME_BANNERS（4 条本地渐变）+ 降级提示
+失败兜底：pages/index/index.js 的 HOME_BANNERS（4 条，背景图在 images/banners/）+ 降级提示
 ```
 
 `getBanners`（[cloudfunctions/getBanners](./cloudfunctions/getBanners/index.js)）的契约：
@@ -334,6 +336,8 @@ Banner 相关代码与部署项：
 
 当前仍没有 Banner 管理页面、`saveBanner` 云函数或 Banner 媒体上传函数；运营直接通过 CMS 维护 `banners`，修改后可能需要清理 `index:banners:v2` 缓存或等待 10 分钟 TTL。
 
+仓库内已在 `images/banners/` 准备 4 张 900×537 的轮播背景图（无文字，文案由页面叠加），它们只用于 `HOME_BANNERS` 降级展示；要出现在正式首页，必须按 [docs/operations/banner-image-upload.md](./docs/operations/banner-image-upload.md) 上传到云存储并把 `cloud://` 文件 ID 写入 `banners` 集合的 `image` 字段。
+
 ### 视频：已有标准发布链路
 
 视频不是纯占位功能，已经有用户端和管理端完整骨架：
@@ -382,12 +386,12 @@ createdAt/updatedAt   云函数维护
 
 注意事项：
 
-- 当前没有统一的媒体上传云函数；视频和封面需要先上传到云存储，再把地址填入管理页，或使用可访问的 HTTPS 地址。
+- 当前没有统一的媒体上传云函数；管理页已支持客户端直传，其他情况可手动填写 `cloud://` / HTTPS 地址，或先在云开发控制台上传。
 - 视频管理页已支持本地视频/封面上传：`wx.chooseMedia` 选择文件，`wx.cloud.uploadFile` 直传云存储并回填表单，上传成功不改变 `draft` 状态。微信开发者工具对 `wx.chooseMedia` 的视频选择支持不完整，可能返回空 `tempFiles`（带 `failedCount`）；本地上传请用真机验证，开发者工具中可手动填写视频地址。
 - `utils/defaultVideos.js` 中保留了一个 `coverImage`、`videoUrl` 为空的内置演示视频。用户侧第一页会合并显示它（即使云端已有视频），详情页会显示“暂无可播放视频地址”。正式发布前应给它补真实资源，或移除该内置兜底。
 - `getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`、`deleteVideo`、`cleanupStorageFiles` 必须部署到同一个目标云环境；普通用户不能调用管理函数。
 - `deleteVideo` 仅删除 `videos` 数据库记录，不直接删除 `videoUrl` / `coverImage` 指向的云存储文件；已发布视频返回“已发布视频不能删除，请先下线”。
-- 旧文件清理：`saveVideo` 替换视频/封面、`deleteVideo` 删除记录时，旧 `cloud://` 文件进入 `storage_cleanup_tasks`（默认 7 天宽限期）。`cleanupStorageFiles` 默认 `dryRun: true`，会检查 `videos`、`articles`、`topics`、`question_banks`、`banners`、`users`、`public_profiles`、`posts`、`scam_reports` 的引用，确认无引用后才调用 `cloud.deleteFile`；`operator` 只能 dry-run，`isAdmin` 才能实际删除。定时触发器/云控制台默认也只做 dry-run，配置环境变量 `STORAGE_CLEANUP_AUTO_DELETE=true` 后才自动执行实际删除。小程序端不直接调用 `wx.cloud.deleteFile`。详见 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)。
+- 旧文件清理：`saveVideo` 替换视频/封面、`deleteVideo` 删除记录时，旧 `cloud://` 文件进入 `storage_cleanup_tasks`（默认 7 天宽限期）。`cleanupStorageFiles` 默认 `dryRun: true`，当前只检查 `videos.videoUrl/coverImage`、`articles.coverImage`、`topics.coverImage`、`question_banks.coverImage`、`banners.image`、`users/public_profiles.avatarUrl`、`posts/scam_reports.images`；**尚未覆盖** `topics.contentBlocks[].imageUrl`、`articles.content` 富文本、`products` 等其他可能引用云文件的字段。在补齐这些引用检查前，不得执行 `dryRun: false`，否则可能误删仍被使用的文件。`operator` 只能 dry-run，`isAdmin` 才能实际删除；定时触发器/云控制台默认也只做 dry-run，配置环境变量 `STORAGE_CLEANUP_AUTO_DELETE=true` 后才自动执行实际删除。小程序端不直接调用 `wx.cloud.deleteFile`。详见 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)。
 - 视频列表已分页：`getVideos` / `getAdminVideoList` 接受 `page`、`pageSize`，返回 `page`、`pageSize`、`hasMore`；用户页支持下拉刷新和触底加载，管理页支持触底/“加载更多”按钮。建议在云开发控制台为 `videos` 创建 `status + sort + publishedAt` 和 `sort + updatedAt` 组合索引。
 - 发布回归必须验证：列表可见、封面可见、视频可播放、草稿/下线不可见、关联文章/话题可跳转、分页无重复/遗漏、旧文件清理 dry-run 与实际删除符合预期。快速验收看 [简易测试（大白话版）](./docs/guides/video-pagination-storage-cleanup-simple-test.md)，完整步骤见 [详细测试说明](./docs/guides/video-pagination-storage-cleanup-test.md)。
 
@@ -447,6 +451,13 @@ createdAt/updatedAt   云函数维护
 `pages/community` → `getTopics` → `topics`；
 话题详情、评论和审核分别使用 `getTopicDetail`、`getTopicComments`、`submitTopicComment`、`reviewContent`。
 
+话题正文存放在 `topics.contentBlocks` 内容块数组中，当前支持 `text`、`image`、`article_link`、`video_link` 四类：
+
+- `pages/topic-management` 负责把表单转换为内容块：`contentText` 按空行拆成 `text` 块，`contentImages` 生成 `image` 块（最多 9 张，含 `imageUrl`、`caption`），保存时统一重排 `sort`。
+- 内容块顺序为：正文段落 → 配图 → `article_link` → `video_link` → 未知类型块；旧版调用方不传 `contentImages` 时沿用库内已有配图，传空数组表示清空。
+- 配图与封面都先经 `wx.cloud.uploadFile` 上传到 `topics/content/`、`topics/covers/`，再把 `cloud://` 文件 ID 写入内容块。
+- 用户侧 `pages/topic-detail` 用 `resolveCloudFileUrls` 解析 `cloud://` 后渲染，图片为空时只显示图注，不出现破图。
+
 ### 答题与积分
 
 `getQuizQuestions` → 用户答题 → `submitQuizAttempt` → `quiz_attempts`、`users`、`public_profiles`、`points_records`。
@@ -502,14 +513,14 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - `docs/README.md`：文档目录导航和分类规则。
 - `CMS使用文档.md`、`CMS使用文档-简洁版.md`：CMS 操作手册，尤其是 `articles` 与 `banners` 的字段说明。
 - `docs/guides/developer-handoff.md`：较详细的交接与回归清单；修改关键流程后应同步检查。
-- `docs/planning/`：二期计划、需求、任务、验收、数据模型和预算；不代表全部功能都已实现。
+- `docs/planning/`：当前阶段的待改进项 Backlog；历史二期计划、需求、任务、验收、数据模型和预算已归档到 `docs/archive/phase2-planning/`，不代表全部功能都已实现。
 - `docs/operations/`：云函数部署、快速部署、数据维护和运维说明。
 - `docs/guides/`：开发者交接、AI、题库、话题等可执行专项指南。
 - `docs/research/`：性能调查和问题分析材料。
 - `docs/team-collaboration/member-{a,b,c,d}-*.md`：当前 3+1 分工，按角色分别维护（A 内容与社区、B 权限与审核、C 学习内容与视频、D 审查与验收），属于正式协作约定，应纳入 Git 跟踪。
 - `docs/team-collaboration/archive/member-*.md`：历史分工说明归档，仅用于追溯，不作为当前依据。
 - `docs/team-collaboration/acceptance-checklist.md`：本地验收工作表，包含环境和账号记录，已被 `.gitignore` 忽略，不纳入 Git。
-- `docs/archive/`：历史归档，不作为当前实现依据。
+- `docs/archive/`：历史归档，不作为当前实现依据；其中 `docs/archive/phase2-planning/` 保存历史二期规划。
 
 ### 文档目录使用规则
 
@@ -517,7 +528,8 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 
 | 目录 | 放置内容 | 判断标准 |
 |---|---|---|
-| `docs/planning/` | 产品规划、需求、Backlog、任务拆分、阶段验收、预算 | 描述未来建设或阶段计划 |
+| `docs/planning/` | 当前待改进项 Backlog | 记录尚未完成的产品、体验、技术债、安全和运维改进项 |
+| `docs/archive/phase2-planning/` | 历史二期规划、需求、任务、验收、数据模型和预算 | 仅用于追溯，不作为当前依据 |
 | `docs/operations/` | 部署、云环境、数据维护、发布运维 | 需要执行部署或运维操作 |
 | `docs/guides/` | 开发交接、模块操作、专项功能指南、导入样例 | 能按步骤执行的当前工作说明 |
 | `docs/research/` | 性能调查、问题分析、技术调研 | 记录分析过程、证据和候选方案 |
@@ -533,6 +545,7 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - Banner 已支持 CMS 读取（`getBanners` + 首页 `loadBanners`），但仍没有小程序内 Banner 管理页、`saveBanner` 云函数和 Banner 媒体上传能力，运营只能通过 CMS 维护数据。
 - 文章管理继续依赖 CMS；首页和详情仍保留本地示例兜底，正式发布前需确认不会掩盖云端配置错误。
 - 视频管理和读取链路已存在，列表分页和旧文件清理队列已补齐；但仍没有统一媒体上传能力，且保留空资源内置视频。上传成功但从未保存到 `videos` 的孤立文件不在清理队列覆盖范围内；上线前的历史孤立文件需要在云开发控制台做一次性盘点。
+- `cleanupStorageFiles` 的引用检查尚未覆盖 `topics.contentBlocks[].imageUrl`、`articles.content` 富文本、`products` 等其他可能引用云文件的字段；实际执行 `dryRun: false` 前必须补齐，否则可能误删仍被使用的文件。
 - 视频分页依赖 `videos` 的组合索引；未创建索引时小数据量仍可用，数据增长后需要在云开发控制台补索引。
 - 题库模块已完成 5/6 选项、发布状态隔离和分批查询；但“停用题是否在管理端展示”的验收口径尚未统一，且至少 2 个题库的验收数据和真实环境验收记录仍未准备。题库全量读取目前是分批拉取后在内存中统计/过滤，题目规模非常大时还需要进一步做服务端分页。
 - 部分历史云函数可能仍存在旧版写入 `_id`、本地降级或重复业务逻辑，修改时先检查调用链和数据影响。

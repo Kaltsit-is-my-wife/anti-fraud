@@ -25,11 +25,9 @@
 
 当前代码主线仍以已实现的 v3 能力为主。
 
-后续产品演进以二期计划为准：
+二期规划文档已归档，当前阶段待改进项以 [待改进项 Backlog](./docs/planning/improvement-backlog.md) 为准；历史二期计划见 [docs/archive/phase2-planning/](./docs/archive/phase2-planning/)。
 
-- [二期开发计划](./docs/planning/phase2_development_plan.md)
-
-二期已确认方向：
+二期历史方向：
 
 - 资讯升级为图文文章
 - 社区升级为“官方热点话题 + 用户讨论”
@@ -91,12 +89,13 @@ wx.cloud.init({
 
 - [文档导航](./docs/README.md)
 - [项目架构](./ARCHITECTURE.md)
-- [二期开发计划](./docs/planning/phase2_development_plan.md)
-- [二期功能描述](./docs/planning/phase2_feature_description.md)
-- [二期需求文档](./docs/planning/phase2_requirements.md)
-- [二期 Backlog](./docs/planning/phase2_backlog.md)
-- [二期任务拆分](./docs/planning/phase2_task_split.md)
-- [二期验收清单](./docs/planning/phase2_acceptance_checklist.md)
+- [待改进项 Backlog](./docs/planning/improvement-backlog.md)
+- [二期开发计划（归档）](./docs/archive/phase2-planning/phase2_development_plan.md)
+- [二期功能描述（归档）](./docs/archive/phase2-planning/phase2_feature_description.md)
+- [二期需求文档（归档）](./docs/archive/phase2-planning/phase2_requirements.md)
+- [二期 Backlog（归档）](./docs/archive/phase2-planning/phase2_backlog.md)
+- [二期任务拆分（归档）](./docs/archive/phase2-planning/phase2_task_split.md)
+- [二期验收清单（归档）](./docs/archive/phase2-planning/phase2_acceptance_checklist.md)
 - [AI 图片识别说明](./docs/guides/ai_image_guide.md)
 - [数据库设计](./cloudfunctions/database.md)
 - [CMS 使用文档](./CMS使用文档.md)
@@ -135,6 +134,6 @@ miniprogram-14/
 - 项目记忆、当前实现事实、架构约束和发布流程统一优先参考 [`CLAUDE.md`](./CLAUDE.md)。
 - `AGENTS.md` 和 `ARCHITECTURE.md` 保留作历史/补充说明；如与代码或 `CLAUDE.md` 冲突，以 `CLAUDE.md` 和当前代码为准。
 - `README.md` 负责项目简介、快速开始和文档导航，不重复维护详细实现记忆。
-- 产品规划以 [`docs/planning/phase2_development_plan.md`](./docs/planning/phase2_development_plan.md) 为准，但规划内容不代表当前已经实现或部署。
+- 当前待改进项以 [`docs/planning/improvement-backlog.md`](./docs/planning/improvement-backlog.md) 为准；历史二期规划已归档到 [`docs/archive/phase2-planning/`](./docs/archive/phase2-planning/)，规划内容不代表当前已经实现或部署。
 - 历史版本文档已迁入 `docs/archive/`
 - 一次性排障与临时修复记录不再作为长期文档保留

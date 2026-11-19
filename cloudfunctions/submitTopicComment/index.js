@@ -1,3 +1,13 @@
+/**
+ * 提交话题评论云函数 - 二期社区模块（成员 A：话题发布主链路）
+ *
+ * 上游依赖：users、topics、comments、review_tasks、review_keyword_rules
+ * 入口：exports.main
+ * 主要功能：校验话题可评论 → 敏感词与频率校验 → 事务写入评论与审核任务（pending_review）
+ * 入参：{ topicId, content, parentId?, replyToUid? }
+ * 输出：{ success, data: { commentId, status } }
+ */
+
 const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
@@ -5,6 +15,20 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 const DUPLICATE_WINDOW_MS = 5000
+
+const LOG_MODULE = '[submitTopicComment]'
+
+/**
+ * 统一日志：按 CLAUDE.md「调试日志规范」输出单行 JSON。
+ * 云函数目录独立部署，无法跨目录 require utils/logger.js，因此在本文件内实现同名 log()。
+ */
+function log(level, stage, detail = {}) {
+  const safeLevel = ['INFO', 'WARN', 'ERROR'].includes(level) ? level : 'INFO'
+  const line = `${LOG_MODULE} ${JSON.stringify({ ...detail, ts: new Date().toISOString(), level: safeLevel, stage })}`
+  if (safeLevel === 'ERROR') console.error(line)
+  else if (safeLevel === 'WARN') console.warn(line)
+  else console.log(line)
+}
 
 const DEFAULT_RULES = {
   high: ['辱骂', '色情', '赌博', '买卖账号', '出售银行卡', '裸聊'],
@@ -63,7 +87,9 @@ function matchKeywords(content, keywords) {
 async function createCommentReviewTask(commentData, reviewTaskData) {
   const run = async (txDb) => {
     const commentRes = await txDb.collection('comments').add({ data: commentData })
-    const commentId = commentRes._id
+    // 事务内 add 在不同 SDK 版本下可能返回 _id 或 id，两种都兼容
+    const commentId = commentRes._id || commentRes.id
+    if (!commentId) throw new Error('评论写入失败：未返回评论ID')
 
     const reviewTaskRes = await txDb.collection('review_tasks').add({
       data: {
@@ -72,7 +98,8 @@ async function createCommentReviewTask(commentData, reviewTaskData) {
         sourceId: commentId
       }
     })
-    const reviewTaskId = reviewTaskRes._id
+    const reviewTaskId = reviewTaskRes._id || reviewTaskRes.id
+    if (!reviewTaskId) throw new Error('审核任务写入失败：未返回任务ID')
 
     await txDb.collection('comments').doc(commentId).update({
       data: {
@@ -215,7 +242,7 @@ exports.main = async (event) => {
       }
     }
   } catch (err) {
-    console.error('submitTopicComment failed:', err)
+    log('ERROR', 'submit:failed', { msg: err && err.message })
     return { success: false, errMsg: err.message }
   }
 }

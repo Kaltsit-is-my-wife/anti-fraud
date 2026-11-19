@@ -15,6 +15,7 @@
 - `member-b-banner.md`：Banner 链路的历史分工
 - `member-c-video.md`：视频链路的历史分工
 - `member-d-support-and-acceptance.md`：成员 D 的小改动、文档与跨模块验收职责
+- `Changelog-ysy.md`：成员 A 的 P0-01 改动说明、合并指引和验收记录
 
 ## 说明
 
