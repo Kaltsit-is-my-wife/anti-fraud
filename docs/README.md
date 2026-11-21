@@ -29,6 +29,7 @@
 - [快速部署说明](./operations/QUICK_DEPLOY.md)
 - [云存储旧文件清理说明](./operations/storage_cleanup.md)
 - [首页 Banner 图片上传与上线](./operations/banner-image-upload.md)
+- [用 CloudBase 数据管理维护视频和题库](./operations/cloudbase-data-management-video-question-bank.md)
 - [清空用户数据功能说明](./operations/clear_data_feature.md)
 - [用户数据架构](./operations/user_data_architecture.md)
 
