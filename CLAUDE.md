@@ -88,6 +88,9 @@ node --check cloudfunctions/getBanners/index.js
 # 批量检查当前改动涉及的 JS 文件（Git Bash）
 git diff --name-only -- '*.js' | xargs -r -n1 node --check
 
+# 题库 txt 转小程序批量导入 JSON（无依赖）
+node tools/question-bank-converter/convert.js <input.txt> <output.json>
+
 # 云函数依赖（仅本地调试或排查依赖时需要；部署用云端安装依赖）
 cd cloudfunctions/aiChat && npm install
 

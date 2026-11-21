@@ -168,6 +168,8 @@
 
 - `docs/guides/question-bank-import-sample.json`
 
+如果手里是按题号整理的 txt 题库，可以先用 `tools/question-bank-converter/convert.js` 转成上面的 JSON 数组，再从小程序批量导入；用法和输入格式见 `tools/question-bank-converter/README.md`。
+
 ---
 
 ## 6. 导入成功后怎么检查

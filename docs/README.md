@@ -44,6 +44,7 @@
 - [题库管理计划](./guides/question-bank-management-plan.md)
 - [题库操作指南](./guides/question-bank-operation-guide.md)
 - [题库 P0 修复简易测试（大白话版）](./guides/question-bank-p0-simple-test.md)
+- [题库 TXT 转小程序导入 JSON 工具](../tools/question-bank-converter/README.md)
 - [题库重新部署清单](./guides/question-bank-redeploy-list.md)
 - [题库导入样例](./guides/question-bank-import-sample.json)
 - [话题与题库初始化](./guides/topic-and-question-bank-init.md)

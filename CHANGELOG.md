@@ -3,6 +3,31 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-22 - 题库转换脚本移入 tools 供团队复用
+
+### 问题场景
+
+- 题库转换脚本原先放在 `test/conversion_tools/`，而 `test/` 已被 `.gitignore` 排除，团队成员拉代码后拿不到脚本。
+
+### 修改方案
+
+- 新增 [tools/question-bank-converter/convert.js](./tools/question-bank-converter/convert.js)：
+  - 支持命令行参数：`node tools/question-bank-converter/convert.js <input.txt> <output.json> [--label 2025]`；
+  - 按题号、A–F 选项、`答案/正确答案`、可选解析解析 txt；
+  - 只保留单选题，跳过多选题、重复题干、重复选项组等异常题；
+  - 输出小程序“题目管理 → 批量导入”使用的 JSON 数组；
+  - 无外部依赖，Node.js 直接运行。
+- 新增 [tools/question-bank-converter/README.md](./tools/question-bank-converter/README.md)，说明输入格式、输出格式、跳过规则和限制。
+- 更新 [CLAUDE.md](./CLAUDE.md)、[docs/README.md](./docs/README.md) 和 [docs/guides/question-bank-operation-guide.md](./docs/guides/question-bank-operation-guide.md) 的工具入口。
+- 本地 `test/question_bank/` 下的源 txt、生成 JSON 和转换说明仍按 `.gitignore` 保留在本地，不随本次提交入库。
+
+### 验证结果
+
+- `node --check tools/question-bank-converter/convert.js` 通过。
+- 使用本地 2025/2026 源文件跑通：2025 转换 10 题、跳过 10 道多选；2026 转换 99 题、跳过第 17 题（选项与题干不匹配）。
+- 新脚本生成结果与原先本地脚本的输出逐字节一致。
+- 本次未执行小程序实际导入；网页控制台直接导入仍需补全 `questionId`、`normalizedQuestion`、`bankIds`、时间戳并转 JSON Lines。
+
 ## 2026-11-22 - 题库转换脚本与本地测试题库 JSON
 
 ### 问题场景
