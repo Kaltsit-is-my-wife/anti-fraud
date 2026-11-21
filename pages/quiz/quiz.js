@@ -1,8 +1,8 @@
 Page({
   data: {
     loading: true,
-    bankId: 'default_bank',
-    bankName: '基础题库',
+    bankId: '',
+    bankName: '未选择题库',
     questionCount: 10,
     previewMode: false,
     questions: [],
@@ -15,8 +15,10 @@ Page({
   },
 
   onLoad(options) {
-    const bankId = options.bankId || 'default_bank'
-    const bankName = options.bankName ? decodeURIComponent(options.bankName) : '基础题库'
+    const bankId = options.bankId || ''
+    const bankName = options.bankName
+      ? decodeURIComponent(options.bankName)
+      : (bankId ? '题库' : '未选择题库')
     const questionCount = Math.max(1, Math.min(Number(options.count) || 10, 20))
     const previewMode = options.preview === '1'
     this.setData({ bankId, bankName, questionCount, previewMode })

@@ -392,6 +392,10 @@ Page({
       wx.showToast({ title: '请至少填写两个选项', icon: 'none' })
       return
     }
+    if (options.length > 6) {
+      wx.showToast({ title: '最多支持 6 个选项（A-F）', icon: 'none' })
+      return
+    }
     if (!Number.isFinite(answerIndex) || answerIndex < 0 || answerIndex >= options.length) {
       wx.showToast({ title: '正确答案索引不合法', icon: 'none' })
       return

@@ -90,10 +90,19 @@ logUpload('module:loaded', { page: 'video-management' }, 'warn')
 Page({
   data: {
     loading: true,
+    loadingMore: false,
     permissionLoading: true,
     hasPageAccess: false,
+    canExecuteCleanup: false,
+    cleanupChecking: false,
+    cleanupRunning: false,
+    cleanupCandidateCount: 0,
+    cleanupResultText: '',
     editingId: '',
     videos: [],
+    page: 1,
+    pageSize: 20,
+    hasMore: true,
     form: {
       title: '',
       summary: '',
@@ -119,17 +128,56 @@ Page({
       this.setData({ loading: false })
       return
     }
-    this.loadVideos()
+    this.setData({ canExecuteCleanup: access.snapshot.isAdmin === true })
+    this.loadVideos({ reset: true })
   },
 
-  async loadVideos() {
-    this.setData({ loading: true })
+  onReachBottom() {
+    this.loadMoreVideos()
+  },
+
+  loadMoreVideos() {
+    if (!this.data.hasMore || this.data.loading || this.data.loadingMore) return
+    this.loadVideos({ reset: false })
+  },
+
+  async loadVideos(options = {}) {
+    const reset = options.reset !== false
+    if (this._loading) {
+      if (reset) this._pendingReset = true
+      return
+    }
+    if (!reset && !this.data.hasMore) return
+
+    this._loading = true
+    const nextPage = reset ? 1 : this.data.page + 1
+    this.setData(reset ? { loading: true } : { loadingMore: true })
+
     try {
-      const res = await wx.cloud.callFunction({ name: 'getAdminVideoList', data: {} })
+      const res = await wx.cloud.callFunction({
+        name: 'getAdminVideoList',
+        data: { page: nextPage, pageSize: this.data.pageSize }
+      })
+
       if (res.result && res.result.success) {
-        this.setData({ videos: res.result.data?.list || [], loading: false })
+        const data = res.result.data || {}
+        const list = data.list || []
+        const hasMore = data.hasMore === true
+        const existingIds = new Set(
+          reset ? [] : this.data.videos.map(item => String(item._id || ''))
+        )
+        const appended = list.filter(item => !existingIds.has(String(item._id || '')))
+
+        this.setData({
+          videos: reset ? appended : this.data.videos.concat(appended),
+          page: nextPage,
+          hasMore,
+          loading: false,
+          loadingMore: false
+        })
         return
       }
+
       wx.showToast({ title: res.result?.errMsg || '加载失败', icon: 'none' })
     } catch (err) {
       console.error('loadVideos failed:', err)
@@ -137,8 +185,14 @@ Page({
         title: getCloudFunctionErrorMessage(err, 'getAdminVideoList', '视频列表加载失败'),
         icon: 'none'
       })
+    } finally {
+      this._loading = false
+      this.setData({ loading: false, loadingMore: false })
+      if (this._pendingReset) {
+        this._pendingReset = false
+        this.loadVideos({ reset: true })
+      }
     }
-    this.setData({ loading: false })
   },
 
   onInput(e) {
@@ -221,7 +275,7 @@ Page({
         if (this.data.editingId === id) {
           this.resetForm()
         }
-        this.loadVideos()
+        this.loadVideos({ reset: true })
         return
       }
 
@@ -612,7 +666,7 @@ Page({
         })
         wx.showToast({ title: '保存成功', icon: 'success' })
         this.resetForm()
-        this.loadVideos()
+        this.loadVideos({ reset: true })
         return
       }
       logUpload('save-video:fail', {
@@ -631,6 +685,108 @@ Page({
         title: getCloudFunctionErrorMessage(err, 'saveVideo', '保存失败'),
         icon: 'none'
       })
+    }
+  },
+
+  async checkStorageCleanup() {
+    if (this.data.cleanupChecking || this.data.cleanupRunning) return
+
+    this.setData({
+      cleanupChecking: true,
+      cleanupCandidateCount: 0,
+      cleanupResultText: ''
+    })
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'cleanupStorageFiles',
+        data: { dryRun: true, limit: 20 }
+      })
+
+      if (!(res.result && res.result.success)) {
+        wx.showToast({ title: res.result?.errMsg || '检查失败', icon: 'none' })
+        return
+      }
+
+      const data = res.result.data || {}
+      const candidateCount = Number(data.candidateCount) || 0
+      const referencedCount = Number(data.referencedCount) || 0
+      this.setData({
+        cleanupCandidateCount: candidateCount,
+        cleanupResultText: `待清理 ${candidateCount} 个文件；仍被引用 ${referencedCount} 个；${data.hasMore ? '还有更多任务，可再次检查。' : '已扫描当前批次。'}`
+      })
+
+      if (candidateCount > 0) {
+        const preview = (data.candidateFileIds || []).slice(0, 5).join('\n')
+        wx.showModal({
+          title: '可清理文件',
+          content: `${preview}${candidateCount > 5 ? '\n...' : ''}`,
+          showCancel: false
+        })
+      } else {
+        wx.showToast({ title: '暂无可清理文件', icon: 'none' })
+      }
+    } catch (err) {
+      console.error('checkStorageCleanup failed:', err)
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'cleanupStorageFiles', '检查失败'),
+        icon: 'none'
+      })
+    } finally {
+      this.setData({ cleanupChecking: false })
+    }
+  },
+
+  async executeStorageCleanup() {
+    if (this.data.cleanupChecking || this.data.cleanupRunning) return
+    if (!this.data.canExecuteCleanup) {
+      wx.showToast({ title: '仅管理员可以执行删除', icon: 'none' })
+      return
+    }
+    if (this.data.cleanupCandidateCount <= 0) {
+      wx.showToast({ title: '请先检查待清理文件', icon: 'none' })
+      return
+    }
+
+    const confirmed = await new Promise(resolve => {
+      wx.showModal({
+        title: '确认删除云存储文件',
+        content: `将删除 ${this.data.cleanupCandidateCount} 个已确认无引用的旧文件。删除后不可恢复，确定继续吗？`,
+        confirmText: '删除',
+        confirmColor: '#dc2626',
+        success: res => resolve(Boolean(res.confirm)),
+        fail: () => resolve(false)
+      })
+    })
+    if (!confirmed) return
+
+    this.setData({ cleanupRunning: true, cleanupResultText: '' })
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'cleanupStorageFiles',
+        data: { dryRun: false, limit: 20 }
+      })
+
+      if (!(res.result && res.result.success)) {
+        wx.showToast({ title: res.result?.errMsg || '清理失败', icon: 'none' })
+        return
+      }
+
+      const data = res.result.data || {}
+      this.setData({
+        cleanupCandidateCount: 0,
+        cleanupResultText: `已删除 ${data.deletedCount || 0} 个；失败 ${data.failedCount || 0} 个；缺失 ${data.missingCount || 0} 个；仍被引用 ${data.referencedCount || 0} 个。${data.hasMore ? '还有更多任务，可再次执行。' : ''}`
+      })
+      wx.showToast({ title: '清理完成', icon: 'success' })
+    } catch (err) {
+      console.error('executeStorageCleanup failed:', err)
+      wx.showToast({
+        title: getCloudFunctionErrorMessage(err, 'cleanupStorageFiles', '清理失败'),
+        icon: 'none'
+      })
+    } finally {
+      this.setData({ cleanupRunning: false })
     }
   }
 })

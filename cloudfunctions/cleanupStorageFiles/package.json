@@ -1,0 +1,9 @@
+{
+  "name": "cleanupStorageFiles",
+  "version": "1.0.0",
+  "description": "清理视频/封面等旧云存储文件",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -3,6 +3,189 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-22 - 题库转换脚本移入 tools 供团队复用
+
+### 问题场景
+
+- 题库转换脚本原先放在 `test/conversion_tools/`，而 `test/` 已被 `.gitignore` 排除，团队成员拉代码后拿不到脚本。
+
+### 修改方案
+
+- 新增 [tools/question-bank-converter/convert.js](./tools/question-bank-converter/convert.js)：
+  - 支持命令行参数：`node tools/question-bank-converter/convert.js <input.txt> <output.json> [--label 2025]`；
+  - 按题号、A–F 选项、`答案/正确答案`、可选解析解析 txt；
+  - 只保留单选题，跳过多选题、重复题干、重复选项组等异常题；
+  - 输出小程序“题目管理 → 批量导入”使用的 JSON 数组；
+  - 无外部依赖，Node.js 直接运行。
+- 新增 [tools/question-bank-converter/README.md](./tools/question-bank-converter/README.md)，说明输入格式、输出格式、跳过规则和限制。
+- 更新 [CLAUDE.md](./CLAUDE.md)、[docs/README.md](./docs/README.md) 和 [docs/guides/question-bank-operation-guide.md](./docs/guides/question-bank-operation-guide.md) 的工具入口。
+- 本地 `test/question_bank/` 下的源 txt、生成 JSON 和转换说明仍按 `.gitignore` 保留在本地，不随本次提交入库。
+
+### 验证结果
+
+- `node --check tools/question-bank-converter/convert.js` 通过。
+- 使用本地 2025/2026 源文件跑通：2025 转换 10 题、跳过 10 道多选；2026 转换 99 题、跳过第 17 题（选项与题干不匹配）。
+- 新脚本生成结果与原先本地脚本的输出逐字节一致。
+- 本次未执行小程序实际导入；网页控制台直接导入仍需补全 `questionId`、`normalizedQuestion`、`bankIds`、时间戳并转 JSON Lines。
+
+## 2026-11-22 - 题库转换脚本与本地测试题库 JSON
+
+### 问题场景
+
+- 需要把 2025/2026 反诈 txt 题库转成小程序“题目管理 → 批量导入”模板，用于本地批量导入测试。
+- 网页控制台的单条“插入文档”不能直接批量导入，且不会自动补 `questionId`、`normalizedQuestion`、`bankIds`、`bankId` 和时间戳。
+
+### 修改方案
+
+- 在本地新增转换脚本 `test/conversion_tools/convert_question_bank.js`（`test/` 已被 `.gitignore` 排除，不纳入 Git）：
+  - 读取 `test/question_bank/2025/2025全民反诈.txt`、`test/question_bank/2026/2026反诈题目.txt`；
+  - 只保留单选题，跳过多选题；
+  - 输出 `test/question_bank/2025/2025全民反诈.json`、`test/question_bank/2026/2026反诈题目.json`；
+  - 2026 原文件缺少解析，脚本按题型模板自动补写；按关键词生成标签并粗分难度。
+- 转换结果：2025 保留 10 道单选题（第 11–20 题为多选题，跳过）；2026 保留 99 道单选题（原第 17 题选项与题干不匹配，跳过）。
+- 新增本地 `test/question_bank/转换说明.md`，记录题量、跳过项、人工复核点和导入方式。
+- 本次生成的 JSON 只用于小程序批量导入；如果要在网页控制台导入，需要另行补全字段并转成 JSON Lines。
+
+### 验证结果
+
+- 两个 JSON 文件均可被 `JSON.parse` 解析；每道题都有 4 个选项、合法 `answerIndex`、非空解析和 `isActive: true`。
+- 已检查两个输出文件之间没有重复题干。
+- 小程序批量导入路径已由用户实际验证可用；本次完整的 99/10 题尚未全部执行导入。
+- 2026 解析为脚本自动补写，答案分布集中在 B/C/D（无 A），建议导入前人工复核；2025 前 10 题包含“招嫖转刷单”话术，发布前需按内容规范复核。
+- `test/` 目录被 `.gitignore` 排除，转换脚本、源 txt、生成 JSON 和转换说明均保留在本地，不随本次提交入库。
+
+## 2026-11-21 - 补充 CloudBase 数据管理维护视频和题库说明
+
+### 问题场景
+
+- 组长希望用电脑浏览器直接维护视频和题库数据，但数据管理界面是通用数据库编辑器，字段、关联关系和发布规则不直观，容易改错。
+
+### 修改方案
+
+- 新增 [docs/operations/cloudbase-data-management-video-question-bank.md](./docs/operations/cloudbase-data-management-video-question-bank.md)，说明：
+  - 从云开发控制台/数据管理进入；
+  - `videos`、`question_banks`、`quiz_questions` 的导入字段和字段注释；
+  - 视频/题库日常新增、修改、发布、下线、停用和维护规则；
+  - 备份、导入、权限和常见坑。
+- 更新 [docs/README.md](./docs/README.md) 文档导航。
+
+### 验证结果
+
+- 文档中的集合名、字段名、状态值和发布规则已与当前代码及题库操作指南对齐。
+- 本次仅新增/更新文档，未修改运行时代码，无需执行 JavaScript 语法检查。
+- 数据管理入口和界面可用性需在目标云环境按实际控制台确认。
+
+## 2026-11-17 - 补充视频分页与存储清理简易测试说明
+
+### 问题场景
+
+- 之前新增的视频分页与存储清理测试说明内容较细，适合开发/验收人逐项执行，但组长快速验收时步骤偏多。
+
+### 修改方案
+
+- 新增 [docs/guides/video-pagination-storage-cleanup-simple-test.md](./docs/guides/video-pagination-storage-cleanup-simple-test.md)，用大白话覆盖：
+  - 部署哪 5 个云函数；
+  - 用户端/管理端分页怎么点、看什么结果；
+  - 替换/删除视频后怎么查 `storage_cleanup_tasks`；
+  - dry-run、实际删除、引用保护和权限怎么测；
+  - 通过标准、常见问题和测试数据清理。
+- 在详细版 [video-pagination-storage-cleanup-test.md](./docs/guides/video-pagination-storage-cleanup-test.md)、[CLAUDE.md](./CLAUDE.md)、[docs/README.md](./docs/README.md)、[docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md) 和 [member-c-learning-video.md](./docs/team-collaboration/member-c-learning-video.md) 中增加简易版入口。
+
+### 验证结果
+
+- 文档中的云函数名、页面路径、错误提示和测试步骤已与当前代码对齐。
+- 本次仅新增/更新文档，未修改运行时代码，无需执行 JavaScript 语法检查。
+- 文档中的云端/真机测试仍需按步骤实际执行。
+
+## 2026-11-17 - 补充题库 P0 简易测试说明
+
+### 问题场景
+
+- 题库 P0 修复已经落地，但之前的操作指南偏功能说明，组长或非开发验收人不一定知道先测什么、怎么判断通过。
+
+### 修改方案
+
+- 新增 [docs/guides/question-bank-p0-simple-test.md](./docs/guides/question-bank-p0-simple-test.md)，用大白话写清楚：
+  - 测试前要重新部署哪些云函数；
+  - 5/6/7 选项题怎么测；
+  - 草稿/下线题库怎么用普通用户账号验证；
+  - 超过 100 道题怎么检查管理端是否完整。
+- 更新 [docs/README.md](./docs/README.md) 文档导航。
+
+### 验证结果
+
+- 文档中的函数名、页面路径、错误提示和测试步骤已与当前代码对齐。
+- 本次仅新增/更新文档，未修改运行时代码，无需执行 JavaScript 语法检查。
+- 文档中的云端/真机测试仍需按步骤实际执行。
+
+## 2026-11-17 - 题库 P0 收口：5/6 选项判分、发布状态隔离与分批查询
+
+### 问题场景
+
+- 编辑器、批量导入和答题页都支持 A–F 选项，但 `submitQuizAttempt` 只接受答案索引 `0–3`。5/6 选项题的正确答案如果是 E/F，用户无法答对；选择 E/F 还会直接返回“答案格式不正确”。
+- `getQuizQuestions` 只过滤 `isActive: true`，没有校验题库状态；用户直接调用云函数时可以抽到草稿/下线题库的题。`submitQuizAttempt` 也只校验题目与题库的关联关系，不校验题库是否已发布，绕过前端仍可交卷得分。
+- 题库模块多处直接 `.get()` 全量读取，云函数单次查询上限会导致只处理前 100 条：管理列表看不到后面的题、统计和发布校验失真、用户抽题只能从部分题目中抽、查重漏题、删除题库前关联题统计错误。
+
+### 修改方案
+
+- [cloudfunctions/submitQuizAttempt](./cloudfunctions/submitQuizAttempt/index.js)：
+  - 答案索引上限从 `0–3` 放宽到 `0–5`，并在加载题目后按每道题的实际选项数再次校验，4 选项题仍只能提交 0–3。
+  - 用户侧必须传真实题库 ID，且 `question_banks.status === 'published'`；`default_bank`、`__unassigned__`、`__all__` 被拒绝。
+- [cloudfunctions/getQuizQuestions](./cloudfunctions/getQuizQuestions/index.js)：
+  - 非预览模式必须传真实且已发布的题库 ID；草稿/下线题库只允许管理员 `preview` 预览。
+  - 题库没有可用题目时返回“当前题库暂无可用题目”。
+  - 启用题目改为分批拉取后按题库过滤。
+- [cloudfunctions/saveQuizQuestion](./cloudfunctions/saveQuizQuestion/index.js)、[cloudfunctions/importQuizQuestions](./cloudfunctions/importQuizQuestions/index.js)：
+  - 选项数量限制为 2–6 个（A–F），超过 6 个拒绝保存/导入。
+  - 编辑历史题时如果缺少 `questionId`，自动补写一个，便于修复旧数据后正常交卷判分。
+  - 查重改为分批拉取全部题目。
+- [pages/question-editor](./pages/question-editor/question-editor.js)：同步增加 2–6 个选项的校验和输入提示。
+- 发布校验/题库统计增加“选项数量、答案索引或 `questionId` 异常”的检查；用户抽题和题库题量统计过滤异常选项/答案/缺少题目 ID 的历史题，避免下发无法在 A–F 界面作答或无法交卷判分的题目。
+- [pages/quiz](./pages/quiz/quiz.js)：删除 `default_bank` 默认值，未传题库时显示“未选择题库”；[quiz.wxml](./pages/quiz/quiz.wxml) 增加无可用题目空态。
+- 题库模块全量读取改为分批拉取（每批 100 条）：
+  - [getQuizQuestionList](./cloudfunctions/getQuizQuestionList/index.js)：管理题目列表。
+  - [getAdminQuestionBankList](./cloudfunctions/getAdminQuestionBankList/index.js)：题库/题目统计与发布校验。
+  - [getQuestionBanks](./cloudfunctions/getQuestionBanks/index.js)：用户侧题库题量。
+  - [saveQuestionBank](./cloudfunctions/saveQuestionBank/index.js)：发布前题目统计。
+  - [saveQuizQuestion](./cloudfunctions/saveQuizQuestion/index.js)：同题干查重。
+  - [importQuizQuestions](./cloudfunctions/importQuizQuestions/index.js)：导入查重。
+  - [deleteQuestionBank](./cloudfunctions/deleteQuestionBank/index.js)：删除前关联题统计。
+  - [initQuestionBanks](./cloudfunctions/initQuestionBanks/index.js)：初始化关联未归档题目。
+- 更新 [CLAUDE.md](./CLAUDE.md)、[docs/guides/question-bank-operation-guide.md](./docs/guides/question-bank-operation-guide.md)、[docs/guides/question-bank-redeploy-list.md](./docs/guides/question-bank-redeploy-list.md)、[docs/guides/developer-handoff.md](./docs/guides/developer-handoff.md)、[member-c-learning-video.md](./docs/team-collaboration/member-c-learning-video.md)。
+
+### 验证结果
+
+- `node --check` 通过：本次修改的全部题库相关云函数、`pages/question-editor/question-editor.js`、`pages/quiz/quiz.js`。
+- 已完成代码层静态检查；以下云端/真机回归仍待执行：
+  - 5 选项题（正确答案 E）和 6 选项题（正确答案 F）可以预览、交卷并正确判分；7 选项题被拒绝保存/导入。
+  - 普通用户直接调用 `getQuizQuestions` / `submitQuizAttempt` 传草稿/下线题库 ID，返回“题库不存在或未发布”；管理员 `preview` 可以查看草稿题库。
+  - 题目池超过 100 条后，管理列表、题库统计、发布校验、用户抽题、查重和删除题库检查都能覆盖全部题目。
+  - 普通用户调用 `getQuizQuestions` 传 `preview: true` 返回“无管理权限，不能预览题库”。
+  - 选项数或答案索引异常的历史题会阻止题库发布；用户侧抽题和题库题量统计不会包含这类题。
+- 部署要求：重新部署 `getQuizQuestions`、`submitQuizAttempt`、`saveQuizQuestion`、`importQuizQuestions`、`getQuizQuestionList`、`getAdminQuestionBankList`、`getQuestionBanks`、`saveQuestionBank`、`deleteQuestionBank`；如使用初始化函数，也重新部署 `initQuestionBanks`。前端重新编译。
+
+## 2026-11-16 - 补充视频分页与存储清理测试说明
+
+### 问题场景
+
+- 视频分页和旧云存储文件清理已经实现，但缺少可直接交给组长/验收人执行的手工测试步骤；仅靠 `node --check` 无法验证分页加载、权限隔离、宽限期、引用保护和实际删除行为。
+- 清理函数涉及真实删除云存储文件，需要明确测试环境、测试数据、dry-run 顺序和回滚注意事项。
+
+### 修改方案
+
+- 新增 [docs/guides/video-pagination-storage-cleanup-test.md](./docs/guides/video-pagination-storage-cleanup-test.md)，覆盖：
+  - 部署云函数、创建集合和索引、准备 21+ 条分页数据、准备清理测试文件；
+  - 用户端和管理端分页测试项；
+  - 替换/删除登记、dry-run、实际删除、引用保护、权限、`saveVideo` 修复验证；
+  - 测试记录表、通过标准、常见问题排查和测试数据清理。
+- 更新 [docs/README.md](./docs/README.md) 文档导航，并在 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md) 和 [member-c-learning-video.md](./docs/team-collaboration/member-c-learning-video.md) 中增加测试说明入口。
+
+### 验证结果
+
+- 文档中的函数名、页面路径、权限规则和返回字段已与当前代码及 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md) 对齐。
+- 本次仅新增/更新文档，未修改运行时代码，无需执行 JavaScript 语法检查。
+- 文档中的云端和真机测试步骤尚未执行，需要在目标云环境按清单验收。
+
 ## 2026-11-16 - 整理 P0-01 验收记录并归档合并说明
 
 ### 问题场景
@@ -98,6 +281,71 @@ P0-01 主链路已完成真机验收，但 `CHANGELOG.md` 中 2026-11-08 和 202
 - 已执行全局检索，没有残留 `docs/planning/phase2_*`、`../planning/phase2_*` 或 `./planning/phase2_*` 引用。
 - 本次仅移动和新增文档，未修改运行时代码，无需执行 JavaScript 语法检查。
 
+## 2026-11-15 - 视频列表分页（用户端与管理端）
+
+### 问题场景
+
+- 用户端 `getVideos` 没有分页参数，`pages/video` 固定传 `pageSize: 20`，所以用户最多只能看到 20 条已发布视频；函数内部先取单次查询上限内的数据再内存排序，数据量增长后排序和可见性都不可靠。
+- 管理端 `getAdminVideoList` 直接读取全部 `videos` 文档，没有分页，超过单次查询上限后管理页看不到后面的视频。
+- 原有排序只在函数内对已取回的数据做内存排序，无法和 `skip + limit` 分页配合。
+
+### 修改方案
+
+- [cloudfunctions/getVideos](./cloudfunctions/getVideos/index.js)：接受 `page`、`pageSize`（默认 20，最大 50），使用 `where({ status: 'published' })` + `orderBy('sort','asc')` + `orderBy('publishedAt','desc')` + `orderBy('_id','asc')` + `skip` + `limit(pageSize + 1)` 查询，返回 `list`、`page`、`pageSize`、`hasMore`。
+- [cloudfunctions/getAdminVideoList](./cloudfunctions/getAdminVideoList/index.js)：同样支持 `page`、`pageSize`，按 `sort` 升序、`updatedAt` 倒序、`_id` 升序分页。
+- [pages/video/video.js](./pages/video/video.js)：改为分页加载；支持下拉刷新和触底“加载更多”；追加时按 `_id` 去重；内置演示视频只在第一页合并，避免每页重复。
+- [pages/video/video.wxml](./pages/video/video.wxml)、[video.wxss](./pages/video/video.wxss)、[video.json](./pages/video/video.json)：增加加载更多/没有更多状态、下拉刷新配置。
+- [pages/video-management/video-management.js](./pages/video-management/video-management.js)、[.wxml](./pages/video-management/video-management.wxml)、[.json](./pages/video-management/video-management.json)：管理列表改为分页，保存/删除后重新加载第一页；增加触底和“加载更多”按钮。
+- 建议在云开发控制台为 `videos` 创建组合索引：`status` 升序 + `sort` 升序 + `publishedAt` 降序；管理端可使用 `sort` 升序 + `updatedAt` 降序。
+
+### 验证结果
+
+- `node --check` 通过：`cloudfunctions/getVideos/index.js`、`cloudfunctions/getAdminVideoList/index.js`、`pages/video/video.js`、`pages/video-management/video-management.js`。
+- 已完成代码层静态检查；以下真机/体验版回归仍待执行：
+  - 准备超过 20 条已发布视频，验证首屏 20 条、触底/按钮加载更多、无重复、末页显示“没有更多了”。
+  - 管理端准备超过 20 条视频，验证分页、编辑后列表刷新、删除后列表刷新。
+  - 验证下拉刷新会回到第一页，内置演示视频不会在第二页重复出现。
+- 部署要求：重新部署 `getVideos`、`getAdminVideoList`；前端重新编译。
+
+## 2026-11-15 - 视频旧云存储文件清理队列
+
+### 问题场景
+
+- `saveVideo` 替换视频地址或封面、`deleteVideo` 删除草稿/已下线视频记录后，旧文件仍保留在云存储中，长期占用容量并产生费用。
+- `deleteVideo` 按交付约定只删除 `videos` 数据库文档，不能直接删除云存储文件；此前也没有任何清理队列或运维策略。
+- `saveVideo` 编辑不存在的视频 `id` 时，`update` 实际更新 0 条却返回成功；编辑已发布视频还会把 `publishedAt` 重置为当前时间。
+
+### 修改方案
+
+- 新增集合 `storage_cleanup_tasks`：记录 `fileId`、`fileType`、`sourceCollection`、`sourceField`、`sourceId`、`reason`、`status`、`attempts`、`eligibleAt` 等字段。
+- [cloudfunctions/saveVideo](./cloudfunctions/saveVideo/index.js)：
+  - 编辑前读取原视频；视频地址或封面发生变化时，把旧的 `cloud://` 文件登记到清理队列，默认 7 天宽限期。
+  - 修复编辑不存在 `id` 时静默成功的问题，返回“视频不存在或已删除”。
+  - 编辑已发布视频时保留原 `publishedAt`；下线后重新发布才写入新的发布时间。
+- [cloudfunctions/deleteVideo](./cloudfunctions/deleteVideo/index.js)：删除记录前把原 `videoUrl` / `coverImage` 的 `cloud://` 文件登记到清理队列；不直接调用 `cloud.deleteFile`，仍只删除 `videos` 文档。
+- 新增 [cloudfunctions/cleanupStorageFiles](./cloudfunctions/cleanupStorageFiles/index.js)：
+  - 小程序端默认 `dryRun: true`，只检查不删除；必须显式传 `dryRun: false` 才执行。云控制台/定时触发器未配置自动删除时同样默认 dry-run。
+  - 读取 `eligibleAt <= 当前时间` 的 `pending` 任务，单次默认 20 个、最大 50 个。
+  - 删除前检查 `videos`、`articles`、`topics`、`question_banks`、`banners`、`users`、`public_profiles`、`posts`、`scam_reports` 的引用（支持数组字段）；任一查询失败或结果被截断时，本批全部按“仍被引用”处理。
+  - 删除失败最多重试 3 次，每次间隔 1 天；超过后标记 `failed`。
+  - 小程序端调用时 `operator` 只能 dry-run，只有 `isAdmin` 可以实际删除；云控制台/定时触发器无 OPENID，默认仍为 dry-run，配置环境变量 `STORAGE_CLEANUP_AUTO_DELETE=true` 后才默认执行实际删除。
+- [pages/video-management](./pages/video-management/video-management.js)：新增“存储清理”面板，operator 可检查，管理员可确认后执行删除。
+- 新增 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)，并更新 [CLAUDE.md](./CLAUDE.md)、[docs/README.md](./docs/README.md)、[docs/guides/developer-handoff.md](./docs/guides/developer-handoff.md)、[member-c-learning-video.md](./docs/team-collaboration/member-c-learning-video.md)。
+- 上线前已经存在的历史孤立文件不会自动入队；文档第 10 节说明了一次性盘点流程。
+- 宽限期可通过环境变量 `STORAGE_CLEANUP_GRACE_DAYS` 调整（1–30 天，默认 7 天）。
+- [cloudfunctions/cleanupStorageFiles/config.json](./cloudfunctions/cleanupStorageFiles/config.json) 设置 `timeout: 60`、`triggers: []`；默认不自动定时执行。
+
+### 验证结果
+
+- `node --check` 通过：`cloudfunctions/saveVideo/index.js`、`cloudfunctions/deleteVideo/index.js`、`cloudfunctions/cleanupStorageFiles/index.js`、`pages/video-management/video-management.js`。
+- 已完成代码层静态检查；以下云端/真机回归仍待执行：
+  - 替换视频地址或封面后，`storage_cleanup_tasks` 出现 `pending` 任务，`eligibleAt` 约为 7 天后。
+  - 删除草稿/已下线视频后，`videos` 文档被删除，清理任务出现，云存储文件不会立即删除。
+  - `cleanupStorageFiles({ dryRun: true })` 只返回待清理列表；`dryRun: false` 且管理员执行后文件被删除。
+  - 仍被其他视频/文章/话题/题库/Banner/头像引用的文件被标记 `skipped_referenced`，不会删除。
+  - operator 执行实际删除返回“仅管理员可以执行实际删除”；普通用户返回“无管理权限”。
+- 部署要求：新增并部署 `cleanupStorageFiles`；重新部署 `saveVideo`、`deleteVideo`。首次执行前先在云开发控制台或管理页运行 dry-run。
+
 ## 2026-11-14 - P0-01 新增代码规范整改（仅限本次改动的文件）
 
 ### 问题场景
@@ -168,7 +416,6 @@ P0-01 主链路已完成真机验收，但 `CHANGELOG.md` 中 2026-11-08 和 202
   - 9 图上限的真机验证（离线模拟已通过）。
   - 4 张 Banner 本地降级图的真机展示，以及正式 `banners` 集合上传后的首页轮播效果。
   - 直接调用管理云函数的越权测试（页面入口权限显示已通过）。
-
 
 ## 2026-11-05 - 归档历史分工文档并建立当前 3+1 分工
 

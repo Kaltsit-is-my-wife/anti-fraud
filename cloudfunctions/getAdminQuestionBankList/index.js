@@ -4,6 +4,30 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
+const BATCH_SIZE = 100
+const MAX_FETCH = 100000
+
+async function fetchAll(collectionName, where = null) {
+  const list = []
+  let offset = 0
+
+  while (offset < MAX_FETCH) {
+    let query = db.collection(collectionName)
+    if (where) query = query.where(where)
+    const res = await query
+      .orderBy('_id', 'asc')
+      .skip(offset)
+      .limit(BATCH_SIZE)
+      .get()
+    const batch = res.data || []
+    list.push(...batch)
+    if (batch.length < BATCH_SIZE) break
+    offset += batch.length
+  }
+
+  return list
+}
+
 async function ensureCollection(name) {
   try {
     await db.collection(name).limit(1).get()
@@ -58,6 +82,7 @@ function buildDefaultStats() {
     activeQuestionCount: 0,
     inactiveQuestionCount: 0,
     missingExplanationCount: 0,
+    invalidQuestionCount: 0,
     untaggedActiveQuestionCount: 0,
     duplicateMap: new Map()
   }
@@ -76,6 +101,9 @@ function buildPublishReview(bank, stats) {
   }
   if (stats.missingExplanationCount > 0) {
     issues.push(`有 ${stats.missingExplanationCount} 道启用题缺少解析`)
+  }
+  if (stats.invalidQuestionCount > 0) {
+    issues.push(`有 ${stats.invalidQuestionCount} 道启用题选项或答案配置异常`)
   }
   if (stats.duplicateQuestionCount > 0) {
     issues.push(`有 ${stats.duplicateQuestionCount} 道启用题重复`)
@@ -106,16 +134,16 @@ exports.main = async () => {
     const user = await getCurrentUser(openid)
     if (!hasAdminAccess(user)) return { success: false, errMsg: '无管理权限' }
 
-    const [banksRes, questionsRes] = await Promise.all([
-      db.collection('question_banks').get(),
-      db.collection('quiz_questions').get()
+    const [banks, questions] = await Promise.all([
+      fetchAll('question_banks'),
+      fetchAll('quiz_questions')
     ])
 
     const statsMap = new Map()
     let unassignedQuestionCount = 0
-    const poolQuestionCount = (questionsRes.data || []).length
+    const poolQuestionCount = questions.length
 
-    ;(questionsRes.data || []).forEach(question => {
+    questions.forEach(question => {
       const bankIds = extractBankIds(question)
       if (bankIds.length === 0) {
         unassignedQuestionCount += 1
@@ -138,6 +166,15 @@ exports.main = async () => {
         if (!normalizeText(question.explanation, 1000)) {
           stats.missingExplanationCount += 1
         }
+        const optionCount = Array.isArray(question.options) ? question.options.length : 0
+        const answerIndex = Number(question.answerIndex)
+        const validAnswer = Number.isInteger(answerIndex) &&
+          answerIndex >= 0 &&
+          answerIndex < optionCount
+        const hasQuestionId = typeof question.questionId === 'string' && question.questionId.trim()
+        if (optionCount < 2 || optionCount > 6 || !validAnswer || !hasQuestionId) {
+          stats.invalidQuestionCount += 1
+        }
         const tags = Array.isArray(question.tags) ? question.tags.filter(Boolean) : []
         if (!tags.length) {
           stats.untaggedActiveQuestionCount += 1
@@ -158,7 +195,7 @@ exports.main = async () => {
       delete stats.duplicateMap
     })
 
-    const list = (banksRes.data || []).map(bank => {
+    const list = banks.map(bank => {
       const stats = statsMap.get(bank._id) || buildDefaultStats()
       const previewQuestionCount = Math.min(
         Math.max(1, Number(bank.defaultQuestionCount) || 10),
@@ -171,6 +208,7 @@ exports.main = async () => {
         activeQuestionCount: stats.activeQuestionCount,
         inactiveQuestionCount: stats.inactiveQuestionCount,
         missingExplanationCount: stats.missingExplanationCount,
+        invalidQuestionCount: stats.invalidQuestionCount,
         untaggedActiveQuestionCount: stats.untaggedActiveQuestionCount,
         duplicateQuestionCount: stats.duplicateQuestionCount || 0,
         previewQuestionCount,
