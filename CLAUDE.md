@@ -518,7 +518,7 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - `docs/guides/developer-handoff.md`：较详细的交接与回归清单；修改关键流程后应同步检查。
 - `docs/planning/`：当前阶段的待改进项 Backlog；历史二期计划、需求、任务、验收、数据模型和预算已归档到 `docs/archive/phase2-planning/`，不代表全部功能都已实现。
 - `docs/operations/`：云函数部署、快速部署、数据维护和运维说明。
-- `docs/guides/`：开发者交接、AI、题库、话题等可执行专项指南。
+- `docs/guides/`：当前可执行的开发者交接、题库、视频、话题等专项指南；2026-10-30 及更早的旧指南已归档到 `docs/archive/guides/`。
 - `docs/research/`：性能调查和问题分析材料。
 - `docs/team-collaboration/member-{a,b,c,d}-*.md`：当前 3+1 分工，按角色分别维护（A 内容与社区、B 权限与审核、C 学习内容与视频、D 审查与验收），属于正式协作约定，应纳入 Git 跟踪。
 - `docs/team-collaboration/archive/member-*.md`：历史分工说明归档，仅用于追溯，不作为当前依据。
@@ -533,6 +533,7 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 |---|---|---|
 | `docs/planning/` | 当前待改进项 Backlog | 记录尚未完成的产品、体验、技术债、安全和运维改进项 |
 | `docs/archive/phase2-planning/` | 历史二期规划、需求、任务、验收、数据模型和预算 | 仅用于追溯，不作为当前依据 |
+| `docs/archive/guides/` | 2026-10-30 及更早的旧开发/交接指南 | 仅用于追溯；当前指南放 `docs/guides/` |
 | `docs/operations/` | 部署、云环境、数据维护、发布运维 | 需要执行部署或运维操作 |
 | `docs/guides/` | 开发交接、模块操作、专项功能指南、导入样例 | 能按步骤执行的当前工作说明 |
 | `docs/research/` | 性能调查、问题分析、技术调研 | 记录分析过程、证据和候选方案 |

@@ -74,6 +74,45 @@
 - 文档中的集合名、字段名、状态值和发布规则已与当前代码及题库操作指南对齐。
 - 本次仅新增/更新文档，未修改运行时代码，无需执行 JavaScript 语法检查。
 - 数据管理入口和界面可用性需在目标云环境按实际控制台确认。
+## 2026-11-20 - 调整题库管理提示并记录暂缓验收
+
+### 问题场景
+
+- 视频分页测试需要 21 条以上已发布视频，当前数据量不足，无法完整跑一遍。
+- 存储清理测试本身只需要 2–4 条测试视频和测试文件，不需要 20 条；但实际删除仍受 `cleanupStorageFiles` 引用扫描缺口限制。
+- 题库管理页已有 placeholder，但提示文案偏短，示例不明确。
+- `docs/guides/` 中部分指南自 2026-10-30 起未更新，与当前实现混在一起。
+
+### 修改方案
+
+- [pages/question-bank-management](./pages/question-bank-management/question-bank-management.wxml) 的输入框/文本域 placeholder 改为更明确的示例提示，输入文本后仍自动消失。
+- [pages/question-editor](./pages/question-editor/question-editor.wxml) 将正确答案、难度从数字输入框改为选择器：
+  - 正确答案范围随当前选项数量变化（A–F），直接选字母，不再手动输入 0–5。
+  - 难度固定为 1–5，显示“最简单”到“最难”。
+  - 保存时仍写入 `answerIndex` / `difficulty`，数据结构不变。
+- 选项编辑从“多行文本、一行一个”改为固定选项行：
+  - 默认 A、B 两个输入框，可添加至 A–F，最多 6 个。
+  - 可逐项删除，最少保留 2 个。
+  - 删除当前正确选项或删除前面的选项时，正确选项索引自动收敛。
+  - 保存前要求每个可见选项都非空，避免空行占位。
+- [pages/quiz](./pages/quiz/quiz.js) 将选项点击下标统一转为数字，并校验 `Number.isInteger`，避免字符串或 `NaN` 进入交卷参数。
+- 视频分页暂按通过验收处理，补充 21 条以上视频数据后再补测。
+- 存储清理确认数据要求为 2–4 条测试视频，不是 20 条；当前先按 dry-run/暂缓处理，补齐 `topics.contentBlocks`、`articles.content` 等引用扫描前不执行 `dryRun: false`。
+- 将 5 份 2026-10-30 及更早的指南移动到 [docs/archive/guides/](./docs/archive/guides/)：
+  - `ai_image_guide.md`
+  - `project-handoff.md`
+  - `question-bank-management-plan.md`
+  - `resume_project_highlight.md`
+  - `topic-and-question-bank-init.md`
+- 新增归档说明，更新 `docs/README.md`、`README.md`、`docs/guides/developer-handoff.md`、`docs/archive/README.md` 和 `CLAUDE.md` 的链接。
+
+### 验证结果
+
+- 题库管理页仅修改 placeholder 文案，未改变表单字段和保存逻辑。
+- 题目编辑页正确答案/难度选择器和选项固定行已通过 `node --check`；尚未在开发者工具中重新编译验证。
+- 多选项测试返回“答案格式不正确”时，先确认 `submitQuizAttempt` 已重新部署为当前版本：旧版只允许索引 0–3，当前版本允许 0–5。
+- 视频分页、存储清理尚未在真实数据上完整验收，记录为暂按通过/待补测。
+- 已检查归档目录和文档链接；未修改运行时代码逻辑。
 
 ## 2026-11-17 - 补充视频分页与存储清理简易测试说明
 

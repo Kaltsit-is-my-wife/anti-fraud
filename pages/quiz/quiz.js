@@ -59,9 +59,9 @@ Page({
   },
 
   selectOption(e) {
-    const index = e.currentTarget.dataset.index
+    const index = Number(e.currentTarget.dataset.index)
     const question = this.data.currentQuestion
-    if (!question) return
+    if (!question || !Number.isInteger(index) || index < 0) return
     const answers = { ...this.data.answers, [question.questionId]: index }
     this.setData({ answers, selectedIndex: index })
   },
@@ -76,7 +76,7 @@ Page({
     const question = this.data.questions[this.data.currentIndex]
     if (!question) return
     const selected = this.data.answers[question.questionId]
-    if (typeof selected !== 'number') {
+    if (!Number.isInteger(selected) || selected < 0) {
       wx.showToast({ title: '请选择答案', icon: 'none' })
       return
     }
@@ -121,7 +121,7 @@ Page({
   async submit() {
     const questionIds = this.data.questions.map(question => question.questionId)
     const answersArray = questionIds.map(id => this.data.answers[id])
-    if (answersArray.some(answer => typeof answer !== 'number')) {
+    if (answersArray.some(answer => !Number.isInteger(answer) || answer < 0)) {
       wx.showToast({ title: '请完成全部题目', icon: 'none' })
       return
     }

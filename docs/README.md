@@ -36,19 +36,25 @@
 ## 开发与专项指南
 
 - [用户手册与测试案例](./manual/README.md)
-- [AI 图片识别说明](./guides/ai_image_guide.md)
 - [开发者交接手册](./guides/developer-handoff.md)
 - [视频分页与存储清理简易测试（大白话版）](./guides/video-pagination-storage-cleanup-simple-test.md)
 - [视频分页与存储清理测试说明](./guides/video-pagination-storage-cleanup-test.md)
-- [项目交接手册](./guides/project-handoff.md)
-- [题库管理计划](./guides/question-bank-management-plan.md)
 - [题库操作指南](./guides/question-bank-operation-guide.md)
 - [题库 P0 修复简易测试（大白话版）](./guides/question-bank-p0-simple-test.md)
 - [题库 TXT 转小程序导入 JSON 工具](../tools/question-bank-converter/README.md)
 - [题库重新部署清单](./guides/question-bank-redeploy-list.md)
 - [题库导入样例](./guides/question-bank-import-sample.json)
-- [话题与题库初始化](./guides/topic-and-question-bank-init.md)
 - [话题发布测试](./guides/topic-publish-test.md)
+
+### 历史指南归档
+
+以下旧指南已归档到 `archive/guides/`，仅用于追溯：
+
+- [AI 图片识别说明](./archive/guides/ai_image_guide.md)
+- [项目交接手册](./archive/guides/project-handoff.md)
+- [题库管理计划](./archive/guides/question-bank-management-plan.md)
+- [话题与题库初始化](./archive/guides/topic-and-question-bank-init.md)
+- [简历项目亮点](./archive/guides/resume_project_highlight.md)
 
 ## 调研与问题分析
 

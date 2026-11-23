@@ -47,6 +47,39 @@ function isSpecialBank(bankId) {
   return !bankId || [POOL_ALL_ID, UNASSIGNED_ID].includes(bankId)
 }
 
+const ANSWER_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+const DIFFICULTY_LABELS = ['1（最简单）', '2（较易）', '3（中等）', '4（较难）', '5（最难）']
+
+function buildAnswerPickerState(optionCount, answerIndex) {
+  const count = Math.max(1, Math.min(Number(optionCount) || 0, ANSWER_LETTERS.length))
+  const labels = ANSWER_LETTERS.slice(0, count)
+  const rawIndex = Number(answerIndex)
+  const index = Number.isFinite(rawIndex)
+    ? Math.min(Math.max(Math.floor(rawIndex), 0), labels.length - 1)
+    : 0
+
+  return {
+    answerOptionLabels: labels,
+    answerIndexPickerIndex: index,
+    answerIndexLabel: labels[index],
+    'form.answerIndex': String(index)
+  }
+}
+
+function buildDifficultyPickerState(difficulty) {
+  const raw = Number(difficulty)
+  const index = Number.isFinite(raw)
+    ? Math.min(Math.max(Math.floor(raw) - 1, 0), DIFFICULTY_LABELS.length - 1)
+    : 0
+
+  return {
+    difficultyFormLabels: DIFFICULTY_LABELS,
+    difficultyPickerIndex: index,
+    difficultyLabel: DIFFICULTY_LABELS[index],
+    'form.difficulty': String(index + 1)
+  }
+}
+
 Page({
   data: {
     loading: true,
@@ -96,7 +129,14 @@ Page({
     filterTag: '',
     importText: '',
     questions: [],
-    form: createEmptyForm()
+    optionInputs: ['', ''],
+    form: createEmptyForm(),
+    answerOptionLabels: ['A', 'B'],
+    answerIndexPickerIndex: 0,
+    answerIndexLabel: 'A',
+    difficultyFormLabels: DIFFICULTY_LABELS,
+    difficultyPickerIndex: 0,
+    difficultyLabel: DIFFICULTY_LABELS[0]
   },
 
   async onLoad(options) {
@@ -325,6 +365,93 @@ Page({
     this.setData({ [`form.${key}`]: e.detail.value })
   },
 
+  updateOptionInputs(optionInputs, answerIndex) {
+    const next = Array.isArray(optionInputs) ? optionInputs.slice(0, ANSWER_LETTERS.length) : []
+    while (next.length < 2) next.push('')
+    const nextAnswerIndex = answerIndex === undefined ? this.data.form.answerIndex : answerIndex
+
+    this.setData({
+      optionInputs: next,
+      'form.optionsText': next.join('\n'),
+      'form.answerIndex': String(nextAnswerIndex)
+    }, () => this.refreshAnswerPicker())
+  },
+
+  onOptionInput(e) {
+    const index = Number(e.currentTarget.dataset.index)
+    if (!Number.isInteger(index) || index < 0) return
+
+    const optionInputs = this.data.optionInputs.slice()
+    optionInputs[index] = e.detail.value
+    this.setData({
+      optionInputs,
+      'form.optionsText': optionInputs.join('\n')
+    })
+  },
+
+  addOption() {
+    if (this.data.optionInputs.length >= ANSWER_LETTERS.length) {
+      wx.showToast({ title: '最多支持 6 个选项（A-F）', icon: 'none' })
+      return
+    }
+
+    this.updateOptionInputs(this.data.optionInputs.concat(''))
+  },
+
+  removeOption(e) {
+    const index = Number(e.currentTarget.dataset.index)
+    if (!Number.isInteger(index) || index < 0) return
+    if (this.data.optionInputs.length <= 2) {
+      wx.showToast({ title: '至少需要两个选项', icon: 'none' })
+      return
+    }
+
+    const optionInputs = this.data.optionInputs.slice()
+    const currentAnswerIndex = Number(this.data.form.answerIndex) || 0
+    optionInputs.splice(index, 1)
+
+    let nextAnswerIndex = currentAnswerIndex
+    if (index < currentAnswerIndex) {
+      nextAnswerIndex = currentAnswerIndex - 1
+    } else if (index === currentAnswerIndex) {
+      nextAnswerIndex = Math.min(currentAnswerIndex, optionInputs.length - 1)
+    }
+
+    this.updateOptionInputs(optionInputs, nextAnswerIndex)
+  },
+
+  refreshAnswerPicker() {
+    this.setData(buildAnswerPickerState(this.data.optionInputs.length, this.data.form.answerIndex))
+  },
+
+  onAnswerIndexChange(e) {
+    const labels = this.data.answerOptionLabels || ['A']
+    const rawIndex = Number(e.detail.value)
+    const index = Number.isFinite(rawIndex)
+      ? Math.min(Math.max(Math.floor(rawIndex), 0), labels.length - 1)
+      : 0
+
+    this.setData({
+      answerIndexPickerIndex: index,
+      answerIndexLabel: labels[index],
+      'form.answerIndex': String(index)
+    })
+  },
+
+  onDifficultyChange(e) {
+    const labels = this.data.difficultyFormLabels || DIFFICULTY_LABELS
+    const rawIndex = Number(e.detail.value)
+    const index = Number.isFinite(rawIndex)
+      ? Math.min(Math.max(Math.floor(rawIndex), 0), labels.length - 1)
+      : 0
+
+    this.setData({
+      difficultyPickerIndex: index,
+      difficultyLabel: labels[index],
+      'form.difficulty': String(index + 1)
+    })
+  },
+
   onActiveChange(e) {
     this.setData({ 'form.isActive': e.detail.value })
   },
@@ -334,25 +461,46 @@ Page({
     const question = this.data.questions.find(item => item._id === id)
     if (!question) return
 
+    const rawOptions = Array.isArray(question.options) ? question.options.map(item => String(item || '')) : []
+    const optionInputs = rawOptions.slice(0, ANSWER_LETTERS.length)
+    while (optionInputs.length < 2) optionInputs.push('')
+
+    if (rawOptions.length > ANSWER_LETTERS.length) {
+      wx.showToast({
+        title: '该题超过 6 个选项，编辑时只显示前 6 个',
+        icon: 'none'
+      })
+    }
+
+    const form = {
+      question: question.question || '',
+      optionsText: optionInputs.join('\n'),
+      answerIndex: String(question.answerIndex || 0),
+      explanation: question.explanation || '',
+      difficulty: String(question.difficulty || 1),
+      tagsText: Array.isArray(question.tags) ? question.tags.join(', ') : '',
+      isActive: question.isActive !== false
+    }
+
     this.setData({
       editingId: id,
-      form: {
-        question: question.question || '',
-        optionsText: Array.isArray(question.options) ? question.options.join('\n') : '',
-        answerIndex: String(question.answerIndex || 0),
-        explanation: question.explanation || '',
-        difficulty: String(question.difficulty || 1),
-        tagsText: Array.isArray(question.tags) ? question.tags.join(', ') : '',
-        isActive: question.isActive !== false
-      }
+      form,
+      optionInputs,
+      ...buildAnswerPickerState(optionInputs.length, form.answerIndex),
+      ...buildDifficultyPickerState(form.difficulty)
     })
     this.scrollToCreatePanel()
   },
 
   resetForm() {
+    const form = createEmptyForm()
+    const optionInputs = ['', '']
     this.setData({
       editingId: '',
-      form: createEmptyForm()
+      form,
+      optionInputs,
+      ...buildAnswerPickerState(optionInputs.length, form.answerIndex),
+      ...buildDifficultyPickerState(form.difficulty)
     })
   },
 
@@ -378,18 +526,20 @@ Page({
   async saveQuestion() {
     if (this._savingQuestion || this.data.submitting) return
 
-    const options = (this.data.form.optionsText || '')
-      .split('\n')
-      .map(item => item.trim())
-      .filter(Boolean)
+    const optionInputs = Array.isArray(this.data.optionInputs) ? this.data.optionInputs : []
+    const options = optionInputs.map(item => String(item || '').trim())
     const answerIndex = Number(this.data.form.answerIndex)
 
     if (!this.data.form.question.trim()) {
       wx.showToast({ title: '请填写题目内容', icon: 'none' })
       return
     }
-    if (options.length < 2) {
+    if (options.filter(Boolean).length < 2) {
       wx.showToast({ title: '请至少填写两个选项', icon: 'none' })
+      return
+    }
+    if (options.some(item => !item)) {
+      wx.showToast({ title: '请填写每个选项，或删除多余选项', icon: 'none' })
       return
     }
     if (options.length > 6) {
