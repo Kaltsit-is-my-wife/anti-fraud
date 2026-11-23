@@ -28,6 +28,7 @@ function hasReviewPermission(user) {
 
 function getTargetMeta(targetType) {
   if (targetType === 'topic_comment') return { collection: 'comments', statusField: 'status' }
+  if (targetType === 'article_comment') return { collection: 'comments', statusField: 'status' }
   if (targetType === 'feedback') return { collection: 'feedback_records', statusField: 'status' }
   if (targetType === 'scam_report') return { collection: 'scam_reports', statusField: 'status' }
   return null

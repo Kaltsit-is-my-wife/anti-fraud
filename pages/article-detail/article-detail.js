@@ -404,6 +404,10 @@ syncActionData(actionData, countKey) {
           replyTo: null,
           replyPlaceholder: '发表评论...'
         })
+        wx.showToast({
+          title: res.result.data?.message || '评论已提交，审核通过后显示',
+          icon: 'none'
+        })
         await this.loadComments(articleId)
       } else {
         wx.showToast({ title: res.result?.errMsg || '发送失败', icon: 'none' })

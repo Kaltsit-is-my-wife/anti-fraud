@@ -1,10 +1,10 @@
 /**
  * 创建评论云函数 - 评论模块 (v3)
  *
- * 上游依赖：users, comments, notifications, posts/articles(可选更新commentCount)
+ * 上游依赖：users、comments、notifications、review_tasks、posts（可选更新 commentCount）
  * 入口：exports.main
- * 主要功能：创建评论或回复；回复时给被回复者发送站内通知
- * 输出：commentId
+ * 主要功能：创建评论或回复；文章评论进入 pending_review 并创建审核任务，帖子评论保持直接发布；回复时给被回复者发送站内通知
+ * 输出：commentId、status
  *
  * 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
  */
@@ -37,6 +37,42 @@ function sanitizeText(s, maxLen) {
   return s.trim().slice(0, maxLen)
 }
 
+async function createCommentReviewTask(commentData, reviewTaskData) {
+  const run = async (txDb) => {
+    const commentRes = await txDb.collection('comments').add({ data: commentData })
+    const commentId = commentRes._id || commentRes.id
+    if (!commentId) throw new Error('评论写入失败：未返回评论ID')
+
+    const reviewTaskRes = await txDb.collection('review_tasks').add({
+      data: {
+        ...reviewTaskData,
+        targetId: commentId,
+        sourceId: commentId
+      }
+    })
+    const reviewTaskId = reviewTaskRes._id || reviewTaskRes.id
+    if (!reviewTaskId) throw new Error('审核任务写入失败：未返回任务ID')
+
+    await txDb.collection('comments').doc(commentId).update({
+      data: {
+        reviewTaskId,
+        updatedAt: commentData.updatedAt
+      }
+    })
+
+    return { commentId, reviewTaskId }
+  }
+
+  if (typeof db.runTransaction === 'function') {
+    return await db.runTransaction(async (transaction) => {
+      const txDb = transaction || db
+      return await run(txDb)
+    })
+  }
+
+  return await run(db)
+}
+
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
@@ -45,7 +81,8 @@ exports.main = async (event, context) => {
     await Promise.all([
       ensureCollection('comments'),
       ensureCollection('notifications'),
-      ensureCollection('users')
+      ensureCollection('users'),
+      ensureCollection('review_tasks')
     ])
 
     const user = await getCurrentUser(openid)
@@ -75,35 +112,77 @@ exports.main = async (event, context) => {
       createdAt: _.gte(new Date(now.getTime() - DUPLICATE_WINDOW_MS))
     }).limit(1).get()
 
+    const isArticleComment = targetType === 'article'
+    const initialStatus = isArticleComment ? 'pending_review' : 'published'
+
     const duplicate = duplicateRes.data && duplicateRes.data[0]
     if (duplicate) {
+      const duplicateStatus = duplicate.status || initialStatus
       return {
         success: true,
         data: {
           commentId: duplicate._id,
           duplicate: true,
-          message: '评论已提交，请勿重复点击'
+          status: duplicateStatus,
+          message: duplicateStatus === 'pending_review'
+            ? '评论已提交，审核通过后显示'
+            : '评论已提交，请勿重复点击'
         }
       }
     }
 
-    const addRes = await db.collection('comments').add({
-      data: {
-        targetType,
-        targetId,
-        authorUid: user.uid,
-        authorNickName: user.nickName || '',
-        authorAvatarUrl: user.avatarUrl || '',
-        content,
-        parentId,
-        replyToUid,
-        status: 'published',
+    const commentData = {
+      targetType,
+      targetId,
+      authorUid: user.uid,
+      authorNickName: user.nickName || '',
+      authorAvatarUrl: user.avatarUrl || '',
+      content,
+      parentId,
+      replyToUid,
+      status: initialStatus,
+      reviewTaskId: isArticleComment ? '' : null,
+      createdAt: now,
+      updatedAt: now
+    }
+
+    let commentId
+    if (isArticleComment) {
+      const writeResult = await createCommentReviewTask(commentData, {
+        targetType: 'article_comment',
+        sourceType: 'article_comment',
+        sourceCollection: 'comments',
+        submitterUid: user.uid,
+        submitterNickName: user.nickName || '',
+        submitterAvatarUrl: user.avatarUrl || '',
+        contentText: content,
+        contentSnapshot: content,
+        sourceMeta: {
+          targetType,
+          targetId,
+          parentId: parentId || '',
+          replyToUid: replyToUid || ''
+        },
+        keywordHits: [],
+        matchedKeywords: [],
+        keywordHitLevel: 'none',
+        autoReviewResult: 'pending_review',
+        autoResult: 'pending_review',
+        reviewStatus: 'pending_review',
+        status: 'pending_review',
+        reviewReason: '',
+        reviewerRemark: '',
+        reviewedBy: '',
+        reviewerUid: '',
+        reviewedAt: null,
         createdAt: now,
         updatedAt: now
-      }
-    })
-
-    const commentId = addRes._id
+      })
+      commentId = writeResult.commentId
+    } else {
+      const addRes = await db.collection('comments').add({ data: commentData })
+      commentId = addRes._id
+    }
 
     // Best-effort: update commentCount on post
     if (targetType === 'post') {
@@ -140,7 +219,15 @@ exports.main = async (event, context) => {
       }
     }
 
-    return { success: true, data: { commentId, duplicate: false } }
+    return {
+      success: true,
+      data: {
+        commentId,
+        status: initialStatus,
+        duplicate: false,
+        message: isArticleComment ? '评论已提交，审核通过后显示' : '评论已提交'
+      }
+    }
   } catch (err) {
     console.error('createComment failed:', err)
     return { success: false, errMsg: err.message }

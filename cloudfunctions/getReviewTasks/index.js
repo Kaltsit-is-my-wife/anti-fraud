@@ -43,6 +43,15 @@ function getTargetMeta(targetType) {
     }
   }
 
+  if (targetType === 'article_comment') {
+    return {
+      collection: 'comments',
+      submitterUidField: 'authorUid',
+      submitterNameField: 'authorNickName',
+      submitterAvatarField: 'authorAvatarUrl'
+    }
+  }
+
   if (targetType === 'feedback') {
     return {
       collection: 'feedback_records',
@@ -80,6 +89,14 @@ function buildSourceMeta(task, sourceRecord) {
 
   if (targetType === 'topic_comment') {
     if (!sourceMeta.topicId && sourceRecord.targetId) sourceMeta.topicId = sourceRecord.targetId
+    if (!sourceMeta.parentId && sourceRecord.parentId) sourceMeta.parentId = sourceRecord.parentId
+    if (!sourceMeta.replyToUid && sourceRecord.replyToUid) sourceMeta.replyToUid = sourceRecord.replyToUid
+    return sourceMeta
+  }
+
+  if (targetType === 'article_comment') {
+    if (!sourceMeta.targetType && sourceRecord.targetType) sourceMeta.targetType = sourceRecord.targetType
+    if (!sourceMeta.targetId && sourceRecord.targetId) sourceMeta.targetId = sourceRecord.targetId
     if (!sourceMeta.parentId && sourceRecord.parentId) sourceMeta.parentId = sourceRecord.parentId
     if (!sourceMeta.replyToUid && sourceRecord.replyToUid) sourceMeta.replyToUid = sourceRecord.replyToUid
     return sourceMeta

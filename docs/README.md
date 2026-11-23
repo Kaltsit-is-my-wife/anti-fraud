@@ -6,6 +6,7 @@
 ## 当前有效文档
 
 - [待改进项 Backlog](./planning/improvement-backlog.md)：当前阶段的产品、体验、技术债、安全和运维改进项
+- [待测试项目清单](./planning/pending-tests.md)：已改代码但尚未在开发者工具或真实云环境验证的项目
 
 ### 历史二期规划归档
 
@@ -45,6 +46,7 @@
 - [题库重新部署清单](./guides/question-bank-redeploy-list.md)
 - [题库导入样例](./guides/question-bank-import-sample.json)
 - [话题发布测试](./guides/topic-publish-test.md)
+- [审核中心测试手册](./guides/review-center-test.md)
 
 ### 历史指南归档
 
@@ -60,6 +62,7 @@
 
 - [性能问题调查](./research/performance-investigation-2026-04-11.md)
 - [性能解决方案](./research/performance-solution-plan-2026-04-11.md)
+- [成员 B 审核中心分支调研](./research/review-center-branch-review-2026-11-16.md)
 
 ## 历史归档
 
