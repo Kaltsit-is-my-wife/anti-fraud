@@ -45,6 +45,7 @@
 - [题库重新部署清单](./guides/question-bank-redeploy-list.md)
 - [题库导入样例](./guides/question-bank-import-sample.json)
 - [话题发布测试](./guides/topic-publish-test.md)
+- [审核中心测试手册](./guides/review-center-test.md)
 
 ### 历史指南归档
 

@@ -3,6 +3,26 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-23 - 落地成员 B 文章评论审核补丁并清理根目录副本
+
+### 问题场景
+
+`member-b` 的页面和云函数改动此前直接放在仓库根目录，无法被小程序编译或云函数部署；同时根目录 `review-center.js`、`index.js` 基于旧版本，缺少 main 上已有的关键词风险展示。
+
+### 修改方案
+
+- [pages/article-detail](./pages/article-detail/article-detail.js)、[pages/community-post-detail](./pages/community-post-detail/community-post-detail.js)：补上评论提交成功的 Toast「评论已提交，审核通过后显示」。
+- [cloudfunctions/getReviewTasks](./cloudfunctions/getReviewTasks/index.js)：增加 `article_comment` 的目标元数据和来源信息补全，保留现有 `keywordHits` / `keywordHitLevel`。
+- [pages/review-center](./pages/review-center/review-center.js)：增加「文章评论」类型和评论对象/父评论信息展示，保留风险等级和命中关键词展示。
+- 删除根目录副本：`article-detail.js`、`community-post-detail.js`、`index.js`、`review-center.js`、`review-center.wxml`。
+- 将根目录 `胡璟旭_测试手册.md` 移动到 [docs/guides/review-center-test.md](./docs/guides/review-center-test.md)，并登记到 `docs/README.md`。
+
+### 验证结果
+
+- `node --check` 通过：`pages/article-detail/article-detail.js`、`pages/community-post-detail/community-post-detail.js`、`cloudfunctions/getReviewTasks/index.js`、`pages/review-center/review-center.js`。
+- `git diff --check` 通过。
+- **仍缺失（阻塞完整闭环）**：`createComment` 尚未写入 `pending_review` / 创建 `review_tasks`，`getComments` 仍只查 `published`，`reviewContent` 尚未支持 `article_comment`。本次只落地了页面和审核查询侧补丁。
+
 ## 2026-11-23 - 修复存储清理引用截断并关闭实际删除入口
 
 ### 问题场景
