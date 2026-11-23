@@ -3,6 +3,32 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-23 - 修复存储清理引用截断并关闭实际删除入口
+
+### 问题场景
+
+- `cleanupStorageFiles` 的引用查询使用 `.limit(1000)`，但云函数单次查询最多返回 100 条，`docs.length >= 1000` 的保守分支永远不会执行。引用文件如果排在 100 条之后，可能被误判为无人引用并删除。
+- 视频管理页仍向管理员暴露“执行清理”，直接调用 `dryRun: false`；但引用检查尚未覆盖 `topics.contentBlocks[].imageUrl`、`articles.content` 等字段。
+- 删除视频的确认文案仍写“云存储文件会保留”，但 `deleteVideo` 现在会把旧文件登记到清理队列。
+
+### 修改方案
+
+- [cloudfunctions/cleanupStorageFiles](./cloudfunctions/cleanupStorageFiles/index.js)：
+  - 引用查询改为 100 条一批分页拉取，累计超过 10000 条时按“仍被引用”保守处理。
+  - 增加 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 环境变量门禁，默认关闭；未配置时 `dryRun: false` 返回“引用检查尚未覆盖全部内容，暂不支持实际删除”。
+- [pages/video-management](./pages/video-management/video-management.js)：
+  - 管理页暂时隐藏“执行清理”，只保留 dry-run 检查。
+  - `executeStorageCleanup` 增加默认关闭的前端开关和提示。
+  - 删除视频确认文案改为“删除记录并登记旧文件到清理队列”。
+- 同步更新 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)、视频分页/清理测试文档和 [CLAUDE.md](./CLAUDE.md)。
+
+### 验证结果
+
+- `node --check cloudfunctions/cleanupStorageFiles/index.js` 通过。
+- `node --check pages/video-management/video-management.js` 通过。
+- `git diff --check` 通过。
+- **尚未完成**：未重新部署 `cleanupStorageFiles`，未在真实数据上验证分批引用查询和实际删除开关。
+
 ## 2026-11-22 - 题库转换脚本移入 tools 供团队复用
 
 ### 问题场景

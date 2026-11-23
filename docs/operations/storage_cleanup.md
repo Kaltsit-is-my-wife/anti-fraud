@@ -77,7 +77,7 @@ cleanupStorageFiles（dry-run / 实际删除）
 安全规则：
 
 - 任一引用查询失败（非“集合不存在”）时，本批次全部文件按“仍被引用”处理。
-- 单次引用查询返回达到 1000 条时，视为无法确认，全部按“仍被引用”处理。
+- 引用查询按 100 条分批拉取；累计超过 10000 条时视为无法确认，全部按“仍被引用”处理。
 - 只处理 `cloud://` 文件 ID，HTTPS 外链不会删除。
 - 删除失败最多重试 3 次，每次间隔 1 天；超过后标记 `failed`，需要人工处理。
 
@@ -87,10 +87,12 @@ cleanupStorageFiles（dry-run / 实际删除）
 
 | 调用方式 | 规则 |
 |---|---|
-| 小程序端调用（有 OPENID） | `operator` / `isAdmin` 可以 dry-run；只有 `isAdmin` 可以 `dryRun: false` |
-| 云开发控制台 / 定时触发器（无 OPENID） | 允许直接运行，属于运维入口 |
+| 小程序端调用（有 OPENID） | `operator` / `isAdmin` 可以 dry-run；只有 `isAdmin` 且配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 时才可能执行 `dryRun: false` |
+| 云开发控制台 / 定时触发器（无 OPENID） | 允许直接运行，属于运维入口；实际删除同样需要 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` |
 
 普通用户调用返回“无管理权限”。
+
+> 当前引用检查尚未覆盖话题正文配图、文章富文本等字段，`STORAGE_CLEANUP_ALLOW_REAL_DELETE` 默认保持 `false`，实际删除默认关闭。
 
 ## 6. 在管理页使用
 
@@ -98,8 +100,8 @@ cleanupStorageFiles（dry-run / 实际删除）
 
 1. `admin` / `operator` 点击“检查待清理文件”。
 2. 页面调用 `cleanupStorageFiles({ dryRun: true, limit: 20 })`，显示待清理数量、仍被引用数量和前几个文件 ID。
-3. 只有 `isAdmin` 会看到“执行清理”按钮；确认后调用 `cleanupStorageFiles({ dryRun: false, limit: 20 })`。
-4. 单次最多处理 20 个任务；返回 `hasMore: true` 时可以再次检查/执行。
+3. 当前版本只开放检查，不显示“执行清理”按钮。
+4. 引用检查补齐并配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 后，才可以恢复实际删除入口。
 
 ## 7. 在云开发控制台使用
 
@@ -121,23 +123,25 @@ cleanupStorageFiles（dry-run / 实际删除）
 }
 ```
 
-建议先用 dry-run 查看待清理文件，再执行实际删除。
+但当前版本即使传 `dryRun: false`，只要没有配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true`，也会返回“引用检查尚未覆盖全部内容，暂不支持实际删除”。
 
 ## 8. 定时清理（可选）
 
 当前没有在仓库中启用定时触发器，避免误删。需要自动清理时，可在云开发控制台为 `cleanupStorageFiles` 添加定时触发器，例如每天 03:00 执行一次。
 
-定时触发器没有 OPENID，函数会按“云控制台/定时触发器”路径放行。但**定时触发器和云控制台默认仍然只做 dry-run**；要让它实际删除，需要给 `cleanupStorageFiles` 配置环境变量：
+定时触发器没有 OPENID，函数会按“云控制台/定时触发器”路径放行。但**定时触发器和云控制台默认仍然只做 dry-run**；要让它实际删除，需要给 `cleanupStorageFiles` 同时配置两个环境变量：
 
 ```text
 STORAGE_CLEANUP_AUTO_DELETE=true
+STORAGE_CLEANUP_ALLOW_REAL_DELETE=true
 ```
 
 行为说明：
 
 - 不配置或配置为非 `true`：无 OPENID 的调用默认 `dryRun: true`，只检查不删除。
-- 配置为 `true`：无 OPENID 的调用默认 `dryRun: false`，会实际删除；此时在云控制台测试不要省略参数，先传 `{ "dryRun": true }` 预览。
-- 小程序端调用不受该环境变量影响，仍然默认 dry-run，且实际删除只允许 `isAdmin`。
+- 只配置 `STORAGE_CLEANUP_AUTO_DELETE=true`：默认尝试实际删除，但会被 `STORAGE_CLEANUP_ALLOW_REAL_DELETE` 拒绝，返回“引用检查尚未覆盖全部内容，暂不支持实际删除”。
+- 两个都配置为 `true`：无 OPENID 的调用默认 `dryRun: false`，会实际删除；此时在云控制台测试不要省略参数，先传 `{ "dryRun": true }` 预览。
+- 小程序端调用不受 `AUTO_DELETE` 影响，仍然默认 dry-run；实际删除需要 `isAdmin` 且 `ALLOW_REAL_DELETE=true`。
 
 启用自动删除前必须：
 
@@ -211,7 +215,7 @@ cloudfunctions/cleanupStorageFiles/index.js 的 REFERENCE_FIELDS
 2. 检查 `storage_cleanup_tasks`：出现 `pending` 任务，`eligibleAt` 约等于当前时间 + 7 天。
 3. 等待任务到期，或临时把 `eligibleAt` 改到过去。
 4. 管理页点击“检查待清理文件” → 显示待清理数量，不删除。
-5. 管理员点击“执行清理” → 云存储文件被删除，任务变为 `deleted`，`videos` 文档保持不变。
+5. **当前版本实际删除默认关闭**；配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 并恢复入口后，管理员点击“执行清理”才会删除文件，任务变为 `deleted`，`videos` 文档保持不变。
 6. 如果文件仍被其他视频/文章/话题/题库/Banner/头像引用 → 任务变为 `skipped_referenced`，文件保留。
 7. 普通用户调用 `cleanupStorageFiles` → 返回“无管理权限”。
 8. `operator` 调用 `dryRun: false` → 返回“仅管理员可以执行实际删除”。

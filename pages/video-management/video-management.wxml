@@ -60,12 +60,12 @@
 
   <view class="panel">
     <view class="panel-title">存储清理</view>
-    <view class="hint">替换视频/封面或删除视频记录后，旧云存储文件会进入待清理队列，默认保留 7 天；宽限期内的文件不会出现在检查结果中。执行前会检查文件是否仍被视频、文章、话题、题库、Banner、社区内容等引用。</view>
+    <view class="hint">替换视频/封面或删除视频记录后，旧云存储文件会进入待清理队列，默认保留 7 天；宽限期内的文件不会出现在检查结果中。当前只做引用检查，实际删除暂未开放；引用检查尚未覆盖话题正文配图和文章富文本。</view>
     <view class="cleanup-actions">
       <button class="btn secondary" bindtap="checkStorageCleanup" disabled="{{cleanupChecking || cleanupRunning}}">{{cleanupChecking ? '检查中...' : '检查待清理文件'}}</button>
       <button wx:if="{{canExecuteCleanup}}" class="btn danger" bindtap="executeStorageCleanup" disabled="{{cleanupChecking || cleanupRunning || cleanupCandidateCount === 0}}">{{cleanupRunning ? '清理中...' : '执行清理'}}</button>
     </view>
-    <view wx:if="{{!canExecuteCleanup}}" class="hint">当前账号可以检查待清理文件；实际删除仅限管理员。</view>
+    <view wx:if="{{!canExecuteCleanup}}" class="hint">当前仅支持检查待清理文件；实际删除需等引用检查补齐后再开放。</view>
     <view wx:if="{{cleanupResultText}}" class="cleanup-result">{{cleanupResultText}}</view>
   </view>
 </view>

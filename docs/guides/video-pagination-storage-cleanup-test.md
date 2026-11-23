@@ -270,7 +270,7 @@ wx.cloud.callFunction({
 
 ### 4.4 实际删除
 
-> 只在测试环境执行，且只删除测试文件。
+> 当前版本实际删除默认关闭：引用检查尚未覆盖话题正文配图和文章富文本，管理页不显示“执行清理”。本节步骤需在测试环境配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 并恢复入口后再执行，且只删除测试文件。
 
 | 编号 | 测试项 | 操作步骤 | 预期结果 |
 |---|---|---|---|
@@ -306,9 +306,9 @@ wx.cloud.callFunction({
 | 编号 | 测试项 | 操作步骤 | 预期结果 |
 |---|---|---|---|
 | C-PERM-01 | 普通用户调用 | 普通账号在 DevTools 控制台调用 `cleanupStorageFiles({ dryRun: true })` | `success: false`，`errMsg` 为“无管理权限” |
-| C-PERM-02 | operator 检查 | operator 账号在管理页点击“检查待清理文件” | 可以检查；看不到“执行清理”按钮；页面提示实际删除仅限管理员 |
+| C-PERM-02 | operator 检查 | operator 账号在管理页点击“检查待清理文件” | 可以检查；看不到“执行清理”按钮；页面提示实际删除暂未开放 |
 | C-PERM-03 | operator 实际删除 | operator 在控制台调用 `{ dryRun: false }` | `success: false`，`errMsg` 为“仅管理员可以执行实际删除” |
-| C-PERM-04 | 管理员实际删除 | 管理员账号执行实际删除 | 成功；任务和文件状态符合预期 |
+| C-PERM-04 | 管理员实际删除 | 管理员在配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 后执行实际删除 | 成功；未配置时返回“引用检查尚未覆盖全部内容，暂不支持实际删除” |
 | C-PERM-05 | 普通用户管理页 | 普通账号打开视频管理页 | 被提示无管理权限并离开 |
 
 普通用户/operator 控制台调用示例：

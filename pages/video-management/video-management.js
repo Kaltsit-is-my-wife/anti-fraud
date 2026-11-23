@@ -5,7 +5,7 @@
  * wx.cloud.uploadFile 上传到云存储后自动回填 videoUrl / coverImage。
  * 上传成功只改变表单内容，不改变发布状态（仍按表单 status 保存，
  * 默认 draft）；数据库保存 cloud:// 文件 ID，页面预览用临时 URL。
- * 不删除旧文件：替换视频或封面后，旧资源仍保留在云存储中。
+ * 替换视频/封面或删除记录时，旧文件登记到云存储清理队列，由后台函数处理。
  */
 
 function splitIds(value) {
@@ -18,6 +18,10 @@ const { ensurePagePermission } = require('../../utils/permission')
 // 上传大小上限（字节）：视频 ≤ 1GB（不做时长限制），封面 ≤ 20MB
 const MAX_VIDEO_SIZE = 1024 * 1024 * 1024
 const MAX_COVER_SIZE = 20 * 1024 * 1024
+
+// 引用检查尚未覆盖话题正文配图和文章富文本，管理页先只开放 dry-run
+const STORAGE_CLEANUP_DELETE_UI_ENABLED = false
+const STORAGE_CLEANUP_DELETE_DISABLED_TEXT = '引用检查尚未覆盖全部内容，实际删除暂未开放'
 
 function getFileExtension(filePath, fallback) {
   if (typeof filePath !== 'string') return fallback || '.mp4'
@@ -128,7 +132,9 @@ Page({
       this.setData({ loading: false })
       return
     }
-    this.setData({ canExecuteCleanup: access.snapshot.isAdmin === true })
+    this.setData({
+      canExecuteCleanup: STORAGE_CLEANUP_DELETE_UI_ENABLED && access.snapshot.isAdmin === true
+    })
     this.loadVideos({ reset: true })
   },
 
@@ -252,7 +258,7 @@ Page({
 
     wx.showModal({
       title: '删除视频记录',
-      content: `确定删除「${title}」吗？仅删除数据库记录，云存储中的视频和封面文件会保留。`,
+      content: `确定删除「${title}」吗？将删除数据库记录，并把旧视频/封面登记到云存储清理队列；宽限期后可能被清理。`,
       confirmText: '删除',
       confirmColor: '#dc2626',
       success: (res) => {
@@ -738,6 +744,14 @@ Page({
   },
 
   async executeStorageCleanup() {
+    if (!STORAGE_CLEANUP_DELETE_UI_ENABLED) {
+      wx.showToast({
+        title: STORAGE_CLEANUP_DELETE_DISABLED_TEXT,
+        icon: 'none',
+        duration: 3000
+      })
+      return
+    }
     if (this.data.cleanupChecking || this.data.cleanupRunning) return
     if (!this.data.canExecuteCleanup) {
       wx.showToast({ title: '仅管理员可以执行删除', icon: 'none' })

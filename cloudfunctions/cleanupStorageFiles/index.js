@@ -7,10 +7,12 @@
  * 输出：{ success: true, data: { dryRun, scanned, candidateCount, referencedCount, deletedCount, failedCount, missingCount, hasMore, candidateFileIds } }
  *
  * 安全边界：
- * - 默认 dryRun=true，只检查不删除；必须显式传 dryRun=false 才执行删除
- * - 小程序端存在 OPENID 时，operator 只能 dry-run，只有 isAdmin 可以实际删除
+ * - 默认 dryRun=true，只检查不删除；必须显式传 dryRun=false 才可能执行删除
+ * - 实际删除还必须配置 STORAGE_CLEANUP_ALLOW_REAL_DELETE=true；默认关闭
+ * - 小程序端存在 OPENID 时，operator 只能 dry-run，只有 isAdmin 才可能实际删除
  * - 云控制台/定时触发器没有 OPENID；默认仍为 dry-run，配置 STORAGE_CLEANUP_AUTO_DELETE=true 后才默认实际删除
  * - 任一引用查询失败时，本批次文件全部按“仍被引用”处理，宁可少删不可误删
+ * - 引用查询按 100 条分批分页，超过扫描上限时按“仍被引用”保守处理
  * - 不删除 HTTPS 外部地址，只处理 cloud:// 文件 ID
  *
  * 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
@@ -26,9 +28,14 @@ const _ = db.command
 const TASK_COLLECTION = 'storage_cleanup_tasks'
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
-const REFERENCE_QUERY_LIMIT = 1000
+const REFERENCE_BATCH_SIZE = 100
+const MAX_REFERENCE_SCAN = 10000
 const MAX_ATTEMPTS = 3
 const RETRY_DELAY_MS = 24 * 60 * 60 * 1000
+// 引用检查尚未覆盖话题正文配图和文章富文本，实际删除默认关闭
+const REAL_DELETE_ENABLED = String(
+  process.env.STORAGE_CLEANUP_ALLOW_REAL_DELETE || ''
+).toLowerCase() === 'true'
 
 // 新增内容形态时，必须同步补充这里的集合和字段，避免误删仍被引用的文件
 const REFERENCE_FIELDS = [
@@ -150,33 +157,50 @@ async function findReferencedFileIds(fileIds) {
 
   for (const config of REFERENCE_FIELDS) {
     try {
-      const res = await db.collection(config.name)
-        .where({ [config.field]: _.in(uniqueIds) })
-        .field({ [config.field]: true })
-        .limit(REFERENCE_QUERY_LIMIT)
-        .get()
+      let offset = 0
+      let scanned = 0
+      let truncated = false
 
-      const docs = res.data || []
-      if (docs.length >= REFERENCE_QUERY_LIMIT) {
-        // 结果可能被截断；无法确认时全部按已引用处理
+      while (offset < MAX_REFERENCE_SCAN) {
+        const res = await db.collection(config.name)
+          .where({ [config.field]: _.in(uniqueIds) })
+          .field({ [config.field]: true })
+          .orderBy('_id', 'asc')
+          .skip(offset)
+          .limit(REFERENCE_BATCH_SIZE)
+          .get()
+
+        const docs = res.data || []
+        docs.forEach(doc => {
+          const value = doc[config.field]
+          const values = Array.isArray(value) ? value : [value]
+          values.forEach(item => {
+            if (typeof item === 'string' && idSet.has(item)) {
+              referenced.add(item)
+            }
+          })
+        })
+
+        scanned += docs.length
+        if (docs.length < REFERENCE_BATCH_SIZE) break
+        offset += docs.length
+
+        if (offset >= MAX_REFERENCE_SCAN) {
+          truncated = true
+          break
+        }
+      }
+
+      if (truncated) {
+        // 结果超过扫描上限；无法确认时全部按已引用处理
         uniqueIds.forEach(fileId => referenced.add(fileId))
         log('WARN', 'references:truncated', {
           collection: config.name,
           field: config.field,
-          count: docs.length
+          scanned,
+          maxScan: MAX_REFERENCE_SCAN
         })
-        continue
       }
-
-      docs.forEach(doc => {
-        const value = doc[config.field]
-        const values = Array.isArray(value) ? value : [value]
-        values.forEach(item => {
-          if (typeof item === 'string' && idSet.has(item)) {
-            referenced.add(item)
-          }
-        })
-      })
     } catch (err) {
       if (err && err.errCode === -502005) continue
       log('ERROR', 'references:query-failed', {
@@ -224,6 +248,16 @@ exports.main = async (event) => {
       if (!hasAdminAccess(user)) return { success: false, errMsg: '无管理权限' }
       if (!dryRun && user.isAdmin !== true) {
         return { success: false, errMsg: '仅管理员可以执行实际删除' }
+      }
+    }
+
+    if (!dryRun && !REAL_DELETE_ENABLED) {
+      log('WARN', 'real-delete-disabled', {
+        openidPresent: Boolean(openid)
+      })
+      return {
+        success: false,
+        errMsg: '引用检查尚未覆盖全部内容，暂不支持实际删除'
       }
     }
 
