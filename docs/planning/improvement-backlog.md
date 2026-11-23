@@ -286,12 +286,12 @@
   - [ ] 核查历史题 `default_bank` / `bankIds` / `questionId`，执行 `initQuestionBanks` 后默认题库关联正确。
   - [ ] 至少一个已发布题库可正常答题。
 
-  D. 存储清理引用扫描补齐（后续，阻塞实际删除）
+  D. 存储清理引用扫描补齐（代码完成，dry-run 已验证；实际删除待测试环境验证）
 
-  - [ ] `topics.contentBlocks[].imageUrl`
-  - [ ] `articles.content` 富文本
-  - [ ] `products` / `notifications` 等其他集合
-  - 补齐后先在测试环境配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 验证实际删除，再考虑正式环境开放。
+  - [x] `topics.contentBlocks[].imageUrl`
+  - [x] `articles.content` 富文本
+  - [x] `products` / `notifications` / `feedback_records` / `quiz_questions` 等其他集合
+  - [ ] 补齐后先在测试环境配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 验证实际删除，再考虑正式环境开放。
 
 - 期望结果：上述 A、B、C 项通过，D 项补齐后，PR #11 才可安全合并并开放实际删除。
 - 验收标准：按 `docs/guides/video-pagination-storage-cleanup-*-test.md` 和 `docs/guides/question-bank-p0-simple-test.md` 逐项勾选。

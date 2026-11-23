@@ -50,17 +50,13 @@
 
 ### 存储清理实际删除默认关闭
 
-`cleanupStorageFiles` 已支持引用检查和 `dryRun`，但引用扫描尚未覆盖：
+`cleanupStorageFiles` 的引用扫描已补齐：`topics.contentBlocks[].imageUrl`、`articles.content` 富文本、`products` / `notifications` / `feedback_records` / `quiz_questions` 等字段已纳入；dry-run 已验证能区分引用文件和候选文件。
 
-- `topics.contentBlocks[].imageUrl`
-- `articles.content` 富文本
-- `products` / `notifications` 等其他集合
-
-因此：
+但实际删除仍默认关闭：
 
 - 不要配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true`
 - 管理页只保留 dry-run，不恢复“执行清理”入口
-- 引用扫描补齐前，禁止在正式环境执行 `dryRun: false`
+- 实际删除需先在测试环境验证，再考虑正式环境开放
 
 ### 文章评论审核已通过，帖子评论链路跳过
 
@@ -83,7 +79,7 @@
 - 视频分页：需要 21 条以上已发布视频后补测
 - 题库 P0：需要核对 `default_bank` / `bankIds` / `questionId` 并执行 `initQuestionBanks`
 - 题库管理 UI：placeholder、答案/难度选择器、2–6 选项固定行
-- 存储清理 P0：管理页 UI、`dryRun: false` 拦截、dry-run 不改任务状态、删除确认文案已通过；普通用户 / operator 权限待测；100+ 引用分页功能测试延期
+- 存储清理 P0：管理页 UI、`dryRun: false` 拦截、dry-run 不改任务状态、删除确认文案已通过；引用扫描补齐已通过 dry-run 验证；普通用户 / operator 权限待测；100+ 引用分页与实际删除验证延期
 
 完整清单见 [pending-tests.md](../planning/pending-tests.md)。
 

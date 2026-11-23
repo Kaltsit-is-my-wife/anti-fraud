@@ -84,21 +84,31 @@
 
 ## 3. 存储清理引用扫描补齐
 
-状态：阻塞
+状态：代码完成，dry-run 已验证；实际删除仍关闭，待测试环境验证后开放
 来源：`IMP-008 D`
 
-当前 `cleanupStorageFiles` 尚未扫描：
+`cleanupStorageFiles` 现已覆盖：
 
 - `topics.contentBlocks[].imageUrl`
 - `articles.content` 富文本
-- `products` / `notifications` 等其他集合
+- `articles.videoUrl`、`posts.coverImage`
+- `products` / `feedback_records` / `quiz_questions` 的图片字段
+- `notifications.payload`
+- `titles.icon` / `achievements.icon`
 
 验证项：
 
-- [ ] 在 dry-run 中补充上述引用后，文件不会被列为候选
-- [ ] 补齐前不配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE`
+- [x] 在 dry-run 中补充上述引用后，文件不会被列为候选
+- [x] 补齐前不配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE`
 - [ ] 补齐后仅在测试环境验证实际删除
-- [ ] 测试完成后恢复默认关闭
+- [x] 测试完成后恢复默认关闭（本轮未开启实际删除）
+
+验证记录（2026-11-23，环境 `cloud1-d8gvez9rg8eb96b20`）：
+
+- 构造 3 条测试队列：话题正文配图文件、文章富文本文件、无引用文件。话题文档写入 `contentBlocks[].imageUrl`，文章文档写入 `content` HTML 中的 `cloud://` 文件 ID。
+- 调用 `cleanupStorageFiles({ dryRun: true })`：`scanned = 3`、`candidateCount = 1`、`referencedCount = 2`，唯一候选为无引用文件；话题配图和文章富文本中的文件均被识别为“仍被引用”。
+- 三个任务保持 `pending`，无 `checkedAt` / `deletedAt`，`updatedAt` 未变；测试用的 topic / article / task 已删除。
+- 实际删除仍关闭：未配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE`，未执行 `dryRun: false` 的真实删除。
 
 相关文档：
 

@@ -3,6 +3,28 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-23 - 补齐云存储清理引用扫描
+
+### 问题场景
+
+- `cleanupStorageFiles` 的引用检查未覆盖 `topics.contentBlocks[].imageUrl`、`articles.content` 富文本、`products` / `notifications` 等字段；开启实际删除时可能误删仍被内容引用的文件。
+- 管理页和定时任务默认只做 dry-run，但引用检查缺口使实际删除无法安全开放。
+
+### 修改方案
+
+- [cloudfunctions/cleanupStorageFiles](./cloudfunctions/cleanupStorageFiles/index.js)：
+  - 将引用扫描扩展为直接字段、嵌套数组（`contentBlocks[].imageUrl`）、富文本（`articles.content`）和递归对象（`notifications.payload`）四种模式。
+  - 补充 `articles.videoUrl`、`posts.coverImage`、`feedback_records`、`products`、`quiz_questions`、`titles/achievements.icon` 等字段。
+  - 保留查询失败或扫描超限时整批按“仍被引用”处理的保守策略。
+- 更新 `CLAUDE.md`、[docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)、`pending-tests.md`、`improvement-backlog.md` 和测试文档的覆盖说明。
+
+### 验证结果
+
+- `node --check cloudfunctions/cleanupStorageFiles/index.js` 通过，`git diff --check` 通过。
+- `cleanupStorageFiles` 已通过 CloudBase MCP 部署。
+- 构造 3 条测试任务：话题正文配图文件、文章富文本文件、无引用文件；dry-run 返回 `scanned = 3`、`candidateCount = 1`、`referencedCount = 2`，只有无引用文件进入候选；任务保持 `pending`，测试数据已清理。
+- 实际删除仍默认关闭，未配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE`；测试环境实际删除验证待做。
+
 ## 2026-11-23 - 修复云函数缺少 OPENID 空值守卫
 
 ### 问题场景
