@@ -36,6 +36,7 @@
 
 ## 开发与专项指南
 
+- [Agent 交接文档](./guides/agent-handoff.md)：给后续接手的 AI agent 查阅
 - [用户手册与测试案例](./manual/README.md)
 - [开发者交接手册](./guides/developer-handoff.md)
 - [视频分页与存储清理简易测试（大白话版）](./guides/video-pagination-storage-cleanup-simple-test.md)
