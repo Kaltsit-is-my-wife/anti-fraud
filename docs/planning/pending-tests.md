@@ -152,20 +152,33 @@
 
 ## 5. 题库 P0 与迁移
 
-状态：待测试
+状态：部分通过（草稿隔离、题库函数版本、5/6 选项抽题、默认 10 题、历史题清理、initQuestionBanks 已验证；答题交卷、7 选项拒绝、管理员预览、100+ 题待补测）
 来源：`IMP-008 C`
 
 验证项：
 
-- [ ] 5 选项题（正确答案 E）可预览、交卷、判分
-- [ ] 6 选项题（正确答案 F）可预览、交卷、判分
-- [ ] 7 选项题保存/导入被拒绝
-- [ ] 草稿/下线题库不能被普通用户抽到
-- [ ] 管理员可以预览草稿题库
-- [ ] 超过 100 道题时管理列表、统计、抽题完整
-- [ ] 历史题 `default_bank` / `bankIds` / `questionId` 已核查
-- [ ] 执行 `initQuestionBanks` 后默认题库关联正确
-- [ ] 至少一个已发布题库可正常答题
+- [ ] 5 选项题（正确答案 E）可预览、交卷、判分（抽题/选项已验证；交卷判分待 UI）
+- [ ] 6 选项题（正确答案 F）可预览、交卷、判分（抽题/选项已验证；交卷判分待 UI）
+- [ ] 7 选项题保存/导入被拒绝（代码已部署；管理员 UI/Console 待复测）
+- [x] 草稿/下线题库不能被普通用户抽到
+- [ ] 管理员可以预览草稿题库（无 OPENID 守卫已验证；管理员 UI 预览待测）
+- [ ] 超过 100 道题时管理列表、统计、抽题完整（当前已发布题库 17 道启用题；代码使用分批拉取，功能测试延期）
+- [x] 历史题 `default_bank` / `bankIds` / `questionId` 已核查（4 道历史测试/异常题已软禁用）
+- [x] 执行 `initQuestionBanks` 后默认题库关联正确（`linked = 0`，题库已存在）
+- [ ] 至少一个已发布题库可正常答题（17 道启用题、默认 10 题；交卷待 UI）
+
+验证记录（2026-11-23，环境 `cloud1-d8gvez9rg8eb96b20`）：
+
+- 云端题库函数普遍是旧版：`getQuizQuestions` 没有已发布校验，草稿题库可直接抽到 10 道题。已重新部署 `getQuizQuestions`、`submitQuizAttempt`、`saveQuizQuestion`、`getQuestionBanks`、`getQuizQuestionList`、`getAdminQuestionBankList`、`saveQuestionBank`、`deleteQuestionBank`、`deleteQuizQuestion`、`updateQuestionBankRelation`、`importQuizQuestions`、`initQuestionBanks`。
+- 草稿题库 `04f2d8196b01c26a0030aa216d2a3e71` 无 `preview` 抽题 → “题库不存在或未发布”；无 OPENID `preview` → “无管理权限，不能预览题库”。
+- 公开题库列表 → `大学生反诈基础题库`，`questionCount = 4`。
+- 已发布题库抽题返回 4 道有效题，包含 6 选项 E（`选E`）和 6 选项 F；临时插入 5 选项 E 测试题后抽到 `count = 5`，测试题已删除。
+- `submitQuizAttempt` 无 OPENID → “用户不存在”；`getQuizQuestionList` / `getAdminQuestionBankList` 无 OPENID → “无管理权限”。
+- 历史异常题 `9a378bfc6b01c31f023b12026ef00670`：缺少 `questionId`、`bankIds`、`bankId`，会被抽题过滤；建议软禁用（`isActive: false`）。修改已有题被权限分类器拦截，待用户确认。
+- `saveQuizQuestion` / `importQuizQuestions` 的 7 选项校验已随当前版本部署；需管理员 UI/Console 复测。
+- 题库填充：新增 16 道反诈题（含 1 道 5 选项 E、3 道 6 选项 F），已发布题库启用题从 4 道变为 17 道；`defaultQuestionCount` 已改为 10。
+- 历史题清理：软禁用 4 道题（`9a378bfc...` 缺 `questionId` / `bankIds`；`76dc6f...a219` 答案错误；`40af8c...953d` 选项/答案错误；`40f4bc...92b0` 为“选E”测试题）。
+- `initQuestionBanks` 返回 `linked = 0`，`getQuestionBanks` 返回 `questionCount = 17`、`defaultQuestionCount = 10`。
 
 相关文档：
 

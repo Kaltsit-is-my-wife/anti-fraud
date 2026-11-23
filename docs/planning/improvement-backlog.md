@@ -281,11 +281,11 @@
 
   C. 题库 P0 真实数据回归
 
-  - [ ] 5/6 选项题答题判分正确（`submitQuizAttempt` 已重新部署）。
-  - [ ] 草稿/下线题库不被普通用户抽到；管理员可预览。
-  - [ ] 超过 100 道题时管理列表、统计、抽题仍完整。
-  - [ ] 核查历史题 `default_bank` / `bankIds` / `questionId`，执行 `initQuestionBanks` 后默认题库关联正确。
-  - [ ] 至少一个已发布题库可正常答题。
+  - [ ] 5/6 选项题答题判分正确（抽题/选项已验证；交卷判分待 UI）。
+  - [x] 草稿/下线题库不被普通用户抽到；管理员预览守卫已验证（UI 预览待测）。
+  - [ ] 超过 100 道题时管理列表、统计、抽题仍完整（当前 17 道启用题，功能测试延期）。
+  - [x] 核查历史题 `default_bank` / `bankIds` / `questionId`，执行 `initQuestionBanks` 后默认题库关联正确（4 道历史测试题已软禁用，`linked = 0`）。
+  - [ ] 至少一个已发布题库可正常答题（17 道启用题、默认 10 题；交卷待 UI）。
 
   D. 存储清理引用扫描补齐（代码完成，dry-run 已验证；实际删除待测试环境验证）
 
@@ -335,7 +335,7 @@
 
 ### IMP-010 云函数缺少 OPENID 空值守卫
 
-- 状态：DOING（2026-11-23：评论/审核三个函数 + 视频管理三个函数已修复，其余待审计）
+- 状态：DOING（2026-11-23：评论/审核、视频管理、题库函数已修复，其余待审计）
 - 优先级：P0
 - 类型：安全
 - 来源：验收时通过 CloudBase MCP 直调 `getReviewTasks` 发现
@@ -349,6 +349,9 @@
   - `getReviewTasks`、`reviewContent`：`!openid` 直接返回“无审核权限”。
   - `createComment`：`!openid` 直接返回“用户不存在”。
   - `getAdminVideoList`、`saveVideo`、`deleteVideo`：`!openid` 直接返回“无管理权限”。
+  - `getQuizQuestions`：预览模式无 OPENID 返回“无管理权限，不能预览题库”。
+  - `submitQuizAttempt`：`!openid` 返回“用户不存在”。
+  - `saveQuizQuestion`、`getQuizQuestionList`、`getAdminQuestionBankList`、`saveQuestionBank`、`deleteQuestionBank`、`deleteQuizQuestion`、`updateQuestionBankRelation`、`importQuizQuestions`：`!openid` 返回“无管理权限”。
 - 待审计：
   - `saveTopic`、`deleteTopic`、`getAdminTopicList`、`submitTopicComment`、`submitFeedback`、`createScamReport`、`userSignIn`、`trackAction`、`followUser`、`redeemProduct` 等所有读取当前用户的函数。
 - 验收标准：

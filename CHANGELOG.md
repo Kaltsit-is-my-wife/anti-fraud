@@ -3,6 +3,50 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-23 - 补充反诈题库并清理历史测试题
+
+### 问题场景
+
+- 已发布题库只有 4 道启用题，其中 3 道是历史测试/错误答案题；把默认抽题数设为 10 时，可抽题不足且可能抽到错误内容。
+- 历史题 `9a378bfc6b01c31f023b12026ef00670` 缺少 `questionId` / `bankIds` / `bankId`，另外 3 道题存在答案或选项异常。
+
+### 修改方案
+
+- 新增 16 道反诈题，覆盖刷单返利、冒充客服、冒充公检法、校园贷、钓鱼链接、个人信息保护等场景，包含 1 道 5 选项 E 题和 3 道 6 选项 F 题。
+- 将 `大学生反诈基础题库` 的 `defaultQuestionCount` 从 1 改为 10。
+- 软禁用 4 道历史测试/异常题（`isActive: false`，不删除数据）。
+- 执行 `initQuestionBanks`，确认默认题库关联无新增。
+
+### 验证结果
+
+- `getQuestionBanks` 返回 `questionCount = 17`、`defaultQuestionCount = 10`。
+- 已发布题库包含 5 选项 E 和 6 选项 F 题；`getQuizQuestions` 可正常抽取。
+- 4 道历史测试/异常题均为 `isActive: false`；`initQuestionBanks` 返回 `linked = 0`。
+- 答题交卷判分、7 选项拒绝、管理员预览 UI、100+ 题功能测试仍待补测。
+
+## 2026-11-23 - 修复题库云函数旧版与草稿题库泄露
+
+### 问题场景
+
+- 云端 `getQuizQuestions` 仍是旧版，没有校验题库 `status`；草稿题库 `04f2d8196b01c26a0030aa216d2a3e71` 可以直接抽到 10 道题。
+- `submitQuizAttempt`、`saveQuizQuestion` 等题库函数也是旧版，5/6 选项校验和空 OPENID 守卫没有生效。
+- `getQuizQuestionList`、`getAdminQuestionBankList`、`saveQuestionBank`、`deleteQuestionBank`、`deleteQuizQuestion`、`updateQuestionBankRelation`、`importQuizQuestions` 缺少空 OPENID 守卫。
+- 历史题 `9a378bfc6b01c31f023b12026ef00670` 缺少 `questionId` / `bankIds` / `bankId`。
+
+### 修改方案
+
+- 重新部署当前版本的 12 个题库函数：`getQuizQuestions`、`submitQuizAttempt`、`saveQuizQuestion`、`getQuestionBanks`、`getQuizQuestionList`、`getAdminQuestionBankList`、`saveQuestionBank`、`deleteQuestionBank`、`deleteQuizQuestion`、`updateQuestionBankRelation`、`importQuizQuestions`、`initQuestionBanks`。
+- `getQuizQuestions` 预览模式增加空 OPENID 守卫；`submitQuizAttempt` 增加用户守卫；题库管理函数增加“无管理权限”守卫。
+- 历史异常题建议软禁用（`isActive: false`），等待用户确认后处理。
+
+### 验证结果
+
+- 草稿题库抽题 → “题库不存在或未发布”；无 OPENID `preview` → “无管理权限，不能预览题库”。
+- 公开题库列表返回“大学生反诈基础题库”，`questionCount = 4`。
+- 已发布题库抽到 4 道有效题（含 6 选项 E/F）；临时 5 选项 E 测试题抽到 `count = 5`，测试题已删除。
+- `submitQuizAttempt` 无 OPENID → “用户不存在”；题库管理函数无 OPENID → “无管理权限”。
+- 7 选项保存/导入、管理员预览 UI、答题交卷、100+ 题和 `initQuestionBanks` 待补测/待决策。
+
 ## 2026-11-23 - 修复视频分页云端旧版并补齐索引/守卫
 
 ### 问题场景
