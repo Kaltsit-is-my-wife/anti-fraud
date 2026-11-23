@@ -10,10 +10,10 @@
 
   <view class="panel">
     <view class="panel-title">{{editingId ? '编辑题库' : '新建题库'}}</view>
-    <input class="input" placeholder="题库名称" value="{{form.name}}" bindinput="onInput" data-key="name" disabled="{{submitting || coverUploading || actionBankId}}" />
-    <textarea class="textarea" placeholder="题库简介" value="{{form.summary}}" bindinput="onInput" data-key="summary" disabled="{{submitting || coverUploading || actionBankId}}" />
+    <input class="input" placeholder="请输入题库名称，如：大学生反诈基础题库" value="{{form.name}}" bindinput="onInput" data-key="name" disabled="{{submitting || coverUploading || actionBankId}}" />
+    <textarea class="textarea" placeholder="请输入题库简介，说明覆盖内容和适用场景" value="{{form.summary}}" bindinput="onInput" data-key="summary" disabled="{{submitting || coverUploading || actionBankId}}" />
 
-    <input class="input" placeholder="封面图 URL / cloud:// 文件 ID" value="{{form.coverImage}}" bindinput="onInput" data-key="coverImage" disabled="{{submitting || coverUploading || actionBankId}}" />
+    <input class="input" placeholder="请输入封面图 HTTPS 地址或 cloud:// 文件 ID" value="{{form.coverImage}}" bindinput="onInput" data-key="coverImage" disabled="{{submitting || coverUploading || actionBankId}}" />
     <view class="cover-tools">
       <button class="mini-btn secondary" bindtap="chooseCoverImage" disabled="{{submitting || coverUploading || actionBankId}}">
         {{coverUploading ? '上传中...' : (form.coverImage ? '重新上传封面' : '上传封面')}}
@@ -25,8 +25,8 @@
     <picker mode="selector" range="{{statusOptions}}" value="{{statusOptions.indexOf(form.status)}}" bindchange="onStatusChange" disabled="{{submitting || coverUploading || actionBankId}}">
       <view class="picker">状态：{{form.status}}</view>
     </picker>
-    <input class="input" placeholder="排序值" value="{{form.sort}}" bindinput="onInput" data-key="sort" disabled="{{submitting || coverUploading || actionBankId}}" />
-    <input class="input" placeholder="默认抽题数量" value="{{form.defaultQuestionCount}}" bindinput="onInput" data-key="defaultQuestionCount" disabled="{{submitting || coverUploading || actionBankId}}" />
+    <input class="input" placeholder="请输入排序值，数字越小越靠前，如：1" value="{{form.sort}}" bindinput="onInput" data-key="sort" disabled="{{submitting || coverUploading || actionBankId}}" />
+    <input class="input" placeholder="请输入每轮默认抽题数量，如：10" value="{{form.defaultQuestionCount}}" bindinput="onInput" data-key="defaultQuestionCount" disabled="{{submitting || coverUploading || actionBankId}}" />
     <view class="hint">发布校验：启用题数必须大于等于默认抽题数量；启用题缺解析或存在重复题会阻止发布。</view>
     <view class="actions">
       <button class="btn secondary" bindtap="resetForm" disabled="{{submitting || coverUploading || actionBankId}}">重置</button>

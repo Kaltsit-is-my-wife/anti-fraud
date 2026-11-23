@@ -4,6 +4,30 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
+const BATCH_SIZE = 100
+const MAX_FETCH = 100000
+
+async function fetchAll(collectionName, where = null) {
+  const list = []
+  let offset = 0
+
+  while (offset < MAX_FETCH) {
+    let query = db.collection(collectionName)
+    if (where) query = query.where(where)
+    const res = await query
+      .orderBy('_id', 'asc')
+      .skip(offset)
+      .limit(BATCH_SIZE)
+      .get()
+    const batch = res.data || []
+    list.push(...batch)
+    if (batch.length < BATCH_SIZE) break
+    offset += batch.length
+  }
+
+  return list
+}
+
 async function ensureCollection(name) {
   try {
     await db.collection(name).limit(1).get()
@@ -109,9 +133,9 @@ exports.main = async (event) => {
       return { success: false, errMsg: '单次最多导入 100 道题' }
     }
 
-    const existingRes = await db.collection('quiz_questions').get()
+    const existingQuestions = await fetchAll('quiz_questions')
     const existingSet = new Set(
-      (existingRes.data || [])
+      existingQuestions
         .map(item => normalizeQuestionKey(item.normalizedQuestion || item.question))
         .filter(Boolean)
     )
@@ -137,6 +161,10 @@ exports.main = async (event) => {
       }
       if (options.length < 2) {
         errors.push(`第 ${row} 题至少需要两个选项`)
+        return
+      }
+      if (options.length > 6) {
+        errors.push(`第 ${row} 题最多支持 6 个选项（A-F）`)
         return
       }
       if (!Number.isFinite(answerIndex) || answerIndex < 0 || answerIndex >= options.length) {

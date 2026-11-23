@@ -36,10 +36,22 @@
     <view class="panel-title">{{editingId ? '编辑题目' : '新建题目'}}</view>
     <view class="hint">{{createHint}}</view>
     <textarea class="textarea large" placeholder="题目内容" value="{{form.question}}" bindinput="onInput" data-key="question" maxlength="500" disabled="{{submitting || processingQuestionId || importing}}" />
-    <textarea class="textarea" placeholder="选项，每行一个" value="{{form.optionsText}}" bindinput="onInput" data-key="optionsText" maxlength="4000" disabled="{{submitting || processingQuestionId || importing}}" />
-    <input class="input" placeholder="正确答案索引（从 0 开始）" value="{{form.answerIndex}}" bindinput="onInput" data-key="answerIndex" disabled="{{submitting || processingQuestionId || importing}}" />
+    <view class="option-list">
+      <view wx:for="{{optionInputs}}" wx:key="*this" class="option-row">
+        <text class="option-letter">{{answerOptionLabels[index]}}</text>
+        <input class="input option-input" placeholder="请输入选项 {{answerOptionLabels[index]}} 内容" value="{{item}}" data-index="{{index}}" bindinput="onOptionInput" disabled="{{submitting || processingQuestionId || importing}}" />
+        <button wx:if="{{optionInputs.length > 2}}" class="mini-btn danger option-remove" catchtap="removeOption" data-index="{{index}}" disabled="{{submitting || processingQuestionId || importing}}">删除</button>
+      </view>
+      <button wx:if="{{optionInputs.length < 6}}" class="mini-btn secondary option-add" bindtap="addOption" disabled="{{submitting || processingQuestionId || importing}}">添加选项（最多 6 个）</button>
+    </view>
+    <picker mode="selector" range="{{answerOptionLabels}}" value="{{answerIndexPickerIndex}}" bindchange="onAnswerIndexChange" disabled="{{submitting || processingQuestionId || importing}}">
+      <view class="picker">正确答案：{{answerIndexLabel}}</view>
+    </picker>
+    <view class="hint">A 对应第 1 个选项，B 对应第 2 个选项，以此类推。</view>
     <textarea class="textarea" placeholder="题目解析" value="{{form.explanation}}" bindinput="onInput" data-key="explanation" maxlength="1000" disabled="{{submitting || processingQuestionId || importing}}" />
-    <input class="input" placeholder="难度（1-5）" value="{{form.difficulty}}" bindinput="onInput" data-key="difficulty" disabled="{{submitting || processingQuestionId || importing}}" />
+    <picker mode="selector" range="{{difficultyFormLabels}}" value="{{difficultyPickerIndex}}" bindchange="onDifficultyChange" disabled="{{submitting || processingQuestionId || importing}}">
+      <view class="picker">难度：{{difficultyLabel}}</view>
+    </picker>
     <input class="input" placeholder="标签，逗号分隔" value="{{form.tagsText}}" bindinput="onInput" data-key="tagsText" maxlength="500" disabled="{{submitting || processingQuestionId || importing}}" />
     <view class="switch-row">
       <text class="switch-label">启用状态</text>
