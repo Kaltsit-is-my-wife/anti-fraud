@@ -3,6 +3,140 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-23 - 补充反诈题库并清理历史测试题
+
+### 问题场景
+
+- 已发布题库只有 4 道启用题，其中 3 道是历史测试/错误答案题；把默认抽题数设为 10 时，可抽题不足且可能抽到错误内容。
+- 历史题 `9a378bfc6b01c31f023b12026ef00670` 缺少 `questionId` / `bankIds` / `bankId`，另外 3 道题存在答案或选项异常。
+
+### 修改方案
+
+- 新增 16 道反诈题，覆盖刷单返利、冒充客服、冒充公检法、校园贷、钓鱼链接、个人信息保护等场景，包含 1 道 5 选项 E 题和 3 道 6 选项 F 题。
+- 将 `大学生反诈基础题库` 的 `defaultQuestionCount` 从 1 改为 10。
+- 软禁用 4 道历史测试/异常题（`isActive: false`，不删除数据）。
+- 执行 `initQuestionBanks`，确认默认题库关联无新增。
+
+### 验证结果
+
+- `getQuestionBanks` 返回 `questionCount = 17`、`defaultQuestionCount = 10`。
+- 已发布题库包含 5 选项 E 和 6 选项 F 题；`getQuizQuestions` 可正常抽取。
+- 4 道历史测试/异常题均为 `isActive: false`；`initQuestionBanks` 返回 `linked = 0`。
+- 答题交卷判分、7 选项拒绝、管理员预览 UI、100+ 题功能测试仍待补测。
+
+## 2026-11-23 - 修复题库云函数旧版与草稿题库泄露
+
+### 问题场景
+
+- 云端 `getQuizQuestions` 仍是旧版，没有校验题库 `status`；草稿题库 `04f2d8196b01c26a0030aa216d2a3e71` 可以直接抽到 10 道题。
+- `submitQuizAttempt`、`saveQuizQuestion` 等题库函数也是旧版，5/6 选项校验和空 OPENID 守卫没有生效。
+- `getQuizQuestionList`、`getAdminQuestionBankList`、`saveQuestionBank`、`deleteQuestionBank`、`deleteQuizQuestion`、`updateQuestionBankRelation`、`importQuizQuestions` 缺少空 OPENID 守卫。
+- 历史题 `9a378bfc6b01c31f023b12026ef00670` 缺少 `questionId` / `bankIds` / `bankId`。
+
+### 修改方案
+
+- 重新部署当前版本的 12 个题库函数：`getQuizQuestions`、`submitQuizAttempt`、`saveQuizQuestion`、`getQuestionBanks`、`getQuizQuestionList`、`getAdminQuestionBankList`、`saveQuestionBank`、`deleteQuestionBank`、`deleteQuizQuestion`、`updateQuestionBankRelation`、`importQuizQuestions`、`initQuestionBanks`。
+- `getQuizQuestions` 预览模式增加空 OPENID 守卫；`submitQuizAttempt` 增加用户守卫；题库管理函数增加“无管理权限”守卫。
+- 历史异常题建议软禁用（`isActive: false`），等待用户确认后处理。
+
+### 验证结果
+
+- 草稿题库抽题 → “题库不存在或未发布”；无 OPENID `preview` → “无管理权限，不能预览题库”。
+- 公开题库列表返回“大学生反诈基础题库”，`questionCount = 4`。
+- 已发布题库抽到 4 道有效题（含 6 选项 E/F）；临时 5 选项 E 测试题抽到 `count = 5`，测试题已删除。
+- `submitQuizAttempt` 无 OPENID → “用户不存在”；题库管理函数无 OPENID → “无管理权限”。
+- 7 选项保存/导入、管理员预览 UI、答题交卷、100+ 题和 `initQuestionBanks` 待补测/待决策。
+
+## 2026-11-23 - 修复视频分页云端旧版并补齐索引/守卫
+
+### 问题场景
+
+- 云端 `getVideos` 仍是旧版：忽略 `page` / `pageSize`，响应没有 `page` / `pageSize` / `hasMore`，用户端 `hasMore` 永远为 false，无法加载更多。
+- `videos` 缺少 `status + sort + publishedAt` 和 `sort + updatedAt` 组合索引。
+- `getAdminVideoList`、`saveVideo`、`deleteVideo` 缺少空 OPENID 守卫。
+
+### 修改方案
+
+- 重新部署 `getVideos`，恢复分页返回结构。
+- 为 `videos` 创建两个组合索引。
+- 三个视频管理函数增加 `!openid` 守卫，返回“无管理权限”。
+- 更新 [CLAUDE.md](./CLAUDE.md)、[pending-tests.md](./docs/planning/pending-tests.md)、[improvement-backlog.md](./docs/planning/improvement-backlog.md) 和 [agent-handoff.md](./docs/guides/agent-handoff.md)。
+
+### 验证结果
+
+- `node --check` 通过。
+- `getVideos` 用 `pageSize:1` 验证 3 条已发布视频：第 1/2/3/4 页分别为「戒赌小视频」/「111」/「6」/空，`hasMore` 为 `true` / `true` / `false` / `false`，无重复。
+- 索引列表已确认包含 `status_1_sort_1_publishedAt_-1` 和 `sort_1_updatedAt_-1`。
+- MCP 直调 `getAdminVideoList` / `saveVideo` 返回“无管理权限”。
+- 21 条视频的 UI 分页测试因数据不足跳过；管理端分页待补测。
+- `getVideoDetail` 等其余视频函数是否已部署到当前版本待核查（`getVideos` 曾为旧版）；内置演示视频资源和 PC 上传链路仍待后续处理。
+
+## 2026-11-23 - 补齐云存储清理引用扫描
+
+### 问题场景
+
+- `cleanupStorageFiles` 的引用检查未覆盖 `topics.contentBlocks[].imageUrl`、`articles.content` 富文本、`products` / `notifications` 等字段；开启实际删除时可能误删仍被内容引用的文件。
+- 管理页和定时任务默认只做 dry-run，但引用检查缺口使实际删除无法安全开放。
+
+### 修改方案
+
+- [cloudfunctions/cleanupStorageFiles](./cloudfunctions/cleanupStorageFiles/index.js)：
+  - 将引用扫描扩展为直接字段、嵌套数组（`contentBlocks[].imageUrl`）、富文本（`articles.content`）和递归对象（`notifications.payload`）四种模式。
+  - 补充 `articles.videoUrl`、`posts.coverImage`、`feedback_records`、`products`、`quiz_questions`、`titles/achievements.icon` 等字段。
+  - 保留查询失败或扫描超限时整批按“仍被引用”处理的保守策略。
+- 更新 `CLAUDE.md`、[docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)、`pending-tests.md`、`improvement-backlog.md` 和测试文档的覆盖说明。
+
+### 验证结果
+
+- `node --check cloudfunctions/cleanupStorageFiles/index.js` 通过，`git diff --check` 通过。
+- `cleanupStorageFiles` 已通过 CloudBase MCP 部署。
+- 构造 3 条测试任务：话题正文配图文件、文章富文本文件、无引用文件；dry-run 返回 `scanned = 3`、`candidateCount = 1`、`referencedCount = 2`，只有无引用文件进入候选；任务保持 `pending`，测试数据已清理。
+- 实际删除仍默认关闭，未配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE`；测试环境实际删除验证待做。
+
+## 2026-11-23 - 修复云函数缺少 OPENID 空值守卫
+
+### 问题场景
+
+- 验收时通过 CloudBase MCP 直调 `getReviewTasks`，函数在没有小程序 `OPENID` 的情况下返回了完整审核任务列表。
+- 多个函数使用 `where({ _openid: openid })` 查询当前用户；`openid` 为 `undefined` 时条件可能退化为空条件，匹配 `users` 集合第一个用户；如果该用户是管理员，权限校验会被绕过。
+- 小程序正常调用始终带 `OPENID`，但 MCP/CLI、定时触发器等非小程序调用可能触发该路径。
+
+### 修改方案
+
+- [cloudfunctions/getReviewTasks](./cloudfunctions/getReviewTasks/index.js)、[cloudfunctions/reviewContent](./cloudfunctions/reviewContent/index.js)：`!openid` 时直接返回“无审核权限”。
+- [cloudfunctions/createComment](./cloudfunctions/createComment/index.js)：`!openid` 时直接返回“用户不存在”。
+- 新增 `IMP-010`，记录其余读取当前用户的函数待审计。
+
+### 验证结果
+
+- 三个函数 `node --check` 通过并已部署。
+- MCP 直调结果：`getReviewTasks` / `reviewContent` 返回“无审核权限”，`createComment` 返回“用户不存在”。
+- 普通登录用户越权仍待用 `isAdmin: false`、`roles: []` 账号复测。
+
+## 2026-11-23 - 帖子评论改为需要审核
+
+### 问题场景
+
+- 社区帖子评论（`targetType: post`）此前由 `createComment` 直接写为 `published`，不进入审核中心；文章评论和话题评论则已进入 `pending_review`。
+- 帖子评论在提交时立即增加 `posts.commentCount` 并发送回复通知，即使评论尚未审核；如果后续被驳回或隐藏，帖子会显示不存在的评论数，被回复者也会收到指向不可见评论的通知。
+
+### 修改方案
+
+- [cloudfunctions/createComment](./cloudfunctions/createComment/index.js)：文章和帖子评论统一写 `pending_review`，事务创建 `review_tasks`（`article_comment` / `post_comment`）并回写 `reviewTaskId`；移除提交阶段的 `posts.commentCount` 自增和回复通知。
+- [cloudfunctions/reviewContent](./cloudfunctions/reviewContent/index.js)：增加 `post_comment` 映射；审核通过时为文章/帖子评论发送回复通知，并为帖子评论增加 `posts.commentCount`；驳回或隐藏不触发计数和通知。
+- [cloudfunctions/getReviewTasks](./cloudfunctions/getReviewTasks/index.js)：支持 `post_comment` 的源记录、提交人和 `sourceMeta` 补全。
+- [pages/review-center/review-center.js](./pages/review-center/review-center.js)：增加「帖子评论」类型标签，帖子评论复用文章评论的展示逻辑。
+- [cloudfunctions/getComments](./cloudfunctions/getComments/index.js)：仅更新注释，可见性仍为 `approved` + 历史 `published`。
+
+### 验证结果
+
+- 已对修改的 JS 文件执行 `node --check`，`git diff --check` 通过。
+- `getReviewTasks`、`reviewContent` 已由用户部署；`createComment` 由 Claude 通过 CloudBase MCP 补传，云端 `CodeInfo` / `ModTime` 已核对为新版（2026-11-23 22:02）。
+- 文章评论回复通知已验证：待审核时 `notifications` 为空；通过后只新增 1 条（`toUid = 676183682`、`payload.commentId = 40f4bc076b04480401e8e321561b724e`），通知 `createdAt` 与审核 `reviewedAt` 一致；驳回回复 `57d2a7aa6b0448c800a4dcc9483e31e7` 不产生通知。
+- 话题评论风险展示已验证：`微信-测试` 命中 `keywordHitLevel = medium`、`keywordHits = ["微信"]`，审核中心显示中风险。
+- 发现社区发帖入口已停用（`createPost` 固定返回“暂不支持公开发帖”），当前环境没有 `posts` 集合；`post_comment` 路径需构造测试帖或直接调用 `createComment` 才能验证。本轮决定跳过帖子评论链路，未验证 `post_comment` 的计数和通知。
+- 审核中心页面需随小程序代码重新编译。
+
 ## 2026-11-23 - 新增 Agent 交接文档
 
 ### 问题场景
@@ -96,7 +230,11 @@
 - `node --check cloudfunctions/cleanupStorageFiles/index.js` 通过。
 - `node --check pages/video-management/video-management.js` 通过。
 - `git diff --check` 通过。
-- **尚未完成**：未重新部署 `cleanupStorageFiles`，未在真实数据上验证分批引用查询和实际删除开关。
+- 2026-11-23 真实环境验收：
+  - 管理页只显示“检查待清理文件”，不显示“执行清理”；删除视频确认文案包含“删除数据库记录”和“登记到云存储清理队列”。
+  - 未配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE` 时，`dryRun: false` 返回“引用检查尚未覆盖全部内容，暂不支持实际删除”，未删除任何文件。
+  - 临时插入一条 fake `cloud://` 任务后执行 `dryRun: true`：`scanned = 1`、`candidateCount = 1`、`referencedCount = 0`；任务仍为 `pending`，无 `checkedAt` / `deletedAt`，测试后已删除测试任务。
+  - 普通用户 / operator 权限待测；100+ 引用分页代码审查通过，功能测试延期。
 
 ## 2026-11-22 - 题库转换脚本移入 tools 供团队复用
 

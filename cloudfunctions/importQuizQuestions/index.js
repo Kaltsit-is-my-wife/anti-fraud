@@ -110,6 +110,8 @@ exports.main = async (event) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
 
+  if (!openid) return { success: false, errMsg: '无管理权限' }
+
   try {
     await Promise.all([ensureCollection('users'), ensureCollection('quiz_questions')])
     const user = await getCurrentUser(openid)

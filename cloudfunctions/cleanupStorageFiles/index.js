@@ -1,7 +1,7 @@
 /**
  * 云存储旧文件清理云函数 - 视频模块
  *
- * 上游依赖：storage_cleanup_tasks、videos、articles、topics、question_banks、banners、users、public_profiles、posts、scam_reports
+ * 上游依赖：storage_cleanup_tasks、videos、articles、topics、question_banks、banners、users、public_profiles、posts、scam_reports、feedback_records、products、notifications、quiz_questions、titles、achievements
  * 入口：exports.main({ dryRun, limit })
  * 主要功能：处理 storage_cleanup_tasks 中已过宽限期的文件；确认未被内容引用后调用 cloud.deleteFile
  * 输出：{ success: true, data: { dryRun, scanned, candidateCount, referencedCount, deletedCount, failedCount, missingCount, hasMore, candidateFileIds } }
@@ -13,6 +13,7 @@
  * - 云控制台/定时触发器没有 OPENID；默认仍为 dry-run，配置 STORAGE_CLEANUP_AUTO_DELETE=true 后才默认实际删除
  * - 任一引用查询失败时，本批次文件全部按“仍被引用”处理，宁可少删不可误删
  * - 引用查询按 100 条分批分页，超过扫描上限时按“仍被引用”保守处理
+ * - 引用检查覆盖直接字段、话题内容块、文章富文本和通知 payload；实际删除仍默认关闭，需测试环境验证后再开放
  * - 不删除 HTTPS 外部地址，只处理 cloud:// 文件 ID
  *
  * 重要：每当所属的代码发生变化时，必须对相应的文档进行更新操作！
@@ -37,18 +38,34 @@ const REAL_DELETE_ENABLED = String(
   process.env.STORAGE_CLEANUP_ALLOW_REAL_DELETE || ''
 ).toLowerCase() === 'true'
 
-// 新增内容形态时，必须同步补充这里的集合和字段，避免误删仍被引用的文件
+// 新增内容形态时，必须同步补充这里的集合和字段，避免误删仍被引用的文件。
+// mode 省略 = 直接字段（字符串或字符串数组）；nested = 数组元素的子字段；
+// text = 富文本字符串；recursive = 对象/数组内任意字符串。
 const REFERENCE_FIELDS = [
   { name: 'videos', field: 'videoUrl' },
   { name: 'videos', field: 'coverImage' },
   { name: 'articles', field: 'coverImage' },
+  { name: 'articles', field: 'videoUrl' },
   { name: 'topics', field: 'coverImage' },
   { name: 'question_banks', field: 'coverImage' },
   { name: 'banners', field: 'image' },
   { name: 'users', field: 'avatarUrl' },
   { name: 'public_profiles', field: 'avatarUrl' },
   { name: 'posts', field: 'images' },
-  { name: 'scam_reports', field: 'images' }
+  { name: 'posts', field: 'coverImage' },
+  { name: 'scam_reports', field: 'images' },
+  { name: 'feedback_records', field: 'images' },
+  { name: 'feedback_records', field: 'image' },
+  { name: 'products', field: 'image' },
+  { name: 'products', field: 'images' },
+  { name: 'products', field: 'coverImage' },
+  { name: 'quiz_questions', field: 'imageUrl' },
+  { name: 'quiz_questions', field: 'image' },
+  { name: 'titles', field: 'icon' },
+  { name: 'achievements', field: 'icon' },
+  { name: 'topics', field: 'contentBlocks', mode: 'nested', nestedField: 'imageUrl' },
+  { name: 'articles', field: 'content', mode: 'text' },
+  { name: 'notifications', field: 'payload', mode: 'recursive' }
 ]
 
 function log(level, stage, detail = {}) {
@@ -144,9 +161,121 @@ async function markTaskFailure(task, errMsg, now) {
   })
 }
 
+function markAllReferenced(uniqueIds, referenced) {
+  uniqueIds.forEach(fileId => referenced.add(fileId))
+}
+
+function collectNestedFieldValues(value, nestedField) {
+  const values = []
+  const walk = (node) => {
+    if (Array.isArray(node)) {
+      node.forEach(walk)
+      return
+    }
+    if (node && typeof node === 'object') {
+      if (typeof node[nestedField] === 'string') {
+        values.push(node[nestedField])
+      }
+      Object.keys(node).forEach(key => walk(node[key]))
+    }
+  }
+  walk(value)
+  return values
+}
+
+function collectCandidateIdsFromValue(value, idSet, referenced) {
+  if (typeof value === 'string') {
+    idSet.forEach(fileId => {
+      if (value.includes(fileId)) referenced.add(fileId)
+    })
+    return
+  }
+  if (Array.isArray(value)) {
+    value.forEach(item => collectCandidateIdsFromValue(item, idSet, referenced))
+    return
+  }
+  if (value && typeof value === 'object') {
+    Object.keys(value).forEach(key => collectCandidateIdsFromValue(value[key], idSet, referenced))
+  }
+}
+
+async function scanDirectField(config, uniqueIds, idSet, referenced) {
+  let offset = 0
+  let scanned = 0
+  let truncated = false
+
+  while (offset < MAX_REFERENCE_SCAN) {
+    const res = await db.collection(config.name)
+      .where({ [config.field]: _.in(uniqueIds) })
+      .field({ [config.field]: true })
+      .orderBy('_id', 'asc')
+      .skip(offset)
+      .limit(REFERENCE_BATCH_SIZE)
+      .get()
+
+    const docs = res.data || []
+    docs.forEach(doc => {
+      const value = doc[config.field]
+      const values = Array.isArray(value) ? value : [value]
+      values.forEach(item => {
+        if (typeof item === 'string' && idSet.has(item)) {
+          referenced.add(item)
+        }
+      })
+    })
+
+    scanned += docs.length
+    if (docs.length < REFERENCE_BATCH_SIZE) break
+    offset += docs.length
+    if (offset >= MAX_REFERENCE_SCAN) {
+      truncated = true
+      break
+    }
+  }
+
+  return { scanned, truncated }
+}
+
+async function scanStructuredField(config, idSet, referenced) {
+  let offset = 0
+  let scanned = 0
+  let truncated = false
+
+  while (offset < MAX_REFERENCE_SCAN) {
+    const res = await db.collection(config.name)
+      .field({ [config.field]: true })
+      .orderBy('_id', 'asc')
+      .skip(offset)
+      .limit(REFERENCE_BATCH_SIZE)
+      .get()
+
+    const docs = res.data || []
+    docs.forEach(doc => {
+      const value = doc[config.field]
+      if (config.mode === 'nested') {
+        collectNestedFieldValues(value, config.nestedField).forEach(item => {
+          if (idSet.has(item)) referenced.add(item)
+        })
+        return
+      }
+      collectCandidateIdsFromValue(value, idSet, referenced)
+    })
+
+    scanned += docs.length
+    if (docs.length < REFERENCE_BATCH_SIZE) break
+    offset += docs.length
+    if (offset >= MAX_REFERENCE_SCAN) {
+      truncated = true
+      break
+    }
+  }
+
+  return { scanned, truncated }
+}
+
 /**
  * 查出仍被任一内容集合引用的文件 ID。
- * 任一集合查询失败（非“集合不存在”）时，保守地把本批全部文件视为已引用。
+ * 任一集合查询失败（非“集合不存在”）或扫描超限时，保守地把本批全部文件视为已引用。
  */
 async function findReferencedFileIds(fileIds) {
   const referenced = new Set()
@@ -157,43 +286,13 @@ async function findReferencedFileIds(fileIds) {
 
   for (const config of REFERENCE_FIELDS) {
     try {
-      let offset = 0
-      let scanned = 0
-      let truncated = false
-
-      while (offset < MAX_REFERENCE_SCAN) {
-        const res = await db.collection(config.name)
-          .where({ [config.field]: _.in(uniqueIds) })
-          .field({ [config.field]: true })
-          .orderBy('_id', 'asc')
-          .skip(offset)
-          .limit(REFERENCE_BATCH_SIZE)
-          .get()
-
-        const docs = res.data || []
-        docs.forEach(doc => {
-          const value = doc[config.field]
-          const values = Array.isArray(value) ? value : [value]
-          values.forEach(item => {
-            if (typeof item === 'string' && idSet.has(item)) {
-              referenced.add(item)
-            }
-          })
-        })
-
-        scanned += docs.length
-        if (docs.length < REFERENCE_BATCH_SIZE) break
-        offset += docs.length
-
-        if (offset >= MAX_REFERENCE_SCAN) {
-          truncated = true
-          break
-        }
-      }
+      const { scanned, truncated } = config.mode
+        ? await scanStructuredField(config, idSet, referenced)
+        : await scanDirectField(config, uniqueIds, idSet, referenced)
 
       if (truncated) {
         // 结果超过扫描上限；无法确认时全部按已引用处理
-        uniqueIds.forEach(fileId => referenced.add(fileId))
+        markAllReferenced(uniqueIds, referenced)
         log('WARN', 'references:truncated', {
           collection: config.name,
           field: config.field,
@@ -208,7 +307,7 @@ async function findReferencedFileIds(fileIds) {
         field: config.field,
         errMsg: err && err.message
       })
-      uniqueIds.forEach(fileId => referenced.add(fileId))
+      markAllReferenced(uniqueIds, referenced)
     }
   }
 

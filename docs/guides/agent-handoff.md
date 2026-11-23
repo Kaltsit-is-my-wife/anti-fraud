@@ -50,35 +50,37 @@
 
 ### 存储清理实际删除默认关闭
 
-`cleanupStorageFiles` 已支持引用检查和 `dryRun`，但引用扫描尚未覆盖：
+`cleanupStorageFiles` 的引用扫描已补齐：`topics.contentBlocks[].imageUrl`、`articles.content` 富文本、`products` / `notifications` / `feedback_records` / `quiz_questions` 等字段已纳入；dry-run 已验证能区分引用文件和候选文件。
 
-- `topics.contentBlocks[].imageUrl`
-- `articles.content` 富文本
-- `products` / `notifications` 等其他集合
-
-因此：
+但实际删除仍默认关闭：
 
 - 不要配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true`
 - 管理页只保留 dry-run，不恢复“执行清理”入口
-- 引用扫描补齐前，禁止在正式环境执行 `dryRun: false`
+- 实际删除需先在测试环境验证，再考虑正式环境开放
 
-### 文章评论审核待验收
+### 文章评论审核已通过，帖子评论链路跳过
 
-云函数已部署（用户反馈，2026-11-23），但尚未完成真实环境回归：
-
-- 文章评论 `pending_review`、`review_tasks`、`reviewTaskId`
-- 审核通过/驳回/隐藏与 `getComments` 可见性
-- 审核中心关键词风险展示不回退
+- 文章评论 1–9 项已在真实环境验证（2026-11-23）：`pending_review`、`review_tasks`、`reviewTaskId`、通过/驳回/隐藏与 `getComments` 可见性。
+- 回复通知已验证：待审核时不发通知，审核通过后只发 1 条，驳回/隐藏不发送。
+- 话题评论风险展示已验证：命中「微信」时 `keywordHitLevel = medium`，审核中心显示中风险。
+- 帖子评论审核改造代码已部署（`createComment`、`getReviewTasks`、`reviewContent`），但社区发帖入口 `createPost` 已停用且 `posts` 集合不存在，本轮跳过真实数据验证。
+- 仍待验证：普通用户直接调用审核函数返回“无审核权限”；审核中心页面需重新编译。
 
 ### IMP-009 回复通知时序
 
-文章评论的回复通知仍在提交时立即发送，而不是审核通过后发送。驳回/隐藏的评论仍可能通知被回复者。见 `IMP-009`。
+文章评论已验证审核通过后发送、驳回不发送；帖子评论链路本轮跳过。见 `IMP-009`。
+
+### 云函数 OPENID 守卫
+
+`getReviewTasks`、`reviewContent`、`createComment` 已加空 OPENID 守卫：无 OPENID 直调分别返回“无审核权限”/“用户不存在”。其余读取当前用户的函数待审计，见 `IMP-010`。
 
 ### 其他待测
 
-- 视频分页：需要 21 条以上已发布视频后补测
-- 题库 P0：需要核对 `default_bank` / `bankIds` / `questionId` 并执行 `initQuestionBanks`
+- 视频分页：cloud function 已用 `pageSize:1` 验证，组合索引已创建；21 条 UI 测试和管理端分页待补测
+- 视频模块其他待办：核查 `getVideoDetail` 等函数版本；内置演示视频缺真实资源；PC 上传链路未实现
+- 题库 P0：云端函数已更新；草稿隔离、5/6 选项抽题、17 道启用题、`initQuestionBanks` 已验证；答题交卷、7 选项拒绝、管理员预览、100+ 题待补测
 - 题库管理 UI：placeholder、答案/难度选择器、2–6 选项固定行
+- 存储清理 P0：管理页 UI、`dryRun: false` 拦截、dry-run 不改任务状态、删除确认文案已通过；引用扫描补齐已通过 dry-run 验证；普通用户 / operator 权限待测；100+ 引用分页与实际删除验证延期
 
 完整清单见 [pending-tests.md](../planning/pending-tests.md)。
 

@@ -139,6 +139,8 @@ exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
 
+  if (!openid) return { success: false, errMsg: '用户不存在' }
+
   try {
     await Promise.all([
       ensureCollection('quiz_questions'),

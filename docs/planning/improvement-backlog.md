@@ -271,27 +271,28 @@
   - [ ] 引用查询能跨 100 条分页，超过 100 条引用的文件仍被识别为“仍被引用”，不出现在候选列表。
   - [ ] 删除视频确认文案为“删除记录并登记旧文件到清理队列”，不再写“文件会保留”。
 
-  B. 视频分页（暂按通过，补数据后补测）
+  B. 视频分页（API 已验证；21 条 UI 与管理端分页待补测）
 
-  - [ ] 准备 21 条以上已发布 `[TEST]` 视频。
-  - [ ] 用户端分页、加载更多、无重复、下拉刷新、内置视频只出现在第一页。
+  - [ ] 准备 21 条以上已发布 `[TEST]` 视频（当前仅 3 条已发布）。
+  - [x] 用户端分页、加载更多、无重复（cloud function 用 `pageSize:1` 验证 3 页）。
+  - [ ] 下拉刷新、内置视频只出现在第一页（内置视频合并逻辑代码审查通过）。
   - [ ] 管理端分页、编辑/删除后刷新。
-  - [ ] 确认 `videos` 组合索引已创建。
+  - [x] 确认 `videos` 组合索引已创建。
 
   C. 题库 P0 真实数据回归
 
-  - [ ] 5/6 选项题答题判分正确（`submitQuizAttempt` 已重新部署）。
-  - [ ] 草稿/下线题库不被普通用户抽到；管理员可预览。
-  - [ ] 超过 100 道题时管理列表、统计、抽题仍完整。
-  - [ ] 核查历史题 `default_bank` / `bankIds` / `questionId`，执行 `initQuestionBanks` 后默认题库关联正确。
-  - [ ] 至少一个已发布题库可正常答题。
+  - [ ] 5/6 选项题答题判分正确（抽题/选项已验证；交卷判分待 UI）。
+  - [x] 草稿/下线题库不被普通用户抽到；管理员预览守卫已验证（UI 预览待测）。
+  - [ ] 超过 100 道题时管理列表、统计、抽题仍完整（当前 17 道启用题，功能测试延期）。
+  - [x] 核查历史题 `default_bank` / `bankIds` / `questionId`，执行 `initQuestionBanks` 后默认题库关联正确（4 道历史测试题已软禁用，`linked = 0`）。
+  - [ ] 至少一个已发布题库可正常答题（17 道启用题、默认 10 题；交卷待 UI）。
 
-  D. 存储清理引用扫描补齐（后续，阻塞实际删除）
+  D. 存储清理引用扫描补齐（代码完成，dry-run 已验证；实际删除待测试环境验证）
 
-  - [ ] `topics.contentBlocks[].imageUrl`
-  - [ ] `articles.content` 富文本
-  - [ ] `products` / `notifications` 等其他集合
-  - 补齐后先在测试环境配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 验证实际删除，再考虑正式环境开放。
+  - [x] `topics.contentBlocks[].imageUrl`
+  - [x] `articles.content` 富文本
+  - [x] `products` / `notifications` / `feedback_records` / `quiz_questions` 等其他集合
+  - [ ] 补齐后先在测试环境配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 验证实际删除，再考虑正式环境开放。
 
 - 期望结果：上述 A、B、C 项通过，D 项补齐后，PR #11 才可安全合并并开放实际删除。
 - 验收标准：按 `docs/guides/video-pagination-storage-cleanup-*-test.md` 和 `docs/guides/question-bank-p0-simple-test.md` 逐项勾选。
@@ -301,31 +302,62 @@
   - `pages/video-management/video-management.js`
   - `docs/operations/storage_cleanup.md`
 
-### IMP-009 文章评论回复通知延后到审核通过
+### IMP-009 文章/帖子评论回复通知延后到审核通过
 
-- 状态：TODO
+- 状态：DONE（2026-11-23：文章评论通知已验证；帖子评论链路因社区发帖停用本轮跳过）
 - 优先级：P1
 - 类型：审核 / 体验
-- 来源：代码审查 / 文章评论审核补齐
+- 来源：代码审查 / 文章评论审核补齐 / 帖子评论审核改造
 - 负责人：待分配
 - 问题：
   - `createComment` 对文章评论在提交时立即发送回复通知，即使评论仍处于 `pending_review`。
   - 评论被驳回或隐藏后，被回复者仍会收到一条指向不可见评论的通知。
+  - 帖子评论改为需要审核后，同样存在提交即通知、提交即增加 `posts.commentCount` 的问题。
 - 期望结果：
-  - 文章评论只在审核通过后发送回复通知；待审核、驳回、隐藏都不发送。
-  - 帖子评论保持立即通知，不受影响。
+  - 文章评论和帖子评论只在审核通过后发送回复通知；待审核、驳回、隐藏都不发送。
+  - 帖子评论的 `posts.commentCount` 也只在审核通过后 +1。
   - 同一条评论只通知一次，重复审核或重复调用不重复发送。
 - 建议方案：
-  - `createComment` 对文章评论不在提交时写 `notifications`，把 `replyToUid`、`parentId`、`targetId` 保存在评论或审核任务上。
-  - `reviewContent` 在审核通过时创建通知；驳回/隐藏不创建。
+  - `createComment` 不在提交时写 `notifications`，把 `replyToUid`、`parentId`、`targetId` 保存在评论和审核任务上。
+  - `reviewContent` 在审核通过时创建通知并为帖子评论增加 `posts.commentCount`；驳回/隐藏不创建、不计数。
   - 通知 payload 保留 `commentId`，用于去重和排查。
 - 验收标准：
-  - 待审核/驳回/隐藏的文章评论不产生通知。
+  - 待审核/驳回/隐藏的文章/帖子评论不产生通知。
   - 审核通过后产生且只产生一条通知。
-  - 帖子评论仍立即通知。
-  - 通知点击后能进入正确的文章详情。
+  - 帖子评论通过后 `posts.commentCount` 只增加一次；驳回/隐藏不增加。
+  - 通知点击后能进入正确的文章或帖子详情。
 - 关联文档/PR：
   - `cloudfunctions/createComment/index.js`
   - `cloudfunctions/reviewContent/index.js`
+  - `cloudfunctions/getReviewTasks/index.js`
   - `notifications` 集合
   - [docs/guides/review-center-test.md](../guides/review-center-test.md)
+
+### IMP-010 云函数缺少 OPENID 空值守卫
+
+- 状态：DOING（2026-11-23：评论/审核、视频管理、题库函数已修复，其余待审计）
+- 优先级：P0
+- 类型：安全
+- 来源：验收时通过 CloudBase MCP 直调 `getReviewTasks` 发现
+- 负责人：待分配
+- 问题：
+  - 多个云函数使用 `where({ _openid: openid })` 查询当前用户，但没有先校验 `openid` 是否为空。
+  - 非小程序调用（CloudBase MCP/CLI、定时触发器、其他服务）没有 `OPENID` 时，`where` 条件可能退化为空条件，匹配 `users` 集合的第一个用户；如果该用户是管理员，权限校验会被绕过。
+- 期望结果：
+  - 所有读取当前用户的云函数在 `OPENID` 为空时直接返回未登录/无权限，不查询 `users`，不读写任何用户数据。
+- 已处理：
+  - `getReviewTasks`、`reviewContent`：`!openid` 直接返回“无审核权限”。
+  - `createComment`：`!openid` 直接返回“用户不存在”。
+  - `getAdminVideoList`、`saveVideo`、`deleteVideo`：`!openid` 直接返回“无管理权限”。
+  - `getQuizQuestions`：预览模式无 OPENID 返回“无管理权限，不能预览题库”。
+  - `submitQuizAttempt`：`!openid` 返回“用户不存在”。
+  - `saveQuizQuestion`、`getQuizQuestionList`、`getAdminQuestionBankList`、`saveQuestionBank`、`deleteQuestionBank`、`deleteQuizQuestion`、`updateQuestionBankRelation`、`importQuizQuestions`：`!openid` 返回“无管理权限”。
+- 待审计：
+  - `saveTopic`、`deleteTopic`、`getAdminTopicList`、`submitTopicComment`、`submitFeedback`、`createScamReport`、`userSignIn`、`trackAction`、`followUser`、`redeemProduct` 等所有读取当前用户的函数。
+- 验收标准：
+  - 无 OPENID 直调所有用户态函数时，均返回未登录/无权限，不读写任何用户数据。
+  - 普通账号、`reviewer`、`operator`、`isAdmin` 的权限矩阵回归通过。
+  - 小程序正常调用不受影响。
+- 关联文档/PR：
+  - `cloudfunctions/*/index.js`
+  - [pending-tests.md](./pending-tests.md) §1

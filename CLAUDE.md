@@ -394,8 +394,8 @@ createdAt/updatedAt   云函数维护
 - `utils/defaultVideos.js` 中保留了一个 `coverImage`、`videoUrl` 为空的内置演示视频。用户侧第一页会合并显示它（即使云端已有视频），详情页会显示“暂无可播放视频地址”。正式发布前应给它补真实资源，或移除该内置兜底。
 - `getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`、`deleteVideo`、`cleanupStorageFiles` 必须部署到同一个目标云环境；普通用户不能调用管理函数。
 - `deleteVideo` 仅删除 `videos` 数据库记录，不直接删除 `videoUrl` / `coverImage` 指向的云存储文件；已发布视频返回“已发布视频不能删除，请先下线”。
-- 旧文件清理：`saveVideo` 替换视频/封面、`deleteVideo` 删除记录时，旧 `cloud://` 文件进入 `storage_cleanup_tasks`（默认 7 天宽限期）。`cleanupStorageFiles` 默认 `dryRun: true`，当前只检查 `videos.videoUrl/coverImage`、`articles.coverImage`、`topics.coverImage`、`question_banks.coverImage`、`banners.image`、`users/public_profiles.avatarUrl`、`posts/scam_reports.images`；**尚未覆盖** `topics.contentBlocks[].imageUrl`、`articles.content` 富文本、`products` 等其他可能引用云文件的字段。在补齐这些引用检查前，不得执行 `dryRun: false`，否则可能误删仍被使用的文件。实际删除默认关闭：管理页只开放 dry-run，`operator` 只能 dry-run，`isAdmin` 还需要配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 才可能实际删除。定时触发器/云控制台默认也只做 dry-run，需同时配置 `STORAGE_CLEANUP_AUTO_DELETE=true` 和 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 才自动执行。小程序端不直接调用 `wx.cloud.deleteFile`。详见 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)。
-- 视频列表已分页：`getVideos` / `getAdminVideoList` 接受 `page`、`pageSize`，返回 `page`、`pageSize`、`hasMore`；用户页支持下拉刷新和触底加载，管理页支持触底/“加载更多”按钮。建议在云开发控制台为 `videos` 创建 `status + sort + publishedAt` 和 `sort + updatedAt` 组合索引。
+- 旧文件清理：`saveVideo` 替换视频/封面、`deleteVideo` 删除记录时，旧 `cloud://` 文件进入 `storage_cleanup_tasks`（默认 7 天宽限期）。`cleanupStorageFiles` 默认 `dryRun: true`，引用扫描覆盖 `videos.videoUrl/coverImage`、`articles.coverImage/videoUrl/content`（富文本）、`topics.coverImage/contentBlocks[].imageUrl`、`question_banks.coverImage`、`banners.image`、`users/public_profiles.avatarUrl`、`posts.images/coverImage`、`scam_reports.images`、`feedback_records`、`products`、`quiz_questions`、`titles/achievements.icon`、`notifications.payload`。实际删除默认关闭；在测试环境完成 `dryRun: false` 验证前，不要配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true`。实际删除默认关闭：管理页只开放 dry-run，`operator` 只能 dry-run，`isAdmin` 还需要配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 才可能实际删除。定时触发器/云控制台默认也只做 dry-run，需同时配置 `STORAGE_CLEANUP_AUTO_DELETE=true` 和 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 才自动执行。小程序端不直接调用 `wx.cloud.deleteFile`。详见 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)。
+- 视频列表已分页：`getVideos` / `getAdminVideoList` 接受 `page`、`pageSize`，返回 `page`、`pageSize`、`hasMore`；用户页支持下拉刷新和触底加载，管理页支持触底/“加载更多”按钮。已创建 `videos` 的 `status + sort + publishedAt` 和 `sort + updatedAt` 组合索引（2026-11-23），新增环境需重新创建。云端 `getVideos` 必须部署分页版本，否则响应缺少 `hasMore`，用户端不会加载更多。
 - 发布回归必须验证：列表可见、封面可见、视频可播放、草稿/下线不可见、关联文章/话题可跳转、分页无重复/遗漏、旧文件清理 dry-run 正常；实际删除需等引用检查补齐并恢复开关后再验证。快速验收看 [简易测试（大白话版）](./docs/guides/video-pagination-storage-cleanup-simple-test.md)，完整步骤见 [详细测试说明](./docs/guides/video-pagination-storage-cleanup-test.md)。
 
 #### 视频上传现状与后续规划
@@ -454,6 +454,14 @@ createdAt/updatedAt   云函数维护
 `pages/community` → `getTopics` → `topics`；
 话题详情、评论和审核分别使用 `getTopicDetail`、`getTopicComments`、`submitTopicComment`、`reviewContent`。
 
+评论状态统一为 `pending_review / approved / rejected / hidden`：
+
+- 文章评论、社区帖子评论由 `createComment` 写入 `pending_review`，并事务创建 `review_tasks`（`article_comment` / `post_comment`），审核前不出现在 `getComments`。
+- 话题评论由 `submitTopicComment` 写入 `pending_review`（`topic_comment`），审核前不出现在 `getTopicComments`。
+- 帖子评论的 `posts.commentCount` 和回复通知只在 `reviewContent` 审核通过后更新/发送；驳回或隐藏不计数、不通知。
+
+社区发帖能力已停用：`createPost` 固定返回“社区已升级为官方话题讨论，暂不支持公开发帖”，用户侧社区入口只展示 `topics`；`posts` / `pages/community-post-*` 属于遗留代码，当前没有正常创建帖子入口。
+
 话题正文存放在 `topics.contentBlocks` 内容块数组中，当前支持 `text`、`image`、`article_link`、`video_link` 四类：
 
 - `pages/topic-management` 负责把表单转换为内容块：`contentText` 按空行拆成 `text` 块，`contentImages` 生成 `image` 块（最多 9 张，含 `imageUrl`、`caption`），保存时统一重排 `sort`。
@@ -487,6 +495,7 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 5. 发布前清理开发者工具缓存并重新编译；前端发布后仍需单独部署对应云函数。
 6. 检查函数名、入参、返回字段、集合是否存在、状态字段、分页参数和必要索引。
 7. 云函数与 CMS 数据的真实环境验收必须记录部署环境、测试数据范围和仍未完成的人工验证，不能把本地桩测试写成已完成的线上验收。
+8. 所有读取当前用户的云函数必须在入口校验 `cloud.getWXContext().OPENID` 非空；禁止直接用 `where({ _openid: openid })` 而不守卫，否则 MCP/CLI/定时触发器等无 OPENID 调用可能匹配 `users` 集合首个用户。
 
 前端发布流程：
 
@@ -549,8 +558,8 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - Banner 已支持 CMS 读取（`getBanners` + 首页 `loadBanners`），但仍没有小程序内 Banner 管理页、`saveBanner` 云函数和 Banner 媒体上传能力，运营只能通过 CMS 维护数据。
 - 文章管理继续依赖 CMS；首页和详情仍保留本地示例兜底，正式发布前需确认不会掩盖云端配置错误。
 - 视频管理和读取链路已存在，列表分页和旧文件清理队列已补齐；但仍没有统一媒体上传能力，且保留空资源内置视频。上传成功但从未保存到 `videos` 的孤立文件不在清理队列覆盖范围内；上线前的历史孤立文件需要在云开发控制台做一次性盘点。
-- `cleanupStorageFiles` 的引用检查尚未覆盖 `topics.contentBlocks[].imageUrl`、`articles.content` 富文本、`products` 等其他可能引用云文件的字段；实际执行 `dryRun: false` 前必须补齐，否则可能误删仍被使用的文件。
-- 视频分页依赖 `videos` 的组合索引；未创建索引时小数据量仍可用，数据增长后需要在云开发控制台补索引。
-- 题库模块已完成 5/6 选项、发布状态隔离和分批查询；但“停用题是否在管理端展示”的验收口径尚未统一，且至少 2 个题库的验收数据和真实环境验收记录仍未准备。题库全量读取目前是分批拉取后在内存中统计/过滤，题目规模非常大时还需要进一步做服务端分页。
+- `cleanupStorageFiles` 的引用扫描已补齐 `topics.contentBlocks[].imageUrl`、`articles.content` 富文本和 `products`/`notifications` 等字段，并通过 dry-run 验证；实际删除仍默认关闭，需在测试环境验证后再开放。
+- 视频分页依赖 `videos` 的 `status + sort + publishedAt` 与 `sort + updatedAt` 组合索引（当前环境已创建）；新增或迁移环境时需重新创建。
+- 题库模块已完成 5/6 选项、发布状态隔离、分批查询和云端函数更新；已发布题库现有 17 道启用题、默认抽题 10 道，历史测试题已软禁用。仍待补测：7 选项保存/导入拒绝、答题交卷判分、管理员预览 UI、100+ 题功能测试；题库全量读取目前是分批拉取后在内存中统计/过滤，题目规模非常大时还需要进一步做服务端分页。
 - 部分历史云函数可能仍存在旧版写入 `_id`、本地降级或重复业务逻辑，修改时先检查调用链和数据影响。
 - 二期方向包括图文文章、官方话题、内容审核、视频、题库管理；计划文档中的“规划新增”不能视为已部署能力。

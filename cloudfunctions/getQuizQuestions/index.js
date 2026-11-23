@@ -155,6 +155,7 @@ exports.main = async (event) => {
     const preview = isPreviewMode(event?.preview)
 
     if (preview) {
+      if (!openid) return { success: false, errMsg: '无管理权限，不能预览题库' }
       await ensureCollection('users')
       const user = await getCurrentUser(openid)
       if (!hasAdminAccess(user)) {

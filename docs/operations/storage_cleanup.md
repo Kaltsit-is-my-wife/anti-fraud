@@ -60,17 +60,24 @@ cleanupStorageFiles（dry-run / 实际删除）
 
 `cleanupStorageFiles` 删除前会检查以下集合和字段：
 
-| 集合 | 字段 |
+| 集合 | 字段 / 模式 |
 |---|---|
 | `videos` | `videoUrl`、`coverImage` |
-| `articles` | `coverImage` |
-| `topics` | `coverImage` |
+| `articles` | `coverImage`、`videoUrl`；`content` 富文本（扫描 `cloud://`） |
+| `topics` | `coverImage`；`contentBlocks[].imageUrl`（嵌套数组） |
 | `question_banks` | `coverImage` |
 | `banners` | `image` |
 | `users` | `avatarUrl` |
 | `public_profiles` | `avatarUrl` |
-| `posts` | `images`（数组） |
+| `posts` | `images`（数组）、`coverImage` |
 | `scam_reports` | `images`（数组） |
+| `feedback_records` | `images`（数组）、`image` |
+| `products` | `image`、`images`（数组）、`coverImage` |
+| `quiz_questions` | `imageUrl`、`image` |
+| `titles` / `achievements` | `icon` |
+| `notifications` | `payload`（递归扫描对象内字符串） |
+
+直接字段用 `_.in` 查询；`contentBlocks[].imageUrl`、`content` 富文本和 `payload` 采用逐批读取后扫描。集合不存在时跳过；查询失败或扫描超限时整批按“仍被引用”处理。
 
 任一文件仍被上述字段引用时，任务标记为 `skipped_referenced`，不会删除。
 
@@ -92,7 +99,7 @@ cleanupStorageFiles（dry-run / 实际删除）
 
 普通用户调用返回“无管理权限”。
 
-> 当前引用检查尚未覆盖话题正文配图、文章富文本等字段，`STORAGE_CLEANUP_ALLOW_REAL_DELETE` 默认保持 `false`，实际删除默认关闭。
+> 引用检查已覆盖话题正文配图、文章富文本、products / notifications 等字段；`STORAGE_CLEANUP_ALLOW_REAL_DELETE` 默认保持 `false`，实际删除默认关闭。
 
 ## 6. 在管理页使用
 
@@ -101,7 +108,7 @@ cleanupStorageFiles（dry-run / 实际删除）
 1. `admin` / `operator` 点击“检查待清理文件”。
 2. 页面调用 `cleanupStorageFiles({ dryRun: true, limit: 20 })`，显示待清理数量、仍被引用数量和前几个文件 ID。
 3. 当前版本只开放检查，不显示“执行清理”按钮。
-4. 引用检查补齐并配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 后，才可以恢复实际删除入口。
+4. 引用检查已补齐；实际删除仍需在测试环境验证，确认后再恢复入口并配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true`。
 
 ## 7. 在云开发控制台使用
 
@@ -174,23 +181,16 @@ STORAGE_CLEANUP_ALLOW_REAL_DELETE=true
 
 云函数 SDK 没有“列出云存储全部文件”的能力，所以无法在 `cleanupStorageFiles` 中自动扫描历史孤立文件；这一步只能通过云开发控制台或额外的管理端脚本完成。
 
-## 11. 尚未覆盖的情况
+## 11. 覆盖范围与仍需人工处理的情况
 
-以下情况不会自动进入清理队列，需要人工在云开发控制台或后续扩展中处理：
+引用检查已覆盖 `REFERENCE_FIELDS` 中的字段，但以下情况仍需人工处理：
 
 - 上传成功但从未保存到 `videos` 集合的文件（例如上传后放弃保存、保存校验失败）。
-- 话题正文配图 `topics.contentBlocks[].imageUrl`（当前只检查 `topics.coverImage`）。
-- 被文章富文本 `content` 内嵌引用的文件（当前只检查 `articles.coverImage`）。
-- 被 `products`、`notifications` 等其他内容类型引用、但未加入 `REFERENCE_FIELDS` 的文件。
 - 云存储中历史遗留、无法从数据库反查出文件 ID 的孤立文件。
+- 引用查询按 100 条分批；单个集合/字段超过 10000 条时整批按“仍被引用”处理，需人工核对。
+- 未来新增内容类型或文件字段时，必须同步修改 `cloudfunctions/cleanupStorageFiles/index.js` 的 `REFERENCE_FIELDS`；否则可能把仍被使用的文件误判为可删除。
 
-新增内容类型或文件字段时，必须同步修改：
-
-```text
-cloudfunctions/cleanupStorageFiles/index.js 的 REFERENCE_FIELDS
-```
-
-否则可能把仍被使用的文件误判为可删除。
+当前实际删除仍默认关闭；在测试环境完成 `dryRun: false` 验证前，不要配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true`。
 
 ## 12. 部署与验证
 
