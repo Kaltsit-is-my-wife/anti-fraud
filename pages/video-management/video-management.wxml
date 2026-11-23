@@ -32,8 +32,8 @@
 
   <view class="panel">
     <view class="panel-title">视频列表</view>
-    <view wx:if="{{loading}}" class="empty">加载中...</view>
-    <view wx:elif="{{videos.length === 0}}" class="empty">暂无视频</view>
+    <view wx:if="{{loading && videos.length === 0}}" class="empty">加载中...</view>
+    <view wx:elif="{{!loading && videos.length === 0}}" class="empty">暂无视频</view>
     <view wx:for="{{videos}}" wx:key="_id" class="list-card" bindtap="editVideo" data-id="{{item._id}}">
       <view class="list-title">{{item.title || '未命名视频'}}</view>
       <view class="list-meta">状态：{{item.status || 'draft'}} ｜ 分类：{{item.category || '未分类'}} ｜ 时长：{{item.duration || 0}}秒</view>
@@ -50,5 +50,22 @@
         >删除记录</button>
       </view>
     </view>
+
+    <block wx:if="{{!loading}}">
+      <view wx:if="{{loadingMore}}" class="load-more">加载中...</view>
+      <view wx:elif="{{hasMore}}" class="load-more" bindtap="loadMoreVideos">加载更多</view>
+      <view wx:elif="{{videos.length > 0}}" class="load-more">没有更多了</view>
+    </block>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">存储清理</view>
+    <view class="hint">替换视频/封面或删除视频记录后，旧云存储文件会进入待清理队列，默认保留 7 天；宽限期内的文件不会出现在检查结果中。当前只做引用检查，实际删除暂未开放；引用检查尚未覆盖话题正文配图和文章富文本。</view>
+    <view class="cleanup-actions">
+      <button class="btn secondary" bindtap="checkStorageCleanup" disabled="{{cleanupChecking || cleanupRunning}}">{{cleanupChecking ? '检查中...' : '检查待清理文件'}}</button>
+      <button wx:if="{{canExecuteCleanup}}" class="btn danger" bindtap="executeStorageCleanup" disabled="{{cleanupChecking || cleanupRunning || cleanupCandidateCount === 0}}">{{cleanupRunning ? '清理中...' : '执行清理'}}</button>
+    </view>
+    <view wx:if="{{!canExecuteCleanup}}" class="hint">当前仅支持检查待清理文件；实际删除需等引用检查补齐后再开放。</view>
+    <view wx:if="{{cleanupResultText}}" class="cleanup-result">{{cleanupResultText}}</view>
   </view>
 </view>

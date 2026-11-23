@@ -15,6 +15,8 @@
 
   <view wx:if="{{loading}}" class="loading">加载题目中...</view>
 
+  <view wx:if="{{!loading && !submitted && questions.length === 0}}" class="loading">当前题库暂无可用题目，请返回重新选择题库</view>
+
   <view wx:if="{{!loading && !submitted && currentQuestion}}" class="card">
     <view wx:if="{{previewMode}}" class="preview-notice">预览模式不会记录积分、排行榜和答题记录，仅用于检查题库效果。</view>
     <view class="progress">第 {{currentIndex + 1}} / {{questions.length}} 题</view>

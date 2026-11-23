@@ -45,6 +45,13 @@
 - 交卷结果中的答案索引和解析正确
 - 普通用户不能调用题库/题目管理函数
 
+## 题库当前状态（2026-11-17）
+
+- 5/6 选项题：**已处理**。选项统一支持 2–6 个（A–F），`answerIndex` 范围 0–5；`submitQuizAttempt` 会按每道题的实际选项数再次校验。
+- 草稿/下线题库隔离：**已处理**。`getQuizQuestions` / `submitQuizAttempt` 要求题库 `status === 'published'`，草稿/下线题库只允许管理员通过 `preview` 预览。
+- 100 条查询上限：**已处理**。管理列表、统计、发布校验、用户抽题、查重、删除题库检查和初始化关联都改为分批拉取。
+- 仍未处理：至少 2 个题库的验收数据、停用题是否在管理列表展示的口径、题库字段级规范文档、真实环境验收记录。
+
 ### 视频
 
 页面：
@@ -76,14 +83,14 @@
 - 关联文章和关联话题可以跳转
 - `published` 视频不能直接删除，必须先下线
 - 普通用户/审核员调用 `saveVideo` / `deleteVideo` / `getAdminVideoList` 返回“无管理权限”
-- 删除记录后云存储中的视频和封面文件仍保留
+- `deleteVideo` 调用后不立即删除云存储文件：文件进入 `storage_cleanup_tasks`，由 `cleanupStorageFiles` 在宽限期后按清理策略处理
 
-## 你需要处理的视频遗留问题
+## 视频遗留问题与当前状态
 
-- `getVideos` 没有分页：已发布视频超过 100 条时旧视频不显示
-- `utils/defaultVideos.js` 内置占位视频缺少真实资源，正式运营前要补资源或移除兜底
-- 微信开发者工具对 `wx.chooseMedia` 视频选择支持不完整，PC 端需要手动填写地址；电脑到云端的独立上传链路当前暂缓
-- 云存储旧文件不会自动清理，需要明确运营和成本策略
+- `getVideos` 没有分页：**已处理（2026-11-15）**。`getVideos` / `getAdminVideoList` 已支持 `page` / `pageSize` 和 `hasMore`，用户页支持下拉刷新、触底加载，管理页支持触底/“加载更多”按钮。
+- `utils/defaultVideos.js` 内置占位视频缺少真实资源：**仍未处理**，正式运营前要补资源或移除兜底。
+- 微信开发者工具对 `wx.chooseMedia` 视频选择支持不完整：**仍未处理**。真机可上传，PC 端仍需手动填写地址；电脑到云端的独立上传链路当前暂缓。
+- 云存储旧文件不会自动清理：**已处理（2026-11-15）**。`saveVideo` / `deleteVideo` 把旧 `cloud://` 文件登记到 `storage_cleanup_tasks`，`cleanupStorageFiles` 在默认 7 天宽限期后、确认无引用时清理；详见 [云存储旧文件清理说明](../operations/storage_cleanup.md)。
 
 ## 依赖与协作
 
@@ -109,6 +116,8 @@
 
 ## 参考文档
 
+- [视频分页与存储清理测试说明](../guides/video-pagination-storage-cleanup-test.md)
+- [视频分页与存储清理简易测试（大白话版）](../guides/video-pagination-storage-cleanup-simple-test.md)
 - [二期管理端执行优先级](../archive/phase2-planning/phase2_admin_execution_priority.md)
 - [二期任务拆分](../archive/phase2-planning/phase2_task_split.md)
 - [二期验收清单](../archive/phase2-planning/phase2_acceptance_checklist.md)

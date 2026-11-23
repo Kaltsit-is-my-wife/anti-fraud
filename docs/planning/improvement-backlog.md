@@ -249,3 +249,54 @@
   - `pages/topic-management/topic-management.wxss`
   - 现状截图：`docs/assets/improvement-backlog/IMP-007-topic-upload-buttons.png`
 
+### IMP-008 PR11 合并前待验证清单（存储清理 P0 修复 + 分页/题库）
+
+- 状态：TODO
+- 优先级：P0
+- 类型：验证
+- 来源：代码审查 / PR #11 收尾
+- 负责人：待分配
+- 问题：
+  - 2026-11-23 已修复存储清理的三个 P0 问题（引用查询分批、实际删除默认关闭、删除确认文案），但尚未在真实数据上验证。
+  - PR #11 的视频分页、题库 P0、存储清理整体仍有未完成的真实验收项。
+- 待验证项：
+
+  A. 存储清理 P0 修复（本次改动，先验证）
+
+  - [ ] 重新部署 `cleanupStorageFiles`（不配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE`）。
+  - [ ] 管理页只显示“检查待清理文件”，不显示“执行清理”。
+  - [ ] 管理员/operator 调用 `cleanupStorageFiles({ dryRun: false })` 返回“引用检查尚未覆盖全部内容，暂不支持实际删除”。
+  - [ ] 普通用户调用返回“无管理权限”；operator 先被“仅管理员”拦截。
+  - [ ] dry-run 只检查不删除，任务保持 `pending`。
+  - [ ] 引用查询能跨 100 条分页，超过 100 条引用的文件仍被识别为“仍被引用”，不出现在候选列表。
+  - [ ] 删除视频确认文案为“删除记录并登记旧文件到清理队列”，不再写“文件会保留”。
+
+  B. 视频分页（暂按通过，补数据后补测）
+
+  - [ ] 准备 21 条以上已发布 `[TEST]` 视频。
+  - [ ] 用户端分页、加载更多、无重复、下拉刷新、内置视频只出现在第一页。
+  - [ ] 管理端分页、编辑/删除后刷新。
+  - [ ] 确认 `videos` 组合索引已创建。
+
+  C. 题库 P0 真实数据回归
+
+  - [ ] 5/6 选项题答题判分正确（`submitQuizAttempt` 已重新部署）。
+  - [ ] 草稿/下线题库不被普通用户抽到；管理员可预览。
+  - [ ] 超过 100 道题时管理列表、统计、抽题仍完整。
+  - [ ] 核查历史题 `default_bank` / `bankIds` / `questionId`，执行 `initQuestionBanks` 后默认题库关联正确。
+  - [ ] 至少一个已发布题库可正常答题。
+
+  D. 存储清理引用扫描补齐（后续，阻塞实际删除）
+
+  - [ ] `topics.contentBlocks[].imageUrl`
+  - [ ] `articles.content` 富文本
+  - [ ] `products` / `notifications` 等其他集合
+  - 补齐后先在测试环境配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 验证实际删除，再考虑正式环境开放。
+
+- 期望结果：上述 A、B、C 项通过，D 项补齐后，PR #11 才可安全合并并开放实际删除。
+- 验收标准：按 `docs/guides/video-pagination-storage-cleanup-*-test.md` 和 `docs/guides/question-bank-p0-simple-test.md` 逐项勾选。
+- 关联文档/PR：
+  - PR #11
+  - `cloudfunctions/cleanupStorageFiles/index.js`
+  - `pages/video-management/video-management.js`
+  - `docs/operations/storage_cleanup.md`

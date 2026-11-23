@@ -4,6 +4,30 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
+const BATCH_SIZE = 100
+const MAX_FETCH = 100000
+
+async function fetchAll(collectionName, where = null) {
+  const list = []
+  let offset = 0
+
+  while (offset < MAX_FETCH) {
+    let query = db.collection(collectionName)
+    if (where) query = query.where(where)
+    const res = await query
+      .orderBy('_id', 'asc')
+      .skip(offset)
+      .limit(BATCH_SIZE)
+      .get()
+    const batch = res.data || []
+    list.push(...batch)
+    if (batch.length < BATCH_SIZE) break
+    offset += batch.length
+  }
+
+  return list
+}
+
 async function ensureCollection(name) {
   try {
     await db.collection(name).limit(1).get()
@@ -83,8 +107,7 @@ async function getExistingQuestion(id) {
 
 async function findDuplicateQuestion(normalizedQuestion, excludeId) {
   if (!normalizedQuestion) return null
-  const listRes = await db.collection('quiz_questions').get()
-  const list = listRes.data || []
+  const list = await fetchAll('quiz_questions')
 
   return list.find(item => {
     const sameQuestion = normalizeQuestionKey(item.normalizedQuestion || item.question) === normalizedQuestion
@@ -115,6 +138,7 @@ exports.main = async (event) => {
     if (id && !existingQuestion) return { success: false, errMsg: '题目不存在' }
     if (!question) return { success: false, errMsg: '题目不能为空' }
     if (options.length < 2) return { success: false, errMsg: '至少需要两个选项' }
+    if (options.length > 6) return { success: false, errMsg: '最多支持 6 个选项（A-F）' }
     if (!Number.isFinite(answerIndex) || answerIndex < 0 || answerIndex >= options.length) {
       return { success: false, errMsg: '正确答案索引不合法' }
     }
@@ -157,6 +181,10 @@ exports.main = async (event) => {
     }
 
     if (id) {
+      // 历史题目可能缺少 questionId；保存时补一个，确保后续能交卷判分
+      if (!existingQuestion.questionId) {
+        data.questionId = `q${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+      }
       await db.collection('quiz_questions').doc(id).update({ data })
       return { success: true, data: { id, bankIds } }
     }

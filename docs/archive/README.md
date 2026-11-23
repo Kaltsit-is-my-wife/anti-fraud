@@ -35,6 +35,17 @@
 - `phase2_cloud_service_estimate.md`
 - `phase2_video_resource_plan.md`
 
+### `guides/`
+
+包含 2026-10-30 及更早的旧开发/交接指南：
+
+- `ai_image_guide.md`
+- `project-handoff.md`
+- `question-bank-management-plan.md`
+- `resume_project_highlight.md`
+- `topic-and-question-bank-init.md`
+
+当前有效指南见 `../guides/`。
 
 ### `v1.1/`
 

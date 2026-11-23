@@ -25,3 +25,7 @@
 .btn.small{flex:none;width:180rpx;height:64rpx;line-height:64rpx;font-size:24rpx;padding:0;margin:0;border-radius:12rpx;}
 .btn.danger{background:#fee2e2;color:#dc2626;}
 .btn.small::after{border:none;}
+.hint{font-size:24rpx;line-height:1.7;color:#64748b;margin-bottom:14rpx;}
+.cleanup-actions{display:flex;gap:14rpx;margin-bottom:10rpx;}
+.cleanup-result{margin-top:10rpx;padding:14rpx 18rpx;border-radius:14rpx;background:#f8fafc;font-size:24rpx;line-height:1.6;color:#334155;}
+.load-more{padding:28rpx 0 8rpx;text-align:center;font-size:24rpx;color:#64748b;}

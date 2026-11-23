@@ -4,6 +4,30 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
+const BATCH_SIZE = 100
+const MAX_FETCH = 100000
+
+async function fetchAll(collectionName, where = null) {
+  const list = []
+  let offset = 0
+
+  while (offset < MAX_FETCH) {
+    let query = db.collection(collectionName)
+    if (where) query = query.where(where)
+    const res = await query
+      .orderBy('_id', 'asc')
+      .skip(offset)
+      .limit(BATCH_SIZE)
+      .get()
+    const batch = res.data || []
+    list.push(...batch)
+    if (batch.length < BATCH_SIZE) break
+    offset += batch.length
+  }
+
+  return list
+}
+
 async function ensureCollection(name) {
   try {
     await db.collection(name).limit(1).get()
@@ -63,22 +87,33 @@ async function getQuestionStats(bankId) {
     return {
       activeQuestionCount: 0,
       missingExplanationCount: 0,
+      invalidQuestionCount: 0,
       duplicateQuestionCount: 0
     }
   }
 
-  const res = await db.collection('quiz_questions').get()
+  const questions = await fetchAll('quiz_questions')
   const duplicateMap = new Map()
   let activeQuestionCount = 0
   let missingExplanationCount = 0
+  let invalidQuestionCount = 0
 
-  ;(res.data || []).forEach(question => {
+  questions.forEach(question => {
     if (!extractBankIds(question).includes(bankId)) return
     if (question.isActive === false) return
 
     activeQuestionCount += 1
     if (!normalizeText(question.explanation, 1000)) {
       missingExplanationCount += 1
+    }
+    const optionCount = Array.isArray(question.options) ? question.options.length : 0
+    const answerIndex = Number(question.answerIndex)
+    const validAnswer = Number.isInteger(answerIndex) &&
+      answerIndex >= 0 &&
+      answerIndex < optionCount
+    const hasQuestionId = typeof question.questionId === 'string' && question.questionId.trim()
+    if (optionCount < 2 || optionCount > 6 || !validAnswer || !hasQuestionId) {
+      invalidQuestionCount += 1
     }
     const key = normalizeQuestionKey(question.normalizedQuestion || question.question)
     if (key) {
@@ -94,6 +129,7 @@ async function getQuestionStats(bankId) {
   return {
     activeQuestionCount,
     missingExplanationCount,
+    invalidQuestionCount,
     duplicateQuestionCount
   }
 }
@@ -108,6 +144,9 @@ function buildPublishValidationMessages(stats, defaultQuestionCount) {
   }
   if (stats.missingExplanationCount > 0) {
     messages.push(`当前有 ${stats.missingExplanationCount} 道启用题缺少解析，不能发布`)
+  }
+  if (stats.invalidQuestionCount > 0) {
+    messages.push(`当前有 ${stats.invalidQuestionCount} 道启用题选项或答案配置异常，不能发布`)
   }
   if (stats.duplicateQuestionCount > 0) {
     messages.push(`当前有 ${stats.duplicateQuestionCount} 道启用题重复，不能发布`)

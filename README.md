@@ -96,7 +96,7 @@ wx.cloud.init({
 - [二期 Backlog（归档）](./docs/archive/phase2-planning/phase2_backlog.md)
 - [二期任务拆分（归档）](./docs/archive/phase2-planning/phase2_task_split.md)
 - [二期验收清单（归档）](./docs/archive/phase2-planning/phase2_acceptance_checklist.md)
-- [AI 图片识别说明](./docs/guides/ai_image_guide.md)
+- [AI 图片识别说明（归档）](./docs/archive/guides/ai_image_guide.md)
 - [数据库设计](./cloudfunctions/database.md)
 - [CMS 使用文档](./CMS使用文档.md)
 - [CMS 使用文档-简洁版](./CMS使用文档-简洁版.md)

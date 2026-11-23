@@ -5,9 +5,9 @@
     <view class="hero-desc">支持从首页和热点话题进入视频内容，形成文章、视频、讨论的学习闭环。</view>
   </view>
 
-  <view wx:if="{{loading}}" class="loading">视频加载中...</view>
+  <view wx:if="{{loading && videos.length === 0}}" class="loading">视频加载中...</view>
 
-  <view wx:elif="{{videos.length === 0}}" class="empty">
+  <view wx:elif="{{!loading && videos.length === 0}}" class="empty">
     <view class="empty-icon">🎬</view>
     <view class="empty-text">当前还没有已发布视频</view>
   </view>
@@ -29,4 +29,10 @@
       </view>
     </view>
   </view>
+
+  <block wx:if="{{!loading}}">
+    <view wx:if="{{loadingMore}}" class="load-more">加载中...</view>
+    <view wx:elif="{{hasMore}}" class="load-more" bindtap="loadMore">加载更多</view>
+    <view wx:elif="{{videos.length > 0}}" class="load-more">没有更多了</view>
+  </block>
 </view>

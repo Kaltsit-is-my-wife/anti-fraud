@@ -4,6 +4,30 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
+const BATCH_SIZE = 100
+const MAX_FETCH = 100000
+
+async function fetchAll(collectionName, where = null) {
+  const list = []
+  let offset = 0
+
+  while (offset < MAX_FETCH) {
+    let query = db.collection(collectionName)
+    if (where) query = query.where(where)
+    const res = await query
+      .orderBy('_id', 'asc')
+      .skip(offset)
+      .limit(BATCH_SIZE)
+      .get()
+    const batch = res.data || []
+    list.push(...batch)
+    if (batch.length < BATCH_SIZE) break
+    offset += batch.length
+  }
+
+  return list
+}
+
 async function ensureCollection(name) {
   try {
     await db.collection(name).limit(1).get()
@@ -123,7 +147,7 @@ exports.main = async (event) => {
     const keyword = normalizeKeyword(event?.keyword)
     const tag = normalizeTag(event?.tag)
     const difficulty = normalizeDifficulty(event?.difficulty)
-    const list = (await db.collection('quiz_questions').get()).data || []
+    const list = await fetchAll('quiz_questions')
 
     const filtered = list
       .map(question => {
