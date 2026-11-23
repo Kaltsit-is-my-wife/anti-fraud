@@ -3,7 +3,7 @@
  *
  * 上游依赖：comments
  * 入口：exports.main
- * 主要功能：按 targetType/targetId 拉取评论（按 createdAt 升序）
+ * 主要功能：按 targetType/targetId 拉取已通过评论（approved）和历史评论（published），按 createdAt 升序
  * 输出：comments, nextCursor
  *
  * cursor 约定：毫秒时间戳（number），表示“上一页最后一条 createdAt 的时间”
@@ -48,7 +48,8 @@ exports.main = async (event) => {
     const where = {
       targetType,
       targetId,
-      status: 'published'
+      // 文章评论审核通过后为 approved；帖子评论和历史评论为 published
+      status: _.in(['approved', 'published'])
     }
     if (cursor) {
       where.createdAt = _.gt(new Date(Number(cursor)))

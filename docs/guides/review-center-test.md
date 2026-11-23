@@ -28,7 +28,7 @@ AIGC:
 
 ---
 
-> 注意：当前仓库尚未落地 `createComment` / `getComments` / `reviewContent` 的文章评论审核改动。本手册描述的是验收目标，不能当作已实现状态。
+> 说明：`createComment` / `getComments` / `reviewContent` 已补齐文章评论审核链路。本手册用于验收目标行为，部署后按步骤执行。
 
 ## 一、任务范围
 

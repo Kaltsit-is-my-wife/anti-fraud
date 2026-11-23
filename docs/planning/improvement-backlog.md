@@ -300,3 +300,32 @@
   - `cloudfunctions/cleanupStorageFiles/index.js`
   - `pages/video-management/video-management.js`
   - `docs/operations/storage_cleanup.md`
+
+### IMP-009 文章评论回复通知延后到审核通过
+
+- 状态：TODO
+- 优先级：P1
+- 类型：审核 / 体验
+- 来源：代码审查 / 文章评论审核补齐
+- 负责人：待分配
+- 问题：
+  - `createComment` 对文章评论在提交时立即发送回复通知，即使评论仍处于 `pending_review`。
+  - 评论被驳回或隐藏后，被回复者仍会收到一条指向不可见评论的通知。
+- 期望结果：
+  - 文章评论只在审核通过后发送回复通知；待审核、驳回、隐藏都不发送。
+  - 帖子评论保持立即通知，不受影响。
+  - 同一条评论只通知一次，重复审核或重复调用不重复发送。
+- 建议方案：
+  - `createComment` 对文章评论不在提交时写 `notifications`，把 `replyToUid`、`parentId`、`targetId` 保存在评论或审核任务上。
+  - `reviewContent` 在审核通过时创建通知；驳回/隐藏不创建。
+  - 通知 payload 保留 `commentId`，用于去重和排查。
+- 验收标准：
+  - 待审核/驳回/隐藏的文章评论不产生通知。
+  - 审核通过后产生且只产生一条通知。
+  - 帖子评论仍立即通知。
+  - 通知点击后能进入正确的文章详情。
+- 关联文档/PR：
+  - `cloudfunctions/createComment/index.js`
+  - `cloudfunctions/reviewContent/index.js`
+  - `notifications` 集合
+  - [docs/guides/review-center-test.md](../guides/review-center-test.md)

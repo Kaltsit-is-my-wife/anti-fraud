@@ -6,6 +6,7 @@
 ## 当前有效文档
 
 - [待改进项 Backlog](./planning/improvement-backlog.md)：当前阶段的产品、体验、技术债、安全和运维改进项
+- [待测试项目清单](./planning/pending-tests.md)：已改代码但尚未在开发者工具或真实云环境验证的项目
 
 ### 历史二期规划归档
 

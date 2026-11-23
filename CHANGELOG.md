@@ -3,6 +3,31 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-23 - 新增待测试清单并记录回复通知时序问题
+
+### 问题场景
+
+- 文章评论回复通知目前在评论提交时立即发送，而不是审核通过后发送；评论被驳回或隐藏时，被回复者仍可能收到指向不可见评论的通知。
+- 本轮改动和 PR #11 的待测试项分散在 CHANGELOG、测试文档和临时记录中，缺少统一清单。
+
+### 修改方案
+
+- 在 [docs/planning/improvement-backlog.md](./docs/planning/improvement-backlog.md) 新增 `IMP-009`：文章评论回复通知延后到审核通过。
+- 新增 [docs/planning/pending-tests.md](./docs/planning/pending-tests.md)，集中记录：
+  - 文章评论审核链路
+  - 存储清理 P0 修复
+  - 存储清理引用扫描补齐
+  - 视频分页补测
+  - 题库 P0 与迁移
+  - 题库管理 UI 回归
+  - 合并与部署收尾
+- 在 [docs/README.md](./docs/README.md) 登记待测试清单。
+
+### 验证结果
+
+- 本次仅新增/更新文档，未修改运行时代码。
+- `pending-tests.md` 的测试项来自当前代码审查和 `IMP-008`，尚未执行。
+
 ## 2026-11-23 - 落地成员 B 文章评论审核补丁并清理根目录副本
 
 ### 问题场景
@@ -14,14 +39,17 @@
 - [pages/article-detail](./pages/article-detail/article-detail.js)、[pages/community-post-detail](./pages/community-post-detail/community-post-detail.js)：补上评论提交成功的 Toast「评论已提交，审核通过后显示」。
 - [cloudfunctions/getReviewTasks](./cloudfunctions/getReviewTasks/index.js)：增加 `article_comment` 的目标元数据和来源信息补全，保留现有 `keywordHits` / `keywordHitLevel`。
 - [pages/review-center](./pages/review-center/review-center.js)：增加「文章评论」类型和评论对象/父评论信息展示，保留风险等级和命中关键词展示。
+- [cloudfunctions/createComment](./cloudfunctions/createComment/index.js)：文章评论改为写入 `pending_review`，事务创建 `review_tasks`，并回写 `reviewTaskId`；帖子评论仍保持 `published`。
+- [cloudfunctions/getComments](./cloudfunctions/getComments/index.js)：只返回 `approved` 和历史 `published`，待审核/驳回/隐藏不展示。
+- [cloudfunctions/reviewContent](./cloudfunctions/reviewContent/index.js)：增加 `article_comment → comments` 审核回写。
 - 删除根目录副本：`article-detail.js`、`community-post-detail.js`、`index.js`、`review-center.js`、`review-center.wxml`。
 - 将根目录 `胡璟旭_测试手册.md` 移动到 [docs/guides/review-center-test.md](./docs/guides/review-center-test.md)，并登记到 `docs/README.md`。
 
 ### 验证结果
 
-- `node --check` 通过：`pages/article-detail/article-detail.js`、`pages/community-post-detail/community-post-detail.js`、`cloudfunctions/getReviewTasks/index.js`、`pages/review-center/review-center.js`。
+- `node --check` 通过：`pages/article-detail/article-detail.js`、`pages/community-post-detail/community-post-detail.js`、`cloudfunctions/getReviewTasks/index.js`、`pages/review-center/review-center.js`、`cloudfunctions/createComment/index.js`、`cloudfunctions/getComments/index.js`、`cloudfunctions/reviewContent/index.js`。
 - `git diff --check` 通过。
-- **仍缺失（阻塞完整闭环）**：`createComment` 尚未写入 `pending_review` / 创建 `review_tasks`，`getComments` 仍只查 `published`，`reviewContent` 尚未支持 `article_comment`。本次只落地了页面和审核查询侧补丁。
+- **尚未完成**：未部署 `createComment`、`getComments`、`getReviewTasks`、`reviewContent`，未在真机/真实云环境验证文章评论进入审核中心、审核回写和前台可见性。
 
 ## 2026-11-23 - 修复存储清理引用截断并关闭实际删除入口
 
