@@ -43,7 +43,7 @@ function getTargetMeta(targetType) {
     }
   }
 
-  if (targetType === 'article_comment') {
+  if (targetType === 'article_comment' || targetType === 'post_comment') {
     return {
       collection: 'comments',
       submitterUidField: 'authorUid',
@@ -94,7 +94,7 @@ function buildSourceMeta(task, sourceRecord) {
     return sourceMeta
   }
 
-  if (targetType === 'article_comment') {
+  if (targetType === 'article_comment' || targetType === 'post_comment') {
     if (!sourceMeta.targetType && sourceRecord.targetType) sourceMeta.targetType = sourceRecord.targetType
     if (!sourceMeta.targetId && sourceRecord.targetId) sourceMeta.targetId = sourceRecord.targetId
     if (!sourceMeta.parentId && sourceRecord.parentId) sourceMeta.parentId = sourceRecord.parentId
@@ -201,6 +201,8 @@ function enrichTask(task, sourceRecordMap) {
 exports.main = async (event) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
+
+  if (!openid) return { success: false, errMsg: '无审核权限' }
 
   try {
     await Promise.all([ensureCollection('users'), ensureCollection('review_tasks')])

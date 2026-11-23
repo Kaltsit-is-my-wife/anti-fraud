@@ -3,6 +3,50 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-23 - 修复云函数缺少 OPENID 空值守卫
+
+### 问题场景
+
+- 验收时通过 CloudBase MCP 直调 `getReviewTasks`，函数在没有小程序 `OPENID` 的情况下返回了完整审核任务列表。
+- 多个函数使用 `where({ _openid: openid })` 查询当前用户；`openid` 为 `undefined` 时条件可能退化为空条件，匹配 `users` 集合第一个用户；如果该用户是管理员，权限校验会被绕过。
+- 小程序正常调用始终带 `OPENID`，但 MCP/CLI、定时触发器等非小程序调用可能触发该路径。
+
+### 修改方案
+
+- [cloudfunctions/getReviewTasks](./cloudfunctions/getReviewTasks/index.js)、[cloudfunctions/reviewContent](./cloudfunctions/reviewContent/index.js)：`!openid` 时直接返回“无审核权限”。
+- [cloudfunctions/createComment](./cloudfunctions/createComment/index.js)：`!openid` 时直接返回“用户不存在”。
+- 新增 `IMP-010`，记录其余读取当前用户的函数待审计。
+
+### 验证结果
+
+- 三个函数 `node --check` 通过并已部署。
+- MCP 直调结果：`getReviewTasks` / `reviewContent` 返回“无审核权限”，`createComment` 返回“用户不存在”。
+- 普通登录用户越权仍待用 `isAdmin: false`、`roles: []` 账号复测。
+
+## 2026-11-23 - 帖子评论改为需要审核
+
+### 问题场景
+
+- 社区帖子评论（`targetType: post`）此前由 `createComment` 直接写为 `published`，不进入审核中心；文章评论和话题评论则已进入 `pending_review`。
+- 帖子评论在提交时立即增加 `posts.commentCount` 并发送回复通知，即使评论尚未审核；如果后续被驳回或隐藏，帖子会显示不存在的评论数，被回复者也会收到指向不可见评论的通知。
+
+### 修改方案
+
+- [cloudfunctions/createComment](./cloudfunctions/createComment/index.js)：文章和帖子评论统一写 `pending_review`，事务创建 `review_tasks`（`article_comment` / `post_comment`）并回写 `reviewTaskId`；移除提交阶段的 `posts.commentCount` 自增和回复通知。
+- [cloudfunctions/reviewContent](./cloudfunctions/reviewContent/index.js)：增加 `post_comment` 映射；审核通过时为文章/帖子评论发送回复通知，并为帖子评论增加 `posts.commentCount`；驳回或隐藏不触发计数和通知。
+- [cloudfunctions/getReviewTasks](./cloudfunctions/getReviewTasks/index.js)：支持 `post_comment` 的源记录、提交人和 `sourceMeta` 补全。
+- [pages/review-center/review-center.js](./pages/review-center/review-center.js)：增加「帖子评论」类型标签，帖子评论复用文章评论的展示逻辑。
+- [cloudfunctions/getComments](./cloudfunctions/getComments/index.js)：仅更新注释，可见性仍为 `approved` + 历史 `published`。
+
+### 验证结果
+
+- 已对修改的 JS 文件执行 `node --check`，`git diff --check` 通过。
+- `getReviewTasks`、`reviewContent` 已由用户部署；`createComment` 由 Claude 通过 CloudBase MCP 补传，云端 `CodeInfo` / `ModTime` 已核对为新版（2026-11-23 22:02）。
+- 文章评论回复通知已验证：待审核时 `notifications` 为空；通过后只新增 1 条（`toUid = 676183682`、`payload.commentId = 40f4bc076b04480401e8e321561b724e`），通知 `createdAt` 与审核 `reviewedAt` 一致；驳回回复 `57d2a7aa6b0448c800a4dcc9483e31e7` 不产生通知。
+- 话题评论风险展示已验证：`微信-测试` 命中 `keywordHitLevel = medium`、`keywordHits = ["微信"]`，审核中心显示中风险。
+- 发现社区发帖入口已停用（`createPost` 固定返回“暂不支持公开发帖”），当前环境没有 `posts` 集合；`post_comment` 路径需构造测试帖或直接调用 `createComment` 才能验证。本轮决定跳过帖子评论链路，未验证 `post_comment` 的计数和通知。
+- 审核中心页面需随小程序代码重新编译。
+
 ## 2026-11-23 - 新增 Agent 交接文档
 
 ### 问题场景
@@ -96,7 +140,11 @@
 - `node --check cloudfunctions/cleanupStorageFiles/index.js` 通过。
 - `node --check pages/video-management/video-management.js` 通过。
 - `git diff --check` 通过。
-- **尚未完成**：未重新部署 `cleanupStorageFiles`，未在真实数据上验证分批引用查询和实际删除开关。
+- 2026-11-23 真实环境验收：
+  - 管理页只显示“检查待清理文件”，不显示“执行清理”；删除视频确认文案包含“删除数据库记录”和“登记到云存储清理队列”。
+  - 未配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE` 时，`dryRun: false` 返回“引用检查尚未覆盖全部内容，暂不支持实际删除”，未删除任何文件。
+  - 临时插入一条 fake `cloud://` 任务后执行 `dryRun: true`：`scanned = 1`、`candidateCount = 1`、`referencedCount = 0`；任务仍为 `pending`，无 `checkedAt` / `deletedAt`，测试后已删除测试任务。
+  - 普通用户 / operator 权限待测；100+ 引用分页代码审查通过，功能测试延期。
 
 ## 2026-11-22 - 题库转换脚本移入 tools 供团队复用
 

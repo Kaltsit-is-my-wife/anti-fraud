@@ -3,6 +3,7 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
+const _ = db.command
 
 async function ensureCollection(name) {
   try {
@@ -29,6 +30,7 @@ function hasReviewPermission(user) {
 function getTargetMeta(targetType) {
   if (targetType === 'topic_comment') return { collection: 'comments', statusField: 'status' }
   if (targetType === 'article_comment') return { collection: 'comments', statusField: 'status' }
+  if (targetType === 'post_comment') return { collection: 'comments', statusField: 'status' }
   if (targetType === 'feedback') return { collection: 'feedback_records', statusField: 'status' }
   if (targetType === 'scam_report') return { collection: 'scam_reports', statusField: 'status' }
   return null
@@ -107,22 +109,90 @@ async function applyReviewDecision(task, meta, action, remark, reviewerName, rev
     await txDb.collection('review_tasks').doc(task._id).update({
       data: taskUpdate
     })
+
+    return sourceRecord
   }
 
   if (typeof db.runTransaction === 'function') {
-    await db.runTransaction(async (transaction) => {
+    return await db.runTransaction(async (transaction) => {
       const txDb = transaction || db
-      await run(txDb)
+      return await run(txDb)
     })
-    return
   }
 
-  await run(db)
+  return await run(db)
+}
+
+function buildSourceRecordFallback(task) {
+  const sourceMeta = task && task.sourceMeta && typeof task.sourceMeta === 'object'
+    ? task.sourceMeta
+    : {}
+  return {
+    replyToUid: sourceMeta.replyToUid || '',
+    targetType: sourceMeta.targetType || '',
+    targetId: sourceMeta.targetId || '',
+    authorUid: task && task.submitterUid ? task.submitterUid : '',
+    content: task ? (task.contentText || task.contentSnapshot || '') : ''
+  }
+}
+
+async function notifyReplyOnApproval(sourceRecord, commentId, now) {
+  if (!sourceRecord) return
+  const replyToUid = sourceRecord.replyToUid
+  const authorUid = sourceRecord.authorUid
+  if (!replyToUid || replyToUid === authorUid) return
+
+  try {
+    await ensureCollection('notifications')
+    await db.collection('notifications').add({
+      data: {
+        toUid: replyToUid,
+        fromUid: authorUid,
+        type: 'reply',
+        payload: {
+          targetType: sourceRecord.targetType,
+          targetId: sourceRecord.targetId,
+          commentId,
+          previewText: typeof sourceRecord.content === 'string'
+            ? sourceRecord.content.slice(0, 50)
+            : ''
+        },
+        isRead: false,
+        createdAt: now
+      }
+    })
+  } catch (err) {
+    console.warn('write reply notification on approval failed:', err && err.message)
+  }
+}
+
+async function incrementPostCommentCount(targetId, now) {
+  if (!targetId) return
+  try {
+    await ensureCollection('posts')
+    await db.collection('posts').doc(targetId).update({
+      data: { commentCount: _.inc(1), updatedAt: now }
+    })
+  } catch (err) {
+    console.warn('update post.commentCount on approval failed:', err && err.message)
+  }
+}
+
+async function applyApprovedSideEffects(targetType, sourceRecord, commentId, now) {
+  if (!sourceRecord) return
+  if (targetType === 'article_comment' || targetType === 'post_comment') {
+    await notifyReplyOnApproval(sourceRecord, commentId, now)
+  }
+  if (targetType === 'post_comment') {
+    await incrementPostCommentCount(sourceRecord.targetId, now)
+  }
 }
 
 exports.main = async (event) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
+
+  if (!openid) return { success: false, errMsg: '无审核权限' }
 
   try {
     await Promise.all([ensureCollection('users'), ensureCollection('review_tasks')])
@@ -168,7 +238,16 @@ exports.main = async (event) => {
     const reviewerUid = user.uid || ''
     const reviewerName = user.nickName || reviewerUid || openid
 
-    await applyReviewDecision(task, meta, action, remark, reviewerName, reviewerUid, now)
+    const sourceRecord = await applyReviewDecision(task, meta, action, remark, reviewerName, reviewerUid, now)
+
+    if (action === 'approved') {
+      await applyApprovedSideEffects(
+        getTaskTargetType(task),
+        sourceRecord || buildSourceRecordFallback(task),
+        getSourceId(task),
+        now
+      )
+    }
 
     return {
       success: true,

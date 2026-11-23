@@ -48,7 +48,7 @@ exports.main = async (event) => {
     const where = {
       targetType,
       targetId,
-      // 文章评论审核通过后为 approved；帖子评论和历史评论为 published
+      // 文章/帖子评论审核通过后为 approved；历史评论为 published
       status: _.in(['approved', 'published'])
     }
     if (cursor) {

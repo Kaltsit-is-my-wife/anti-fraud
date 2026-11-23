@@ -40,7 +40,7 @@ AIGC:
 
 | # | 功能点 | 说明 |
 |---|--------|------|
-| 1 | 评论/反馈/举报进审核中心 | `createComment` 评论落库 `pending_review` 并事务创建 `review_tasks`；话题评论（submitTopicComment）、反馈（submitFeedback）、举报（createScamReport）审核链路此前已具备 |
+| 1 | 评论/反馈/举报进审核中心 | `createComment` 文章/帖子评论落库 `pending_review` 并事务创建 `review_tasks`（`article_comment` / `post_comment`）；话题评论（submitTopicComment）、反馈（submitFeedback）、举报（createScamReport）审核链路此前已具备 |
 | 2 | 通过/驳回/隐藏回写 | `reviewContent` 按 targetType 映射回写 `comments / feedback_records / scam_reports` 的 `status`，并记录审核人/时间/备注；已处理任务防重复 |
 | 3 | 用户侧可见性 | `getComments` 过滤 `approved` + 历史 `published`；待审核/驳回/隐藏不可见 |
 | 4 | 权限矩阵 | 管理+审核：isAdmin / operator；仅审核：reviewer；无权限：普通用户、未登录 |
@@ -52,16 +52,19 @@ AIGC:
 
 ## 三、核心测试步骤
 
-### 1. 文章评论进入审核中心
+### 1. 文章/帖子评论进入审核中心
 - 普通用户发表文章评论 → 云开发控制台核对：`comments.status = pending_review`、`reviewTaskId` 非空；`review_tasks` 新增 `targetType: article_comment` 任务（含提交人/原文）。
-- 文章下**回复**（parentId 非空）同样创建审核任务进入待审核列表。
+- 在社区帖子详情发表帖子评论 → 核对 `comments.status = pending_review`、`reviewTaskId` 非空；`review_tasks` 新增 `targetType: post_comment` 任务；提交阶段不增加 `posts.commentCount`，也不发送回复通知。
+- 文章/帖子下**回复**（parentId 非空）同样创建审核任务进入待审核列表。
 
 ### 2. 审核操作与回写
 - 审核员（reviewer）进入"我的 → 审核中心"：待审核列表展示类型/原文/提交人/时间；反馈任务含联系方式，举报任务含涉诈账号/渠道等信息。
 - 对任务点"通过/驳回/隐藏"（驳回/隐藏未填说明会被拦截）：处理后核对源集合 `status = approved/rejected/hidden`，且 `reviewedBy / reviewerUid / reviewedAt / reviewReason` 与 `review_tasks` 同步更新；重复操作提示"审核任务已处理"。
+- 帖子评论通过后核 `posts.commentCount` +1；文章/帖子评论的回复通知在通过时发送；驳回/隐藏不计数、不通知。
 
 ### 3. 用户侧可见性
 - 审核通过后普通用户刷新详情页可见；待审核/驳回/隐藏不可见；历史 `published` 旧评论继续显示。
+- 帖子评论只在审核通过后计入 `posts.commentCount`；驳回/隐藏不计入。
 
 ### 4. 权限与越权校验
 - 普通用户直接调用 `getReviewTasks` / `reviewContent` → 返回 `{ success:false, errMsg:'无审核权限' }`，不返回任务数据。

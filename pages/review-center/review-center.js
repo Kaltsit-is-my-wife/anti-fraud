@@ -5,6 +5,7 @@ const { getCloudFunctionErrorMessage } = require('../../utils/cloud')
 const TARGET_TYPE_LABELS = {
   topic_comment: '话题评论',
   article_comment: '文章评论',
+  post_comment: '帖子评论',
   feedback: '用户反馈',
   scam_report: '诈骗举报'
 }
@@ -60,7 +61,7 @@ function buildSourceMetaLines(task) {
     }
   }
 
-  if (task.targetType === 'article_comment') {
+  if (task.targetType === 'article_comment' || task.targetType === 'post_comment') {
     if (sourceMeta.targetType) {
       lines.push(`评论对象类型：${sourceMeta.targetType === 'article' ? '文章' : '帖子'}`)
     }

@@ -454,6 +454,14 @@ createdAt/updatedAt   云函数维护
 `pages/community` → `getTopics` → `topics`；
 话题详情、评论和审核分别使用 `getTopicDetail`、`getTopicComments`、`submitTopicComment`、`reviewContent`。
 
+评论状态统一为 `pending_review / approved / rejected / hidden`：
+
+- 文章评论、社区帖子评论由 `createComment` 写入 `pending_review`，并事务创建 `review_tasks`（`article_comment` / `post_comment`），审核前不出现在 `getComments`。
+- 话题评论由 `submitTopicComment` 写入 `pending_review`（`topic_comment`），审核前不出现在 `getTopicComments`。
+- 帖子评论的 `posts.commentCount` 和回复通知只在 `reviewContent` 审核通过后更新/发送；驳回或隐藏不计数、不通知。
+
+社区发帖能力已停用：`createPost` 固定返回“社区已升级为官方话题讨论，暂不支持公开发帖”，用户侧社区入口只展示 `topics`；`posts` / `pages/community-post-*` 属于遗留代码，当前没有正常创建帖子入口。
+
 话题正文存放在 `topics.contentBlocks` 内容块数组中，当前支持 `text`、`image`、`article_link`、`video_link` 四类：
 
 - `pages/topic-management` 负责把表单转换为内容块：`contentText` 按空行拆成 `text` 块，`contentImages` 生成 `image` 块（最多 9 张，含 `imageUrl`、`caption`），保存时统一重排 `sort`。
@@ -487,6 +495,7 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 5. 发布前清理开发者工具缓存并重新编译；前端发布后仍需单独部署对应云函数。
 6. 检查函数名、入参、返回字段、集合是否存在、状态字段、分页参数和必要索引。
 7. 云函数与 CMS 数据的真实环境验收必须记录部署环境、测试数据范围和仍未完成的人工验证，不能把本地桩测试写成已完成的线上验收。
+8. 所有读取当前用户的云函数必须在入口校验 `cloud.getWXContext().OPENID` 非空；禁止直接用 `where({ _openid: openid })` 而不守卫，否则 MCP/CLI/定时触发器等无 OPENID 调用可能匹配 `users` 集合首个用户。
 
 前端发布流程：
 
