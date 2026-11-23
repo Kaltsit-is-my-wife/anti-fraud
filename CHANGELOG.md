@@ -3,6 +3,30 @@
 本文件记录项目中已经完成的功能调整、问题修复，以及调研阶段确认的实现现状和待办事项。  
 详细的架构和长期开发约定优先参考 [CLAUDE.md](./CLAUDE.md)。
 
+## 2026-11-23 - 修复视频分页云端旧版并补齐索引/守卫
+
+### 问题场景
+
+- 云端 `getVideos` 仍是旧版：忽略 `page` / `pageSize`，响应没有 `page` / `pageSize` / `hasMore`，用户端 `hasMore` 永远为 false，无法加载更多。
+- `videos` 缺少 `status + sort + publishedAt` 和 `sort + updatedAt` 组合索引。
+- `getAdminVideoList`、`saveVideo`、`deleteVideo` 缺少空 OPENID 守卫。
+
+### 修改方案
+
+- 重新部署 `getVideos`，恢复分页返回结构。
+- 为 `videos` 创建两个组合索引。
+- 三个视频管理函数增加 `!openid` 守卫，返回“无管理权限”。
+- 更新 [CLAUDE.md](./CLAUDE.md)、[pending-tests.md](./docs/planning/pending-tests.md)、[improvement-backlog.md](./docs/planning/improvement-backlog.md) 和 [agent-handoff.md](./docs/guides/agent-handoff.md)。
+
+### 验证结果
+
+- `node --check` 通过。
+- `getVideos` 用 `pageSize:1` 验证 3 条已发布视频：第 1/2/3/4 页分别为「戒赌小视频」/「111」/「6」/空，`hasMore` 为 `true` / `true` / `false` / `false`，无重复。
+- 索引列表已确认包含 `status_1_sort_1_publishedAt_-1` 和 `sort_1_updatedAt_-1`。
+- MCP 直调 `getAdminVideoList` / `saveVideo` 返回“无管理权限”。
+- 21 条视频的 UI 分页测试因数据不足跳过；管理端分页待补测。
+- `getVideoDetail` 等其余视频函数是否已部署到当前版本待核查（`getVideos` 曾为旧版）；内置演示视频资源和 PC 上传链路仍待后续处理。
+
 ## 2026-11-23 - 补齐云存储清理引用扫描
 
 ### 问题场景

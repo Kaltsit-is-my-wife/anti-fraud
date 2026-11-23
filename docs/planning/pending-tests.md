@@ -117,17 +117,34 @@
 
 ## 4. 视频分页
 
-状态：已延期（数据不足）
+状态：部分通过（API 分页、组合索引、`getVideos` 旧版修复已验证；21 条 UI 测试和管理端分页待补测）
 来源：`IMP-008 B`
 
 验证项：
 
-- [ ] 准备 21 条以上已发布 `[TEST]` 视频
-- [ ] 用户端分页、加载更多、无重复
-- [ ] 下拉刷新回到第一页
-- [ ] 内置演示视频只出现在第一页
-- [ ] 管理端分页、编辑/删除后刷新
-- [ ] `videos` 组合索引已创建
+- [ ] 准备 21 条以上已发布 `[TEST]` 视频（当前仅 3 条已发布，UI 测试跳过）
+- [x] 用户端分页、加载更多、无重复（cloud function 用 `pageSize:1` 验证 3 页；21 条 UI 待补测）
+- [ ] 下拉刷新回到第一页（代码审查通过，UI 待补测）
+- [x] 内置演示视频只出现在第一页（代码审查：`mergeBuiltinVideos` 仅在 `nextPage === 1` 时合并）
+- [ ] 管理端分页、编辑/删除后刷新（代码审查通过；需管理员账号和更多数据补测）
+- [x] `videos` 组合索引已创建
+- [x] `getVideos` 云端旧版已修复，返回 `page` / `pageSize` / `hasMore`
+
+验证记录（2026-11-23，环境 `cloud1-d8gvez9rg8eb96b20`）：
+
+- `videos` 当前共 4 条：3 条 `published`、1 条 `offline`，不足以做 21 条 UI 分页测试。
+- 修复前云端 `getVideos` 仍是旧版：`pageSize:1` 连续调用返回同一条视频，响应没有 `page` / `pageSize` / `hasMore`。
+- 补传 `getVideos` 后，`pageSize:1` 验证：第 1/2/3/4 页分别为「戒赌小视频」/「111」/「6」/空，`hasMore` 为 `true` / `true` / `false` / `false`，无重复。
+- 已创建 `videos` 组合索引 `status_1_sort_1_publishedAt_-1` 和 `sort_1_updatedAt_-1`，索引列表已确认。
+- `getAdminVideoList`、`saveVideo`、`deleteVideo` 已补空 OPENID 守卫；MCP 直调 `getAdminVideoList` / `saveVideo` 返回“无管理权限”。
+
+后续视频待办（2026-11-23 记录，本次不处理）：
+
+- 核查 `getVideoDetail` 及视频模块其他云函数是否已部署到当前版本（`getVideos` 曾为旧版）。
+- 用户端 21 条视频 UI 分页、下拉刷新、内置视频首屏展示待补测。
+- 管理端分页、编辑/删除后刷新待补测。
+- `utils/defaultVideos.js` 内置演示视频仍缺真实资源。
+- PC 端视频/封面上传链路未实现。
 
 相关文档：
 

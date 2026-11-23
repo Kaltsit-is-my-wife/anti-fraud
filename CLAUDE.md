@@ -395,7 +395,7 @@ createdAt/updatedAt   云函数维护
 - `getVideos`、`getVideoDetail`、`getAdminVideoList`、`saveVideo`、`deleteVideo`、`cleanupStorageFiles` 必须部署到同一个目标云环境；普通用户不能调用管理函数。
 - `deleteVideo` 仅删除 `videos` 数据库记录，不直接删除 `videoUrl` / `coverImage` 指向的云存储文件；已发布视频返回“已发布视频不能删除，请先下线”。
 - 旧文件清理：`saveVideo` 替换视频/封面、`deleteVideo` 删除记录时，旧 `cloud://` 文件进入 `storage_cleanup_tasks`（默认 7 天宽限期）。`cleanupStorageFiles` 默认 `dryRun: true`，引用扫描覆盖 `videos.videoUrl/coverImage`、`articles.coverImage/videoUrl/content`（富文本）、`topics.coverImage/contentBlocks[].imageUrl`、`question_banks.coverImage`、`banners.image`、`users/public_profiles.avatarUrl`、`posts.images/coverImage`、`scam_reports.images`、`feedback_records`、`products`、`quiz_questions`、`titles/achievements.icon`、`notifications.payload`。实际删除默认关闭；在测试环境完成 `dryRun: false` 验证前，不要配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true`。实际删除默认关闭：管理页只开放 dry-run，`operator` 只能 dry-run，`isAdmin` 还需要配置 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 才可能实际删除。定时触发器/云控制台默认也只做 dry-run，需同时配置 `STORAGE_CLEANUP_AUTO_DELETE=true` 和 `STORAGE_CLEANUP_ALLOW_REAL_DELETE=true` 才自动执行。小程序端不直接调用 `wx.cloud.deleteFile`。详见 [docs/operations/storage_cleanup.md](./docs/operations/storage_cleanup.md)。
-- 视频列表已分页：`getVideos` / `getAdminVideoList` 接受 `page`、`pageSize`，返回 `page`、`pageSize`、`hasMore`；用户页支持下拉刷新和触底加载，管理页支持触底/“加载更多”按钮。建议在云开发控制台为 `videos` 创建 `status + sort + publishedAt` 和 `sort + updatedAt` 组合索引。
+- 视频列表已分页：`getVideos` / `getAdminVideoList` 接受 `page`、`pageSize`，返回 `page`、`pageSize`、`hasMore`；用户页支持下拉刷新和触底加载，管理页支持触底/“加载更多”按钮。已创建 `videos` 的 `status + sort + publishedAt` 和 `sort + updatedAt` 组合索引（2026-11-23），新增环境需重新创建。云端 `getVideos` 必须部署分页版本，否则响应缺少 `hasMore`，用户端不会加载更多。
 - 发布回归必须验证：列表可见、封面可见、视频可播放、草稿/下线不可见、关联文章/话题可跳转、分页无重复/遗漏、旧文件清理 dry-run 正常；实际删除需等引用检查补齐并恢复开关后再验证。快速验收看 [简易测试（大白话版）](./docs/guides/video-pagination-storage-cleanup-simple-test.md)，完整步骤见 [详细测试说明](./docs/guides/video-pagination-storage-cleanup-test.md)。
 
 #### 视频上传现状与后续规划
@@ -559,7 +559,7 @@ API Key 只能配置在云函数环境变量 `QWEN_API_KEY`；`QWEN_MODEL` 当�
 - 文章管理继续依赖 CMS；首页和详情仍保留本地示例兜底，正式发布前需确认不会掩盖云端配置错误。
 - 视频管理和读取链路已存在，列表分页和旧文件清理队列已补齐；但仍没有统一媒体上传能力，且保留空资源内置视频。上传成功但从未保存到 `videos` 的孤立文件不在清理队列覆盖范围内；上线前的历史孤立文件需要在云开发控制台做一次性盘点。
 - `cleanupStorageFiles` 的引用扫描已补齐 `topics.contentBlocks[].imageUrl`、`articles.content` 富文本和 `products`/`notifications` 等字段，并通过 dry-run 验证；实际删除仍默认关闭，需在测试环境验证后再开放。
-- 视频分页依赖 `videos` 的组合索引；未创建索引时小数据量仍可用，数据增长后需要在云开发控制台补索引。
+- 视频分页依赖 `videos` 的 `status + sort + publishedAt` 与 `sort + updatedAt` 组合索引（当前环境已创建）；新增或迁移环境时需重新创建。
 - 题库模块已完成 5/6 选项、发布状态隔离和分批查询；但“停用题是否在管理端展示”的验收口径尚未统一，且至少 2 个题库的验收数据和真实环境验收记录仍未准备。题库全量读取目前是分批拉取后在内存中统计/过滤，题目规模非常大时还需要进一步做服务端分页。
 - 部分历史云函数可能仍存在旧版写入 `_id`、本地降级或重复业务逻辑，修改时先检查调用链和数据影响。
 - 二期方向包括图文文章、官方话题、内容审核、视频、题库管理；计划文档中的“规划新增”不能视为已部署能力。

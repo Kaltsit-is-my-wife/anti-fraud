@@ -271,12 +271,13 @@
   - [ ] 引用查询能跨 100 条分页，超过 100 条引用的文件仍被识别为“仍被引用”，不出现在候选列表。
   - [ ] 删除视频确认文案为“删除记录并登记旧文件到清理队列”，不再写“文件会保留”。
 
-  B. 视频分页（暂按通过，补数据后补测）
+  B. 视频分页（API 已验证；21 条 UI 与管理端分页待补测）
 
-  - [ ] 准备 21 条以上已发布 `[TEST]` 视频。
-  - [ ] 用户端分页、加载更多、无重复、下拉刷新、内置视频只出现在第一页。
+  - [ ] 准备 21 条以上已发布 `[TEST]` 视频（当前仅 3 条已发布）。
+  - [x] 用户端分页、加载更多、无重复（cloud function 用 `pageSize:1` 验证 3 页）。
+  - [ ] 下拉刷新、内置视频只出现在第一页（内置视频合并逻辑代码审查通过）。
   - [ ] 管理端分页、编辑/删除后刷新。
-  - [ ] 确认 `videos` 组合索引已创建。
+  - [x] 确认 `videos` 组合索引已创建。
 
   C. 题库 P0 真实数据回归
 
@@ -334,7 +335,7 @@
 
 ### IMP-010 云函数缺少 OPENID 空值守卫
 
-- 状态：DOING（2026-11-23：评论/审核三个函数已修复，其余待审计）
+- 状态：DOING（2026-11-23：评论/审核三个函数 + 视频管理三个函数已修复，其余待审计）
 - 优先级：P0
 - 类型：安全
 - 来源：验收时通过 CloudBase MCP 直调 `getReviewTasks` 发现
@@ -347,8 +348,9 @@
 - 已处理：
   - `getReviewTasks`、`reviewContent`：`!openid` 直接返回“无审核权限”。
   - `createComment`：`!openid` 直接返回“用户不存在”。
+  - `getAdminVideoList`、`saveVideo`、`deleteVideo`：`!openid` 直接返回“无管理权限”。
 - 待审计：
-  - `saveVideo`、`deleteVideo`、`saveTopic`、`deleteTopic`、`getAdminTopicList`、`getAdminVideoList`、`submitTopicComment`、`submitFeedback`、`createScamReport`、`userSignIn`、`trackAction`、`followUser`、`redeemProduct` 等所有读取当前用户的函数。
+  - `saveTopic`、`deleteTopic`、`getAdminTopicList`、`submitTopicComment`、`submitFeedback`、`createScamReport`、`userSignIn`、`trackAction`、`followUser`、`redeemProduct` 等所有读取当前用户的函数。
 - 验收标准：
   - 无 OPENID 直调所有用户态函数时，均返回未登录/无权限，不读写任何用户数据。
   - 普通账号、`reviewer`、`operator`、`isAdmin` 的权限矩阵回归通过。

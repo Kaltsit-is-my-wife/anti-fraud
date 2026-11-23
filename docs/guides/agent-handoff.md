@@ -76,7 +76,8 @@
 
 ### 其他待测
 
-- 视频分页：需要 21 条以上已发布视频后补测
+- 视频分页：cloud function 已用 `pageSize:1` 验证，组合索引已创建；21 条 UI 测试和管理端分页待补测
+- 视频模块其他待办：核查 `getVideoDetail` 等函数版本；内置演示视频缺真实资源；PC 上传链路未实现
 - 题库 P0：需要核对 `default_bank` / `bankIds` / `questionId` 并执行 `initQuestionBanks`
 - 题库管理 UI：placeholder、答案/难度选择器、2–6 选项固定行
 - 存储清理 P0：管理页 UI、`dryRun: false` 拦截、dry-run 不改任务状态、删除确认文案已通过；引用扫描补齐已通过 dry-run 验证；普通用户 / operator 权限待测；100+ 引用分页与实际删除验证延期
